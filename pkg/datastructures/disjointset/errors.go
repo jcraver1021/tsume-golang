@@ -5,5 +5,7 @@ import (
 )
 
 var (
-	ErrMissingElement = errors.New("element not found in disjoint set")
+	ErrInvalidConfiguration = errors.New("configuration is invalid")
+	ErrInvalidRequest       = errors.New("invalid request")
+	ErrMissingElement       = errors.New("element not found in disjoint set")
 )
