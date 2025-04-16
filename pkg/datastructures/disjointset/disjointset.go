@@ -156,6 +156,7 @@ func (s *DisjointSet) Union(i, j int) error {
 			s.parents[root1] = root2
 		} else {
 			s.parents[root2] = root1
+			// Rank is only incremented if the trees are of equal rank.
 			if s.ranks[root1] == s.ranks[root2] {
 				s.ranks[root1]++
 			}
