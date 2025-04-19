@@ -6,8 +6,7 @@ import (
 )
 
 // Generate a rectangular maze with the given settings
-// TODO: add image output
-func GenerateMaze(width, height int) error {
+func GenerateMaze(width, height int, filename string) error {
 	// Generate the starting graph
 	rect, err := Rectangle(width, height, true)
 	if err != nil {
@@ -25,6 +24,16 @@ func GenerateMaze(width, height int) error {
 	}
 
 	// Draw the maze
+	img, err := DrawRectangleMaze(paths, width, height)
+	if err != nil {
+		return err
+	}
+
+	// Save the image to a file
+	err = WriteImageToFile(&img, filename)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
