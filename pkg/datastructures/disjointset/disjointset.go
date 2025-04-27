@@ -13,10 +13,10 @@ const (
 )
 
 type DisjointSet struct {
-	c       int   // Initial capacity.
-	s       int   // Scale factor for capacity expansion.
-	parents []int // Each element's value represents the index of its parent.
-	ranks   []int // Each element's value represents the rank of the tree rooted at that element.
+	c       int         // Initial capacity.
+	s       int         // Scale factor for capacity expansion.
+	parents []int       // Each element's value represents the index of its parent.
+	ranks   map[int]int // Rank of each root element, used for union by rank.
 }
 
 // WithCapacity sets the initial capacity of the DisjointSet.
@@ -60,7 +60,7 @@ func (s *DisjointSet) isValid() bool {
 // init initializes the set's internal arrays.
 func (s *DisjointSet) init() {
 	s.parents = make([]int, 0, s.c)
-	s.ranks = make([]int, 0, s.c)
+	s.ranks = make(map[int]int, s.c)
 }
 
 // ensureIdx returns the next available index, expanding the capacity by the scale factor if the array is full.
@@ -70,9 +70,6 @@ func (s *DisjointSet) ensureIdx() int {
 		newParents := make([]int, 0, cap(s.parents)*s.s)
 		copy(newParents, s.parents)
 		s.parents = newParents
-		newRanks := make([]int, 0, cap(s.ranks)*s.s)
-		copy(newRanks, s.ranks)
-		s.ranks = newRanks
 	}
 
 	return int(n)
@@ -82,7 +79,7 @@ func (s *DisjointSet) ensureIdx() int {
 func (s *DisjointSet) Add() int {
 	i := s.ensureIdx()
 	s.parents = append(s.parents, i)
-	s.ranks = append(s.ranks, 0)
+	s.ranks[i] = 0
 
 	return i
 }
@@ -154,8 +151,10 @@ func (s *DisjointSet) Union(i, j int) error {
 	if root1 != root2 {
 		if s.ranks[root1] < s.ranks[root2] {
 			s.parents[root1] = root2
+			delete(s.ranks, root1)
 		} else {
 			s.parents[root2] = root1
+			delete(s.ranks, root2)
 			// Rank is only incremented if the trees are of equal rank.
 			if s.ranks[root1] == s.ranks[root2] {
 				s.ranks[root1]++
