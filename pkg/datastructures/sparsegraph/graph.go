@@ -3,7 +3,9 @@
 
 package sparsegraph
 
-import "tsumegolang/pkg/datastructures/graph"
+import (
+	"tsumegolang/pkg/datastructures/graph"
+)
 
 type Graph struct {
 	directed bool              // Indicates if the graph is directed or not.
