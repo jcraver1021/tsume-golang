@@ -5,14 +5,16 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"tsumegolang/pkg/datastructures/sparsegraph"
 )
 
 const (
 	SquareSize = 20 // Size of each square in the rectangle drawing
 )
 
-func DrawRectangleMaze(g *sparsegraph.Graph, width, height int) (image.Image, error) {
+func DrawRectangleMaze(r *Rectangle) (image.Image, error) {
+	g := r.Graph
+	width := r.Width
+	height := r.Height
 	if g.GetSize() != width*height {
 		return nil, fmt.Errorf("graph size %d does not match specified dimensions %dx%d", g.GetSize(), width, height)
 	}
