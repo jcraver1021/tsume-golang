@@ -11,7 +11,12 @@ on:
     branches:
       - main
     paths:
-      - /**/*.go
+      - cmd
+      - internal
+      - pkg
+      - .github/workflows/go.yaml
+      - go.mod
+      - "!**.md"
 
 jobs:
 
