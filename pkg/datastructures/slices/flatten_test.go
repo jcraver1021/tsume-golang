@@ -138,6 +138,10 @@ func CompareWithFlattened(t *testing.T, want [][]int, got []int) {
 	}
 }
 
+func NameTest(components []string) string {
+	return strings.Join(components, "_")
+}
+
 func TestFlattenAppend(t *testing.T) {
 	// We run through an abbreviated set of combinations here to keep the test time reasonable.
 	for quantity := Single; quantity <= Several; quantity++ {
@@ -148,7 +152,7 @@ func TestFlattenAppend(t *testing.T) {
 					size.String(),
 					order.String(),
 				}
-				t.Run(strings.Join(append(nameComponents, "Append"), "_"), func(t *testing.T) {
+				t.Run(NameTest(append(nameComponents, "Append")), func(t *testing.T) {
 					want := buildInput(order, size, quantity)
 					got := FlattenAppend(want)
 					CompareWithFlattened(t, want, got)
@@ -168,7 +172,7 @@ func TestFlattenAllocate(t *testing.T) {
 					size.String(),
 					order.String(),
 				}
-				t.Run(strings.Join(append(nameComponents, "Allocate"), "_"), func(t *testing.T) {
+				t.Run(NameTest(append(nameComponents, "Allocate")), func(t *testing.T) {
 					want := buildInput(order, size, quantity)
 					got := FlattenAllocate(want)
 					CompareWithFlattened(t, want, got)
@@ -178,27 +182,74 @@ func TestFlattenAllocate(t *testing.T) {
 	}
 }
 
+// Noise represents the amount of other memory activity going on during the test.
+// Roughly 1 / (2^n) of the CPU time will be spent doing other work, where n is the Noise level.
+type Noise int
+
+const (
+	Silent Noise = iota
+	Quiet
+	Noisy
+	VeryNoisy
+)
+
+func (n Noise) String() string {
+	return [...]string{"Silent", "Quiet", "Noisy", "VeryNoisy"}[n]
+}
+
+func (n Noise) ToInt() int {
+	return (1 << n) - 1
+}
+
+func CycleMemoryUntilFurtherNotice(order Order, size Size, quantity Quantity, stop chan struct{}) {
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+				_ = buildInput(order, size, quantity)
+			}
+		}
+	}()
+}
+
 // Note that these benchmarks run the exact same input through each function and each run.
-func BenchmarkFlattenQuiet(b *testing.B) {
+func BenchmarkFlatten(b *testing.B) {
 	for quantity := Single; quantity <= Lots; quantity++ {
 		for size := One; size <= ExtraLarge; size++ {
 			for order := Equal; order <= Alternating; order++ {
-				nameComponents := []string{
-					quantity.String(),
-					size.String(),
-					order.String(),
+				for noise := Silent; noise <= VeryNoisy; noise++ {
+					nameComponents := []string{
+						quantity.String(),
+						size.String(),
+						order.String(),
+						noise.String(),
+					}
+					input := buildInput(order, size, quantity)
+
+					stop := make(chan struct{})
+					for j := 0; j < noise.ToInt(); j++ {
+						CycleMemoryUntilFurtherNotice(order, size, quantity, stop)
+					}
+					b.Run(NameTest(append(nameComponents, "Append")), func(b *testing.B) {
+						for i := 0; i < b.N; i++ {
+							_ = FlattenAppend(input)
+						}
+					})
+					close(stop)
+
+					stop = make(chan struct{})
+					for j := 0; j < noise.ToInt(); j++ {
+						CycleMemoryUntilFurtherNotice(order, size, quantity, stop)
+					}
+					b.Run(NameTest(append(nameComponents, "Allocate")), func(b *testing.B) {
+						for i := 0; i < b.N; i++ {
+							_ = FlattenAllocate(input)
+						}
+					})
+					close(stop)
 				}
-				input := buildInput(order, size, quantity)
-				b.Run(strings.Join(append(nameComponents, "Append"), "_"), func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						FlattenAppend(input)
-					}
-				})
-				b.Run(strings.Join(append(nameComponents, "Allocate"), "_"), func(b *testing.B) {
-					for i := 0; i < b.N; i++ {
-						FlattenAllocate(input)
-					}
-				})
 			}
 		}
 	}
