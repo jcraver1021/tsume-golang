@@ -5,9 +5,18 @@ name: Go
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+    paths:
+      - cmd
+      - internal
+      - pkg
+      - .github/workflows/go.yaml
+      - go.mod
+      - "!**.md"
 
 jobs:
 
@@ -15,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.22', '1.23', '1.24']
+        go-version: ['1.23.x', '1.24.x', '1.25.x']
     steps:
     - uses: actions/checkout@v4
 
@@ -41,4 +50,4 @@ jobs:
 
     - name: Benchmark
       if: github.event_name != 'pull_request'
-      run: go test -v -run=^$ -bench=. -benchmem ./...
+      run: go test -v -run=^$ -bench=. -benchmem -timeout=20m ./...
