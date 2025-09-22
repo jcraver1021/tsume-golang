@@ -1,6 +1,6 @@
 package slices
 
-func FlattenAppend[T any](slices [][]T) []T {
+func FlattenAppend[S ~[][]T, T any](slices S) []T {
 	var res []T
 	for _, a := range slices {
 		res = append(res, a...)
@@ -8,7 +8,7 @@ func FlattenAppend[T any](slices [][]T) []T {
 	return res
 }
 
-func FlattenAllocate[T any](slices [][]T) []T {
+func FlattenAllocate[S ~[][]T, T any](slices S) []T {
 	n := 0
 	for _, a := range slices {
 		n += len(a)
