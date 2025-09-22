@@ -17,9 +17,7 @@ func FlattenAllocate[T any](slices [][]T) []T {
 	res := make([]T, n)
 	offset := 0
 	for _, a := range slices {
-		for i, e := range a {
-			res[offset+i] = e
-		}
+		copy(res[offset:], a)
 		offset += len(a)
 	}
 
