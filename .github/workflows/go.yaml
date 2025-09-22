@@ -47,7 +47,3 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
-    - name: Benchmark
-      if: github.event_name != 'pull_request'
-      run: go test -v -run=^$ -bench=. -benchmem -timeout=20m ./...

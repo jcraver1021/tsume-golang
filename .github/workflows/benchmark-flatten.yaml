@@ -1,0 +1,25 @@
+name: Benchmark - Slice Flattening
+
+on:
+  workflow_dispatch:
+    inputs:
+      go-version:
+        description: 'Go version to use'
+        required: true
+        default: '1.25.x'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ github.event.inputs.go-version }}
+
+    - name: Run Benchmark
+      working-directory: ./pkg/datastructures/slices
+      run: go test -v -run=^$ -bench=. -benchmem -timeout=30m
