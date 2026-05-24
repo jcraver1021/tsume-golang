@@ -21,5 +21,5 @@ jobs:
         go-version: ${{ github.event.inputs.go-version }}
 
     - name: Run Benchmark
-      working-directory: ./pkg/datastructures/slices
+      working-directory: ./pkg/ds/slices
       run: go test -v -run=^$ -bench=. -benchmem -timeout=30m
