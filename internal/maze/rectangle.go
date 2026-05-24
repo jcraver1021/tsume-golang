@@ -3,7 +3,7 @@ package maze
 import (
 	"math/rand"
 
-	"tsumegolang/pkg/datastructures/sparsegraph"
+	"tsumegolang/pkg/ds/graph/sparsegraph"
 )
 
 type EdgeInit int

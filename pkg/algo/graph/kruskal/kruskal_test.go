@@ -3,8 +3,8 @@ package kruskal
 import (
 	"testing"
 
-	"tsumegolang/pkg/datastructures/graph"
-	"tsumegolang/pkg/datastructures/sparsegraph"
+	"tsumegolang/pkg/ds/graph"
+	"tsumegolang/pkg/ds/graph/sparsegraph"
 )
 
 func TestMST(t *testing.T) {

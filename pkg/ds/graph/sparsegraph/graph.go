@@ -4,7 +4,7 @@
 package sparsegraph
 
 import (
-	"tsumegolang/pkg/datastructures/graph"
+	"tsumegolang/pkg/ds/graph"
 )
 
 type Graph struct {

@@ -1,8 +1,8 @@
 package kruskal
 
 import (
-	"tsumegolang/pkg/datastructures/disjointset"
-	"tsumegolang/pkg/datastructures/graph"
+	"tsumegolang/pkg/ds/basic/disjointset"
+	"tsumegolang/pkg/ds/graph"
 )
 
 // Graph interface defines the methods required for a graph to be used with Kruskal's algorithm.

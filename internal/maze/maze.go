@@ -3,8 +3,8 @@ package maze
 import (
 	"fmt"
 
-	"tsumegolang/pkg/algorithms/graph/kruskal"
-	"tsumegolang/pkg/datastructures/sparsegraph"
+	"tsumegolang/pkg/algo/graph/kruskal"
+	"tsumegolang/pkg/ds/graph/sparsegraph"
 )
 
 const (
