@@ -6,7 +6,7 @@ on:
       go-version:
         description: 'Go version to use'
         required: true
-        default: '1.25.x'
+        default: '1.26.x'
 
 jobs:
 
