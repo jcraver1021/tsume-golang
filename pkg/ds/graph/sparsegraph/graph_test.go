@@ -1,8 +1,10 @@
-package sparsegraph
+package sparsegraph_test
 
 import (
 	"testing"
-	"tsumegolang/pkg/datastructures/graph"
+
+	"tsumegolang/pkg/ds/graph"
+	. "tsumegolang/pkg/ds/graph/sparsegraph"
 )
 
 func TestConnect(t *testing.T) {
@@ -155,9 +157,9 @@ func TestGetAllEdges(t *testing.T) {
 				t.Fatalf("NewGraph() failed: %v", err)
 			}
 
-			for _, edge := range tc.edges {
-				if err := g.Connect(edge.From.(int), edge.To.(int), edge.Weight); err != nil {
-					t.Fatalf("Connect(%d, %d, %f) failed: %v", edge.From, edge.To, edge.Weight, err)
+			for _, e := range tc.edges {
+				if err := g.Connect(e.From.(int), e.To.(int), e.Weight); err != nil {
+					t.Fatalf("Connect(%d, %d, %f) failed: %v", e.From, e.To, e.Weight, err)
 				}
 			}
 
