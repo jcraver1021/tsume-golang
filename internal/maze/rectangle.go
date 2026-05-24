@@ -15,7 +15,7 @@ const (
 )
 
 const (
-	constWeight = 1.0
+	DefaultWeight = 1.0
 )
 
 type Rectangle struct {
@@ -73,7 +73,7 @@ func NewRectangle(width, height int, init EdgeInit) (*Rectangle, error) {
 func getNewWeight(method EdgeInit) float64 {
 	switch method {
 	case CONNECT_CONST:
-		return constWeight
+		return DefaultWeight
 	case CONNECT_RANDOM:
 		return rand.Float64()
 	}

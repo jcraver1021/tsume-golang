@@ -1,7 +1,9 @@
-package maze
+package maze_test
 
 import (
 	"testing"
+
+	. "tsumegolang/internal/maze"
 )
 
 func TestRectangle(t *testing.T) {
@@ -53,6 +55,24 @@ func TestRectangle(t *testing.T) {
 			height: 2,
 			init:   CONNECT_RANDOM,
 		},
+		{
+			name:   "randomized large square",
+			width:  10,
+			height: 10,
+			init:   CONNECT_RANDOM,
+		},
+		{
+			name:   "disconnected small square",
+			width:  2,
+			height: 2,
+			init:   NO_CONNECT,
+		},
+		{
+			name:   "disconnected large square",
+			width:  10,
+			height: 10,
+			init:   NO_CONNECT,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -84,8 +104,8 @@ func TestRectangle(t *testing.T) {
 									if !ok {
 										t.Errorf("expected edge between %d and %d to exist", i, j)
 									}
-									if w != constWeight {
-										t.Errorf("expected weight of edge between %d and %d to be %f, got %f", i, j, constWeight, w)
+									if w != DefaultWeight {
+										t.Errorf("expected weight of edge between %d and %d to be %f, got %f", i, j, DefaultWeight, w)
 									}
 								case CONNECT_RANDOM:
 									if !ok {
@@ -102,47 +122,6 @@ func TestRectangle(t *testing.T) {
 							}
 						}
 					}
-				}
-			}
-		})
-	}
-}
-
-func TestGetNewWeight(t *testing.T) {
-	testCases := []struct {
-		name string
-		init EdgeInit
-	}{
-		{
-			name: "no connect",
-			init: NO_CONNECT,
-		},
-		{
-			name: "const",
-			init: CONNECT_CONST,
-		},
-		{
-			name: "random",
-			init: CONNECT_RANDOM,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			w := getNewWeight(tc.init)
-
-			switch tc.init {
-			case NO_CONNECT:
-				if w != 0.0 {
-					t.Errorf("(getNewWeight) want %f, got %f", 0.0, w)
-				}
-			case CONNECT_CONST:
-				if w != constWeight {
-					t.Errorf("(getNewWeight) want %f, got %f", constWeight, w)
-				}
-			case CONNECT_RANDOM:
-				if w < 0.0 || w >= 1.0 {
-					t.Errorf("(getNewWeight) want element of [0, 1), got %f", w)
 				}
 			}
 		})

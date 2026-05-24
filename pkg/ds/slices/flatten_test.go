@@ -1,8 +1,10 @@
-package slices
+package slices_test
 
 import (
 	"strings"
 	"testing"
+
+	. "tsumegolang/pkg/ds/slices"
 )
 
 func Log2(n int) int {

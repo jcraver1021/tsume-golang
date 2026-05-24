@@ -1,8 +1,10 @@
-package sparsegraph
+package sparsegraph_test
 
 import (
 	"testing"
+
 	"tsumegolang/pkg/ds/graph"
+	. "tsumegolang/pkg/ds/graph/sparsegraph"
 )
 
 func TestConnect(t *testing.T) {

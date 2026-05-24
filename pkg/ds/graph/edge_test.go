@@ -1,7 +1,9 @@
-package graph
+package graph_test
 
 import (
 	"testing"
+
+	. "tsumegolang/pkg/ds/graph"
 )
 
 func TestEdgeEquals(t *testing.T) {

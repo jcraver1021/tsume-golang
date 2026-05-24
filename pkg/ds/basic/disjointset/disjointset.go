@@ -102,6 +102,11 @@ func (s *DisjointSet) Size() int {
 	return len(s.parents)
 }
 
+// Capacity returns the current capacity of the DisjointSet.
+func (s *DisjointSet) Capacity() int {
+	return cap(s.parents)
+}
+
 // checkIdx checks if the given index is valid, returning an error if it is not.
 func (s *DisjointSet) checkIdx(i int) error {
 	if i >= len(s.parents) {

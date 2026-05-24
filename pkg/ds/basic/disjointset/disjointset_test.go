@@ -1,7 +1,9 @@
-package disjointset
+package disjointset_test
 
 import (
 	"testing"
+
+	. "tsumegolang/pkg/ds/basic/disjointset"
 )
 
 func TestDisjointSet(t *testing.T) {
@@ -105,8 +107,8 @@ func TestDisjointSetCapacity(t *testing.T) {
 				t.Fatalf("NewDisjointSet() failed: %v", err)
 			} else if err == nil && tc.wantErr != nil {
 				t.Fatalf("NewDisjointSet() succeeded, expected error: %v", tc.wantErr)
-			} else if err == nil && cap(ds.parents) != tc.n {
-				t.Errorf("Expected capacity %d, got %d", tc.n, cap(ds.parents))
+			} else if err == nil && ds.Capacity() != tc.n {
+				t.Errorf("Expected capacity %d, got %d", tc.n, ds.Capacity())
 			}
 		})
 	}
@@ -151,13 +153,13 @@ func TestDisjointSetScaleFactor(t *testing.T) {
 				t.Fatalf("NewDisjointSet() succeeded, expected error: %v", tc.wantErr)
 			}
 			if err == nil {
-				c := cap(ds.parents)
+				c := ds.Capacity()
 				// Add one extra over capacity to trigger expansion.
-				for i := 0; i <= c; i++ {
+				for range c + 1 {
 					ds.Add()
 				}
-				if cap(ds.parents) != c*tc.n {
-					t.Errorf("Expected capacity %d, got %d", c*tc.n, cap(ds.parents))
+				if ds.Capacity() != c*tc.n {
+					t.Errorf("Expected capacity %d, got %d", c*tc.n, ds.Capacity())
 				}
 			}
 		})
