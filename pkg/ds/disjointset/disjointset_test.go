@@ -3,7 +3,7 @@ package disjointset_test
 import (
 	"testing"
 
-	. "tsumegolang/pkg/ds/basic/disjointset"
+	. "tsumegolang/pkg/ds/disjointset"
 )
 
 func TestDisjointSet(t *testing.T) {
