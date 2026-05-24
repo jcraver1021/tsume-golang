@@ -1,7 +1,7 @@
 package kruskal
 
 import (
-	"tsumegolang/pkg/ds/basic/disjointset"
+	"tsumegolang/pkg/ds/disjointset"
 	"tsumegolang/pkg/ds/graph"
 )
 
