@@ -10,9 +10,25 @@ func NewStack[T any]() *Stack[T] {
 	}
 }
 
+func (s *Stack[T]) Len() int {
+	return len(s.elements)
+}
+
+func (s *Stack[T]) IsEmpty() bool {
+	return len(s.elements) == 0
+}
+
 func (s *Stack[T]) Push(element T) {
 	// Note: we do not need to check for capacity here, as the underlying slice will automatically resize as needed
 	s.elements = append(s.elements, element)
+}
+
+func (s *Stack[T]) Peek() (T, bool) {
+	if len(s.elements) == 0 {
+		var zero T
+		return zero, false
+	}
+	return s.elements[len(s.elements)-1], true
 }
 
 func (s *Stack[T]) Pop() (T, bool) {
