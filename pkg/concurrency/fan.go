@@ -4,43 +4,24 @@ import (
 	"sync"
 )
 
-type WorkFn[S, T any] func(T) (S, error)
+func FanOut[I, O any](in <-chan I, n int, fn Job[I, O]) []<-chan JobResult[I, O] {
+	outs := make([]<-chan JobResult[I, O], n)
 
-type WorkError[T any] struct {
-	Input T
-	Err   error
-}
-
-func FanOut[S, T any](in <-chan T, n int, fn WorkFn[S, T]) ([]<-chan S, <-chan WorkError[T]) {
-	outs := make([]<-chan S, n)
-	errs := make(chan WorkError[T])
-	var wg sync.WaitGroup
-
-	for i := range n {
-		out := make(chan S)
+	for i := range outs {
+		out := make(chan JobResult[I, O])
 		outs[i] = out
-		wg.Add(1)
 
-		go func(out chan S) {
-			defer wg.Done()
+		go func(out chan JobResult[I, O]) {
 			defer close(out)
+
 			for v := range in {
-				result, err := fn(v)
-				if err != nil {
-					errs <- WorkError[T]{Input: v, Err: err}
-				} else {
-					out <- result
-				}
+				y := fn(v)
+				out <- y
 			}
 		}(out)
 	}
 
-	go func() {
-		wg.Wait()
-		close(errs)
-	}()
-
-	return outs, errs
+	return outs
 }
 
 func FanIn[T any](channels ...<-chan T) <-chan T {
@@ -51,6 +32,7 @@ func FanIn[T any](channels ...<-chan T) <-chan T {
 		wg.Add(1)
 		go func(c <-chan T) {
 			defer wg.Done()
+
 			for v := range c {
 				out <- v
 			}

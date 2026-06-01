@@ -25,11 +25,11 @@ func TestFanOutAndFanIn(t *testing.T) {
 		},
 	}
 
-	workFn := func(x int) (int, error) {
+	workFn := func(x int) JobResult[int, int] {
 		if x%2 == 0 {
-			return x * x, nil
+			return JobResult[int, int]{Input: x, Output: x * x, Status: StatusSuccess}
 		}
-		return 0, errors.New("odd number")
+		return JobResult[int, int]{Input: x, Err: errors.New("odd number"), Status: StatusError}
 	}
 
 	for _, tc := range testCases {
@@ -42,43 +42,28 @@ func TestFanOutAndFanIn(t *testing.T) {
 				}
 			}()
 
-			outChannels, errChannel := FanOut(in, tc.nWorkers, workFn)
+			outChannels := FanOut(in, tc.nWorkers, workFn)
 			results := FanIn(outChannels...)
 
 			expectedResults := map[int]bool{4: true, 16: true}
-			resultCount := 0
+			successCount := 0
 			errCount := 0
 
-			// Read from both channels concurrently to avoid deadlock
-			for {
-				select {
-				case result, ok := <-results:
-					if !ok {
-						results = nil
-					} else {
-						if !expectedResults[result] {
-							t.Errorf("Unexpected result: %d", result)
-						}
-						resultCount++
-					}
-				case err, ok := <-errChannel:
-					if !ok {
-						errChannel = nil
-					} else {
-						if err.Err.Error() != "odd number" {
-							t.Errorf("Unexpected error: %v", err.Err)
-						}
-						errCount++
-					}
+			// Read results from the channel
+			for result := range results {
+				if result.Err != nil {
+					errCount++
+					continue
 				}
 
-				if results == nil && errChannel == nil {
-					break
+				if !expectedResults[result.Output] {
+					t.Errorf("Unexpected result: %d", result.Output)
 				}
+				successCount++
 			}
 
-			if resultCount != 2 {
-				t.Errorf("Expected 2 results, got %d", resultCount)
+			if successCount != 2 {
+				t.Errorf("Expected 2 successful results, got %d", successCount)
 			}
 			if errCount != 3 {
 				t.Errorf("Expected 3 errors, got %d", errCount)
