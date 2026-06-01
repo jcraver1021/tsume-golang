@@ -4,32 +4,32 @@ import (
 	"sync"
 )
 
-type PubSub[T any] struct {
-	subscribers []chan T
+type PubSub[I any] struct {
+	subscribers []chan I
 	mu          sync.Mutex
 }
 
-func NewPubSub[T any]() *PubSub[T] {
-	return &PubSub[T]{}
+func NewPubSub[I any]() *PubSub[I] {
+	return &PubSub[I]{}
 }
 
-func (ps *PubSub[T]) Subscribe() <-chan T {
+func (ps *PubSub[I]) Subscribe() <-chan I {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	ch := make(chan T)
+	ch := make(chan I)
 	ps.subscribers = append(ps.subscribers, ch)
 	return ch
 }
 
-func (ps *PubSub[T]) Publish(msg T) {
+func (ps *PubSub[I]) Publish(msg I) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 	var wg sync.WaitGroup
 
 	for _, ch := range ps.subscribers {
 		wg.Add(1)
-		go func(ch chan T) {
+		go func(ch chan I) {
 			defer wg.Done()
 			ch <- msg
 		}(ch)
@@ -37,7 +37,7 @@ func (ps *PubSub[T]) Publish(msg T) {
 	wg.Wait()
 }
 
-func (ps *PubSub[T]) Unsubscribe(ch <-chan T) {
+func (ps *PubSub[I]) Unsubscribe(ch <-chan I) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
@@ -50,7 +50,7 @@ func (ps *PubSub[T]) Unsubscribe(ch <-chan T) {
 	}
 }
 
-func (ps *PubSub[T]) Close() {
+func (ps *PubSub[I]) Close() {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
