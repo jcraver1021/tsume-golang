@@ -1,6 +1,6 @@
 module tsumegolang
 
-go 1.24.0
+go 1.26.1
 
 require github.com/hajimehoshi/ebiten/v2 v2.9.9
 
