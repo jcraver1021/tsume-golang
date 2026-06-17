@@ -188,3 +188,33 @@ func TestEntityStoreSameTypeOrderPreserved(t *testing.T) {
 		}
 	}
 }
+
+func TestEntityStoreTypeGet(t *testing.T) {
+	store := play.NewEntityStore()
+
+	// Add entities of different types
+	player := newMockEntity(def.EntityTypePlayer)
+	enemy := newMockEntity(def.EntityTypeEnemy)
+	background := newMockEntity(def.EntityTypeBackground)
+
+	store.Add(player)
+	store.Add(enemy)
+	store.Add(background)
+
+	// Get entities by type
+	gotPlayers := store.Get(def.EntityTypePlayer)
+	gotEnemies := store.Get(def.EntityTypeEnemy)
+	gotBackgrounds := store.Get(def.EntityTypeBackground)
+
+	if len(gotPlayers) != 1 || gotPlayers[0] != player {
+		t.Errorf("Get(EntityTypePlayer) = %v, want [%v]", gotPlayers, player)
+	}
+
+	if len(gotEnemies) != 1 || gotEnemies[0] != enemy {
+		t.Errorf("Get(EntityTypeEnemy) = %v, want [%v]", gotEnemies, enemy)
+	}
+
+	if len(gotBackgrounds) != 1 || gotBackgrounds[0] != background {
+		t.Errorf("Get(EntityTypeBackground) = %v, want [%v]", gotBackgrounds, background)
+	}
+}

@@ -8,12 +8,14 @@ import (
 )
 
 func TestSceneImplementsInterface(t *testing.T) {
-	scene := play.NewScene(play.GameModeIntro)
+	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
+	scene := play.NewScene(state)
 	var _ def.Scene = scene
 }
 
 func TestSceneDimensions(t *testing.T) {
-	scene := play.NewScene(play.GameModeIntro)
+	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
+	scene := play.NewScene(state)
 
 	gotWidth := scene.Width()
 	gotHeight := scene.Height()
@@ -28,7 +30,8 @@ func TestSceneDimensions(t *testing.T) {
 }
 
 func TestSceneEntities(t *testing.T) {
-	scene := play.NewScene(play.GameModeIntro)
+	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
+	scene := play.NewScene(state)
 
 	entities := scene.Entities()
 
@@ -41,7 +44,8 @@ func TestSceneEntities(t *testing.T) {
 }
 
 func TestSceneUpdate(t *testing.T) {
-	scene := play.NewScene(play.GameModeIntro)
+	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
+	scene := play.NewScene(state)
 
 	// Add trackable entities
 	actCount := 0
@@ -76,7 +80,8 @@ func TestSceneUpdate(t *testing.T) {
 }
 
 func TestSceneIntroModeHasEntities(t *testing.T) {
-	scene := play.NewScene(play.GameModeIntro)
+	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
+	scene := play.NewScene(state)
 
 	// Intro mode should seed initial entities
 	count := 0

@@ -34,6 +34,10 @@ func (s *EntityStore) Add(e def.Entity) {
 	s.entityMap[e.Type()].PushBack(e)
 }
 
+func (s *EntityStore) Get(entityType def.EntityType) []def.Entity {
+	return s.entityMap[entityType].ToSlice()
+}
+
 // IterateForUpdate iterates entities in their natural order of types for game logic updates
 // (player first, background last).
 func (s *EntityStore) IterateForUpdate() <-chan def.Entity {
