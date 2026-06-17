@@ -10,12 +10,14 @@ type Scene struct {
 	entities *EntityStore
 	width    int
 	height   int
+	tick     int // Global animation tick counter
 }
 
 // Interface implementation methods
 func (s *Scene) Width() int                     { return s.width }
 func (s *Scene) Height() int                    { return s.height }
 func (s *Scene) Entities() def.EntityCollection { return s.entities }
+func (s *Scene) Tick() int                      { return s.tick }
 
 func NewScene(state *GameState) *Scene {
 	scene := &Scene{
@@ -35,6 +37,7 @@ func NewScene(state *GameState) *Scene {
 }
 
 func (s *Scene) Update() {
+	s.tick++ // Increment global tick counter
 	for e := range s.entities.IterateForUpdate() {
 		e.Act(s)
 	}

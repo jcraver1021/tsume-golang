@@ -61,8 +61,9 @@ func initIntroMode(b def.Scene) {
 func initPlayMode(b def.Scene, state *GameState) {
 	switch state.Wave {
 	case 1:
-		// Starfield background
-		b.Entities().Add(environment.NewSpace(introStarDensity, b))
+		// Starfield background - use wave-specific density
+		density := waveStarDensity[state.Wave]
+		b.Entities().Add(environment.NewSpace(density, b))
 
 		// Player entity - centered at bottom
 		player := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)

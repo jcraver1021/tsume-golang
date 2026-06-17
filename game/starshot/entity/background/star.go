@@ -14,20 +14,19 @@ import (
 
 // StarVariation defines how a star changes over time
 type StarVariation interface {
-	// Update advances the variation state and returns current (size, brightness multiplier)
-	Update() (sizeMultiplier, brightnessMultiplier float64)
+	// Calculate returns (size, brightness multiplier) based on global tick
+	Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64)
 }
 
 // NoVariation is a static star with no changes over time
 type NoVariation struct{}
 
-func (n *NoVariation) Update() (sizeMultiplier, brightnessMultiplier float64) {
+func (n *NoVariation) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
 	return 1.0, 1.0
 }
 
 // Pulsar oscillates in size and brightness with a sine wave pattern
 type Pulsar struct {
-	phase           float64 // Current phase in radians
 	frequency       float64 // How fast it pulses (radians per frame)
 	sizeAmplitude   float64 // How much size varies (0.0 = none, 1.0 = 0-2x)
 	brightAmplitude float64 // How much brightness varies
@@ -39,39 +38,30 @@ type Pulsar struct {
 // brightnessVariation: 0.0-1.0, how much brightness varies
 func NewPulsar(period float64, sizeVariation, brightnessVariation float64) *Pulsar {
 	return &Pulsar{
-		phase:           0,
 		frequency:       2 * math.Pi / period,
 		sizeAmplitude:   sizeVariation,
 		brightAmplitude: brightnessVariation,
 	}
 }
 
-func (p *Pulsar) Update() (sizeMultiplier, brightnessMultiplier float64) {
+func (p *Pulsar) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
+	// Calculate phase from global tick
+	phase := float64(tick) * p.frequency
+
 	// Sine wave oscillation: ranges from -1 to 1
-	wave := math.Sin(p.phase)
+	wave := math.Sin(phase)
 
 	// Convert to multipliers: 1.0 +/- amplitude * wave
 	sizeMultiplier = 1.0 + (p.sizeAmplitude * wave)
 	brightnessMultiplier = 1.0 + (p.brightAmplitude * wave)
-
-	// Advance phase for next frame
-	p.phase += p.frequency
-
-	// Keep phase in reasonable range to avoid floating point drift
-	if p.phase > 2*math.Pi {
-		p.phase -= 2 * math.Pi
-	}
 
 	return sizeMultiplier, brightnessMultiplier
 }
 
 // Twinkle creates random brightness variations (like atmospheric distortion)
 type Twinkle struct {
-	frame             int
-	changeInterval    int // Frames between brightness changes
-	currentBrightness float64
-	targetBrightness  float64
-	variation         float64 // Max variation from 1.0
+	changeInterval int     // Frames between brightness changes
+	variation      float64 // Max variation from 1.0
 }
 
 // NewTwinkle creates a twinkling star effect
@@ -79,39 +69,37 @@ type Twinkle struct {
 // variation: 0.0-1.0, max brightness variation
 func NewTwinkle(changeFrames int, variation float64) *Twinkle {
 	return &Twinkle{
-		changeInterval:    changeFrames,
-		currentBrightness: 1.0,
-		targetBrightness:  1.0,
-		variation:         variation,
+		changeInterval: changeFrames,
+		variation:      variation,
 	}
 }
 
-func (t *Twinkle) Update() (sizeMultiplier, brightnessMultiplier float64) {
-	t.frame++
+func (t *Twinkle) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
+	// Determine which interval we're in
+	interval := tick / t.changeInterval
 
-	// Time to pick a new target?
-	if t.frame >= t.changeInterval {
-		t.frame = 0
-		// Random brightness between (1-variation) and (1+variation)
-		pseudoRandom := float64((t.frame*2654435761)%1000) / 1000.0
-		t.targetBrightness = 1.0 + (pseudoRandom-0.5)*2*t.variation
-	}
+	// Generate pseudo-random brightness for this interval
+	// Use interval as seed for deterministic but varied brightness
+	pseudoRandom := float64((interval*2654435761)%1000) / 1000.0
+	targetBrightness := 1.0 + (pseudoRandom-0.5)*2*t.variation
 
-	// Smoothly interpolate toward target (easing)
-	t.currentBrightness += (t.targetBrightness - t.currentBrightness) * 0.1
+	// Smooth transition within interval (ease in/out)
+	progress := float64(tick%t.changeInterval) / float64(t.changeInterval)
+	easing := 0.5 - 0.5*math.Cos(progress*math.Pi) // Smooth S-curve
 
-	return 1.0, t.currentBrightness
+	// Interpolate from 1.0 to target and back
+	brightness := 1.0 + (targetBrightness-1.0)*easing
+
+	return 1.0, brightness
 }
 
 // Flare creates occasional bright flashes
 type Flare struct {
-	frame          int
-	nextFlareFrame int
 	flareDuration  int
 	flareIntensity float64
-	flareFrame     int // Current frame within a flare
 	minInterval    int
 	maxInterval    int
+	seed           int // Seed for deterministic randomness
 }
 
 // NewFlare creates a star that occasionally flares up
@@ -119,34 +107,32 @@ type Flare struct {
 // duration: how long the flare lasts
 // intensity: peak brightness multiplier (e.g., 2.0 = twice as bright)
 func NewFlare(minFrames, maxFrames, duration int, intensity float64) *Flare {
-	f := &Flare{
+	// Use minFrames as seed for this flare's pattern
+	return &Flare{
 		minInterval:    minFrames,
 		maxInterval:    maxFrames,
 		flareDuration:  duration,
 		flareIntensity: intensity,
-	}
-	f.scheduleNextFlare()
-	return f
-}
-
-func (f *Flare) scheduleNextFlare() {
-	// Simple pseudo-random interval
-	range_ := f.maxInterval - f.minInterval
-	if range_ <= 0 {
-		f.nextFlareFrame = f.frame + f.minInterval
-	} else {
-		pseudoRandom := (f.frame * 2654435761) % range_
-		f.nextFlareFrame = f.frame + f.minInterval + pseudoRandom
+		seed:           minFrames, // Unique seed per configuration
 	}
 }
 
-func (f *Flare) Update() (sizeMultiplier, brightnessMultiplier float64) {
-	f.frame++
+func (f *Flare) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
+	// Determine flare cycle length
+	cycleLength := f.minInterval + f.flareDuration
 
-	// Check if we're in a flare
-	if f.flareFrame > 0 {
-		// Compute position in flare (0.0 to 1.0 and back)
-		progress := float64(f.flareFrame) / float64(f.flareDuration)
+	// Add variation to cycle start using seed
+	offset := (f.seed * 2654435761) % (f.maxInterval - f.minInterval)
+
+	// Where are we in the current cycle?
+	adjustedTick := tick + offset
+	positionInCycle := adjustedTick % cycleLength
+
+	// Are we in the flare portion of the cycle?
+	if positionInCycle >= f.minInterval && positionInCycle < (f.minInterval+f.flareDuration) {
+		// Position within flare
+		flarePosition := positionInCycle - f.minInterval
+		progress := float64(flarePosition) / float64(f.flareDuration)
 
 		// Triangle wave: rise to peak at 50%, fall back
 		var brightness float64
@@ -156,18 +142,7 @@ func (f *Flare) Update() (sizeMultiplier, brightnessMultiplier float64) {
 			brightness = 1.0 + (f.flareIntensity-1.0)*(2-progress*2)
 		}
 
-		f.flareFrame++
-		if f.flareFrame > f.flareDuration {
-			f.flareFrame = 0
-			f.scheduleNextFlare()
-		}
-
 		return 1.0, brightness
-	}
-
-	// Check if it's time to start a flare
-	if f.frame >= f.nextFlareFrame {
-		f.flareFrame = 1
 	}
 
 	return 1.0, 1.0
@@ -188,6 +163,7 @@ type Star struct {
 	// Cached computed values (updated per frame)
 	currentSize  int
 	currentColor color.RGBA
+	currentTick  int // Cache tick for use in Draw()
 }
 
 // NewStar creates a static star with no variation
@@ -198,24 +174,25 @@ func NewStar(x, y, speed, size int, c color.RGBA) *Star {
 // NewStarWithVariation creates a star with the given variation behavior
 func NewStarWithVariation(x, y, speed, size int, c color.RGBA, variation StarVariation) *Star {
 	s := &Star{
-		x:         x,
-		y:         y,
-		speed:     speed,
-		baseSize:  size,
-		baseColor: c,
-		variation: variation,
+		x:           x,
+		y:           y,
+		speed:       speed,
+		baseSize:    size,
+		baseColor:   c,
+		variation:   variation,
+		currentTick: 0,
 	}
-	s.updateAppearance()
+	s.updateAppearance(0) // Initialize with tick 0
 	return s
 }
 
 // updateAppearance applies variation effects to compute current appearance
-func (s *Star) updateAppearance() {
+func (s *Star) updateAppearance(tick int) {
 	sizeMultiplier := 1.0
 	brightnessMultiplier := 1.0
 
 	if s.variation != nil {
-		sizeMultiplier, brightnessMultiplier = s.variation.Update()
+		sizeMultiplier, brightnessMultiplier = s.variation.Calculate(tick)
 	}
 
 	// Apply size multiplier
@@ -285,8 +262,11 @@ func (s *Star) Overlaps(other def.Entity) bool {
 }
 
 func (s *Star) Act(b def.Scene) {
+	// Cache global tick
+	s.currentTick = b.Tick()
+
 	s.y += s.speed
-	s.updateAppearance()
+	s.updateAppearance(s.currentTick)
 }
 
 func (s *Star) Draw(img *ebit.Image) {
