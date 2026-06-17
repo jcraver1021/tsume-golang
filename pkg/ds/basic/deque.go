@@ -35,6 +35,16 @@ func NewDeque[T any](opts ...DequeOption[T]) *Deque[T] {
 	return d
 }
 
+func WithDequeCapacity[T any](capacity int) DequeOption[T] {
+	return func(d *Deque[T]) {
+		if capacity < 1 {
+			capacity = initialDequeCapacity
+		}
+		d.data = make([]T, capacity)
+		d.capacity = capacity
+	}
+}
+
 // Len returns the number of elements in the deque
 func (d *Deque[T]) Len() int {
 	// Contiguous case: tail is ahead of head, so length is tail - head
