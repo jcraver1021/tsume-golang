@@ -17,16 +17,18 @@ func (s *Scene) Width() int                     { return s.width }
 func (s *Scene) Height() int                    { return s.height }
 func (s *Scene) Entities() def.EntityCollection { return s.entities }
 
-func NewScene(mode GameMode) *Scene {
+func NewScene(state *GameState) *Scene {
 	scene := &Scene{
 		entities: NewEntityStore(),
 		width:    def.ScreenWidth,
 		height:   def.ScreenHeight,
 	}
 
-	switch mode {
+	switch state.Mode {
 	case GameModeIntro:
 		initIntroMode(scene)
+	case GameModePlay:
+		initPlayMode(scene, state)
 	}
 
 	return scene

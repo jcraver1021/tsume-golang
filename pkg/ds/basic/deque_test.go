@@ -110,6 +110,62 @@ func TestDeque(t *testing.T) {
 	}
 }
 
+func TestDequeToSlice(t *testing.T) {
+	testCases := []struct {
+		name       string
+		operations []dequeOperation
+		pushValues []int
+		wantSlice  []int
+	}{
+		{
+			name:       "push front and back",
+			operations: []dequeOperation{pushFront, pushBack, pushFront, pushBack},
+			pushValues: []int{1, 2, 3, 4},
+			wantSlice:  []int{3, 1, 2, 4},
+		},
+		{
+			name:       "only push back",
+			operations: []dequeOperation{pushBack, pushBack, pushBack},
+			pushValues: []int{5, 6, 7},
+			wantSlice:  []int{5, 6, 7},
+		},
+		{
+			name:       "only push front",
+			operations: []dequeOperation{pushFront, pushFront, pushFront},
+			pushValues: []int{8, 9, 10},
+			wantSlice:  []int{10, 9, 8},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dq := NewDeque[int]()
+			pushIdx := 0
+
+			for _, op := range tc.operations {
+				switch op {
+				case pushFront:
+					dq.PushFront(tc.pushValues[pushIdx])
+					pushIdx++
+				case pushBack:
+					dq.PushBack(tc.pushValues[pushIdx])
+					pushIdx++
+				}
+			}
+
+			gotSlice := dq.ToSlice()
+			if len(gotSlice) != len(tc.wantSlice) {
+				t.Fatalf("ToSlice() length = %d, want %d", len(gotSlice), len(tc.wantSlice))
+			}
+			for i, got := range gotSlice {
+				if got != tc.wantSlice[i] {
+					t.Errorf("ToSlice()[%d] = %v, want %v", i, got, tc.wantSlice[i])
+				}
+			}
+		})
+	}
+}
+
 type dequeState struct {
 	wantLen   int
 	wantFront int

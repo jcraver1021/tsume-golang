@@ -173,3 +173,19 @@ func (d *Deque[T]) PopBack() (T, bool) {
 
 	return result, true
 }
+
+func (d *Deque[T]) ToSlice() []T {
+	size := d.Len()
+	result := make([]T, size)
+
+	if d.tail > d.head {
+		// No wrap: elements are contiguous from head to tail
+		copy(result, d.data[d.head:d.tail])
+	} else if size > 0 {
+		// Wrapped: elements from head to end, then from start to tail
+		n := copy(result, d.data[d.head:])
+		copy(result[n:], d.data[:d.tail])
+	}
+
+	return result
+}

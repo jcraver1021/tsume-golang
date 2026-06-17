@@ -65,6 +65,17 @@ func (m *MockEntityCollection) Add(e def.Entity) {
 	m.scene.entities = append(m.scene.entities, e)
 }
 
+// Get returns entities of the specified type
+func (m *MockEntityCollection) Get(entityType def.EntityType) []def.Entity {
+	var result []def.Entity
+	for _, e := range m.scene.entities {
+		if e.Type() == entityType {
+			result = append(result, e)
+		}
+	}
+	return result
+}
+
 // IterateForUpdate iterates entities in forward order
 func (m *MockEntityCollection) IterateForUpdate() <-chan def.Entity {
 	ch := make(chan def.Entity)

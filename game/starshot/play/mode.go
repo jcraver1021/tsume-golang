@@ -6,6 +6,7 @@ import (
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/entity/background"
 	"tsumegolang/game/starshot/entity/environment"
+	"tsumegolang/game/starshot/entity/player"
 )
 
 type GameMode int
@@ -20,6 +21,12 @@ const (
 
 const (
 	introStarDensity = 0.05
+)
+
+var (
+	waveStarDensity = map[int]float64{
+		1: 0.1,
+	}
 )
 
 func initIntroMode(b def.Scene) {
@@ -48,5 +55,17 @@ func initIntroMode(b def.Scene) {
 	)
 	if err == nil {
 		b.Entities().Add(instruction)
+	}
+}
+
+func initPlayMode(b def.Scene, state *GameState) {
+	switch state.Wave {
+	case 1:
+		// Starfield background
+		b.Entities().Add(environment.NewSpace(introStarDensity, b))
+
+		// Player entity - centered at bottom
+		player := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)
+		b.Entities().Add(player)
 	}
 }
