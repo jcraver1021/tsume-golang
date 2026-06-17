@@ -44,10 +44,18 @@ func (wp *WorkerPool[I, O]) worker() {
 	for {
 		select {
 		case <-wp.ctx.Done():
+			// Drain remaining requests and close their result channels
+			for req := range wp.queue {
+				close(req.resultCh)
+			}
 			return
-		case req := <-wp.queue:
+		case req, ok := <-wp.queue:
+			if !ok {
+				return
+			}
 			result := wp.job(req.input)
 			req.resultCh <- result
+			close(req.resultCh)
 		}
 	}
 }

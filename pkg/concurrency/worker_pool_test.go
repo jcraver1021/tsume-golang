@@ -78,7 +78,7 @@ func TestWorkerPool(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			wp := NewWorkerPool[string, int](job, tc.numWorkers)
+			wp := NewWorkerPool(job, tc.numWorkers)
 			wp.Start()
 
 			var results []JobResult[string, int]
@@ -112,7 +112,7 @@ func TestWorkerPoolCancellation(t *testing.T) {
 		return JobResult[string, int]{Input: input, Output: len(input), Status: StatusSuccess}
 	}
 
-	wp := NewWorkerPool[string, int](job, 2)
+	wp := NewWorkerPool(job, 2)
 	wp.Start()
 
 	resultCh1, err := wp.Submit("test1")
@@ -127,15 +127,14 @@ func TestWorkerPoolCancellation(t *testing.T) {
 
 	wp.Shutdown()
 
-	select {
-	case <-resultCh1:
-		t.Errorf("Expected resultCh1 to be closed due to cancellation")
-	default:
+	// After shutdown, result channels should be closed (either after completing or being drained)
+	_, ok1 := <-resultCh1
+	if ok1 {
+		t.Errorf("Expected resultCh1 to be closed after shutdown")
 	}
 
-	select {
-	case <-resultCh2:
-		t.Errorf("Expected resultCh2 to be closed due to cancellation")
-	default:
+	_, ok2 := <-resultCh2
+	if ok2 {
+		t.Errorf("Expected resultCh2 to be closed after shutdown")
 	}
 }
