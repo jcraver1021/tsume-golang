@@ -26,7 +26,6 @@ type downloadJob struct {
 type MultiDownloader struct {
 	workerPool *concurrency.WorkerPool[downloadJob, DownloadRecord]
 	outputDir  string
-	orgMode    OrganizationMode
 }
 
 type MultiDownloaderSettings struct {
@@ -34,7 +33,6 @@ type MultiDownloaderSettings struct {
 	BackoffMs   int
 	WorkerCount int
 	OutputDir   string
-	OrgMode     OrganizationMode
 }
 
 func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
@@ -46,11 +44,6 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 	outputDir := settings.OutputDir
 	if outputDir == "" {
 		outputDir = "."
-	}
-
-	orgMode := settings.OrgMode
-	if orgMode == "" {
-		orgMode = OrgModeFlat
 	}
 
 	handlerOpts := []DownloadHandlerOption{}
@@ -81,7 +74,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 			}
 		}
 
-		filePath, err := WriteToFile(dj.URL, result.Content, result.ContentType, outputDir, orgMode)
+		filePath, err := WriteToFile(dj.URL, result.Content, result.ContentType, outputDir, dj.Section)
 		if err != nil {
 			record.Error = err
 			return concurrency.JobResult[downloadJob, DownloadRecord]{
@@ -105,7 +98,6 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 	return &MultiDownloader{
 		workerPool: concurrency.NewWorkerPool(job, numWorkers),
 		outputDir:  outputDir,
-		orgMode:    orgMode,
 	}
 }
 

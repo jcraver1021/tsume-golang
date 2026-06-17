@@ -3,10 +3,9 @@ package labrador_test
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"tsumegolang/internal/labrador"
+	. "tsumegolang/internal/labrador"
 )
 
 func TestConvertUrlToFilename(t *testing.T) {
@@ -49,7 +48,7 @@ func TestConvertUrlToFilename(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := labrador.ConvertUrlToFilename(tc.url)
+			got := ConvertUrlToFilename(tc.url)
 			if got != tc.want {
 				t.Errorf("ConvertUrlToFilename(%q) = %q; want %q", tc.url, got, tc.want)
 			}
@@ -57,74 +56,7 @@ func TestConvertUrlToFilename(t *testing.T) {
 	}
 }
 
-func TestWriteToFile_FlatMode(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "labrador-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	testCases := []struct {
-		name        string
-		url         string
-		content     []byte
-		contentType string
-		wantFile    string
-	}{
-		{
-			name:        "HTML file",
-			url:         "https://example.com/page",
-			content:     []byte("<html>test</html>"),
-			contentType: "text/html",
-			wantFile:    "example.com_page.html",
-		},
-		{
-			name:        "PDF from URL extension",
-			url:         "https://example.com/document.pdf",
-			content:     []byte("PDF content"),
-			contentType: "",
-			wantFile:    "example.com_document.pdf.pdf",
-		},
-		{
-			name:        "JSON from content type",
-			url:         "https://api.example.com/data",
-			content:     []byte(`{"key": "value"}`),
-			contentType: "application/json",
-			wantFile:    "api.example.com_data.json",
-		},
-		{
-			name:        "PNG from URL extension",
-			url:         "https://example.com/logo.png",
-			content:     []byte("PNG binary data"),
-			contentType: "image/png",
-			wantFile:    "example.com_logo.png.png",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gotPath, err := labrador.WriteToFile(tc.url, tc.content, tc.contentType, tmpDir, labrador.OrgModeFlat)
-			if err != nil {
-				t.Fatalf("WriteToFile() error = %v", err)
-			}
-
-			if !strings.HasSuffix(gotPath, tc.wantFile) {
-				t.Errorf("WriteToFile() path = %q; want suffix %q", gotPath, tc.wantFile)
-			}
-
-			gotContent, err := os.ReadFile(gotPath)
-			if err != nil {
-				t.Fatalf("Failed to read written file: %v", err)
-			}
-
-			if string(gotContent) != string(tc.content) {
-				t.Errorf("File content = %q; want %q", string(gotContent), string(tc.content))
-			}
-		})
-	}
-}
-
-func TestWriteToFile_DomainMode(t *testing.T) {
+func TestWriteToFile_SectionBased(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "labrador-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
@@ -136,123 +68,69 @@ func TestWriteToFile_DomainMode(t *testing.T) {
 		url          string
 		content      []byte
 		contentType  string
+		section      string
 		wantDir      string
 		wantFilename string
 	}{
 		{
-			name:         "root page",
+			name:         "root URL in simple section",
 			url:          "https://example.com",
 			content:      []byte("<html>test</html>"),
 			contentType:  "text/html",
-			wantDir:      "example.com",
-			wantFilename: "index.html",
+			section:      "Chapter 1",
+			wantDir:      "Chapter 1",
+			wantFilename: "example.com.html",
 		},
 		{
-			name:         "page with path",
+			name:         "page with path in simple section",
 			url:          "https://example.com/docs/guide",
 			content:      []byte("<html>guide</html>"),
 			contentType:  "text/html",
-			wantDir:      "example.com",
-			wantFilename: "docs_guide.html",
+			section:      "Chapter 2",
+			wantDir:      "Chapter 2",
+			wantFilename: "guide.html",
 		},
 		{
-			name:         "PDF file",
+			name:         "PDF in nested section",
 			url:          "https://example.com/manual.pdf",
 			content:      []byte("PDF content"),
 			contentType:  "application/pdf",
-			wantDir:      "example.com",
-			wantFilename: "manual.pdf.pdf",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			gotPath, err := labrador.WriteToFile(tc.url, tc.content, tc.contentType, tmpDir, labrador.OrgModeDomain)
-			if err != nil {
-				t.Fatalf("WriteToFile() error = %v", err)
-			}
-
-			wantPath := filepath.Join(tmpDir, tc.wantDir, tc.wantFilename)
-			if gotPath != wantPath {
-				t.Errorf("WriteToFile() path = %q; want %q", gotPath, wantPath)
-			}
-
-			gotContent, err := os.ReadFile(gotPath)
-			if err != nil {
-				t.Fatalf("Failed to read written file: %v", err)
-			}
-
-			if string(gotContent) != string(tc.content) {
-				t.Errorf("File content = %q; want %q", string(gotContent), string(tc.content))
-			}
-
-			if _, err := os.Stat(filepath.Join(tmpDir, tc.wantDir)); os.IsNotExist(err) {
-				t.Errorf("Expected directory %q to be created", tc.wantDir)
-			}
-		})
-	}
-}
-
-func TestWriteToFile_PathMode(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "labrador-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	testCases := []struct {
-		name         string
-		url          string
-		content      []byte
-		contentType  string
-		wantDir      string
-		wantFilename string
-	}{
-		{
-			name:         "root page",
-			url:          "https://example.com",
-			content:      []byte("<html>test</html>"),
-			contentType:  "text/html",
-			wantDir:      "example.com",
-			wantFilename: "index.html",
-		},
-		{
-			name:         "nested path",
-			url:          "https://example.com/docs/api/reference",
-			content:      []byte("<html>reference</html>"),
-			contentType:  "text/html",
-			wantDir:      filepath.Join("example.com", "docs", "api"),
-			wantFilename: "reference.html",
-		},
-		{
-			name:         "PDF in nested path",
-			url:          "https://example.com/downloads/manual.pdf",
-			content:      []byte("PDF content"),
-			contentType:  "application/pdf",
-			wantDir:      filepath.Join("example.com", "downloads"),
+			section:      "Documents/PDFs",
+			wantDir:      filepath.Join("Documents", "PDFs"),
 			wantFilename: "manual.pdf",
 		},
 		{
-			name:         "file with extension preserved",
-			url:          "https://example.com/data/config.json",
-			content:      []byte(`{"test": true}`),
+			name:         "JSON in deeply nested section",
+			url:          "https://api.example.com/v1/data",
+			content:      []byte(`{"key": "value"}`),
 			contentType:  "application/json",
-			wantDir:      filepath.Join("example.com", "data"),
-			wantFilename: "config.json",
+			section:      "API/v1/Responses",
+			wantDir:      filepath.Join("API", "v1", "Responses"),
+			wantFilename: "data.json",
 		},
 		{
-			name:         "single level path",
-			url:          "https://example.com/about",
-			content:      []byte("<html>about</html>"),
-			contentType:  "text/html",
-			wantDir:      "example.com",
-			wantFilename: "about.html",
+			name:         "PNG with existing extension",
+			url:          "https://example.com/logo.png",
+			content:      []byte("PNG binary data"),
+			contentType:  "image/png",
+			section:      "Images",
+			wantDir:      "Images",
+			wantFilename: "logo.png",
+		},
+		{
+			name:         "file with extension already in URL",
+			url:          "https://example.com/config.json",
+			content:      []byte(`{"test": true}`),
+			contentType:  "application/json",
+			section:      "Config Files",
+			wantDir:      "Config Files",
+			wantFilename: "config.json",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			gotPath, err := labrador.WriteToFile(tc.url, tc.content, tc.contentType, tmpDir, labrador.OrgModePath)
+			gotPath, err := WriteToFile(tc.url, tc.content, tc.contentType, tmpDir, tc.section)
 			if err != nil {
 				t.Fatalf("WriteToFile() error = %v", err)
 			}
@@ -287,7 +165,7 @@ func TestWriteToFile_BinaryContent(t *testing.T) {
 
 	binaryContent := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D}
 
-	gotPath, err := labrador.WriteToFile("https://example.com/image.png", binaryContent, "image/png", tmpDir, labrador.OrgModeFlat)
+	gotPath, err := WriteToFile("https://example.com/image.png", binaryContent, "image/png", tmpDir, "Binary Files")
 	if err != nil {
 		t.Fatalf("WriteToFile() error = %v", err)
 	}

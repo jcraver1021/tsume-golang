@@ -1,11 +1,11 @@
 # Labrador - Concurrent Download Utility
 
-A Go-based download utility that uses worker pools for efficient concurrent downloads with retry logic. Downloads are organized by sections and an index markdown file is automatically generated.
+A Go-based download utility that uses worker pools for efficient concurrent downloads with retry logic. Downloads are organized by YAML sections that map directly to directory structure, and an index markdown file is automatically generated.
 
 ## Usage
 
 ```bash
-./labrador -file config.yaml -worker-count 5 -output-dir downloads -org-mode path
+./labrador -file config.yaml -worker-count 5 -output-dir downloads
 ```
 
 ## Flags
@@ -15,37 +15,65 @@ A Go-based download utility that uses worker pools for efficient concurrent down
 - `-backoff`: Backoff time in milliseconds between retries (default: 1000)
 - `-worker-count`: Number of concurrent workers (default: 1)
 - `-output-dir`: Base directory for downloaded files (default: "downloads")
-- `-org-mode`: Organization mode for files (default: "flat")
-  - `flat`: All files in base directory with sanitized names
-  - `domain`: Organize by domain (e.g., `downloads/example.com/page.html`)
-  - `path`: Full path structure (e.g., `downloads/example.com/path/to/page.html`)
 
-## Input YAML Format
+## Input YAML Format & Directory Organization
 
-The input file is a YAML document where each key is a section name and the value is a list of URLs. Comments are supported:
+The input file is a YAML document where **each key becomes a directory path**. This makes organization intuitive - your YAML structure IS your directory structure.
 
 ```yaml
-# Example download configuration
-
-"Chapter 1: Introduction to Go":
+# Simple sections (single-level directories)
+"Chapter 1":
   - https://go.dev
   - https://go.dev/doc/tutorial/getting-started
 
-"Chapter 2: Concurrency":
-  # Worker pools and goroutines
+# Nested sections using forward slashes
+"Chapter 2/Concurrency":
   - https://go.dev/doc/effective_go#concurrency
   - https://go.dev/blog/pipelines
 
-"Reference Materials":
+# Deep nesting for complex organization
+"Reference/API/v1":
+  - https://pkg.go.dev/net/http
   - https://golang.org/ref/spec
-  - https://go.dev/doc/
 
-"Documents and Media":
-  # Mix of file types - automatically detected
-  - https://example.com/manual.pdf        # Saved as .pdf
-  - https://example.com/logo.png          # Saved as .png
-  - https://example.com/data.json         # Saved as .json
-  - https://example.com/diagram.svg       # Saved as .svg
+# Mix of file types - automatically detected
+"Documents/PDFs":
+  - https://example.com/manual.pdf
+  
+"Documents/Images":
+  - https://example.com/logo.png
+  - https://example.com/diagram.svg
+  
+"Data/JSON":
+  - https://api.example.com/config.json
+```
+
+### Resulting Directory Structure
+
+```
+downloads/
+  Chapter 1/
+    go.dev.html
+    getting-started.html
+  Chapter 2/
+    Concurrency/
+      concurrency.html
+      pipelines.html
+  Reference/
+    API/
+      v1/
+        http.html
+        spec.html
+  Documents/
+    PDFs/
+      manual.pdf
+    Images/
+      logo.png
+      diagram.svg
+  Data/
+    JSON/
+      config.json
+  index.md
 ```
 
 ### File Type Detection
@@ -62,7 +90,7 @@ Supported types include: HTML, PDF, images (JPG, PNG, GIF, SVG, WebP), JSON, XML
 
 Labrador generates two types of output:
 
-1. **Downloaded files**: Organized according to the `-org-mode` flag
+1. **Downloaded files**: Organized by YAML section names (section → directory path)
 2. **index.md**: A markdown index file listing all sections, URLs, and links to downloaded files
 
 ### Example index.md:
@@ -76,32 +104,29 @@ Generated: Tue, 17 Jun 2026 10:30:45 PDT
 
 ---
 
-## Chapter 1: Introduction to Go
+## Chapter 1
 
-- [https://go.dev](go.dev/index.html)
-- [https://go.dev/doc/tutorial/getting-started](go.dev/doc/tutorial/getting-started.html)
+- [https://go.dev](Chapter 1/go.dev.html)
+- [https://go.dev/doc/tutorial/getting-started](Chapter 1/getting-started.html)
 
-## Chapter 2: Concurrency
+## Chapter 2/Concurrency
 
-- [https://go.dev/doc/effective_go#concurrency](go.dev/doc/effective_go.html)
+- [https://go.dev/doc/effective_go#concurrency](Chapter 2/Concurrency/concurrency.html)
 - ❌ https://go.dev/blog/pipelines (Error: timeout)
 ```
 
 ## Examples
 
-### Basic usage with path organization
+### Basic usage
 ```bash
-./labrador -file example.yaml -org-mode path -output-dir downloads
-# Creates:
-# - downloads/go.dev/index.html
-# - downloads/go.dev/doc/tutorial/getting-started.html
-# - downloads/index.md
+./labrador -file example.yaml -output-dir downloads
+# Section names become directory paths automatically
 ```
 
-### High concurrency with domain organization
+### High concurrency
 ```bash
-./labrador -file example.yaml -worker-count 10 -org-mode domain -output-dir my-downloads
-# Downloads 10 URLs concurrently, organizes by domain
+./labrador -file example.yaml -worker-count 10
+# Downloads 10 URLs concurrently
 ```
 
 ### Custom retry settings
@@ -110,9 +135,39 @@ Generated: Tue, 17 Jun 2026 10:30:45 PDT
 # Retry up to 5 times with 2-second backoff between attempts
 ```
 
+### Organizing a course or book
+```yaml
+"Course Name/Module 1/Videos":
+  - https://example.com/video1.mp4
+  - https://example.com/video2.mp4
+
+"Course Name/Module 1/PDFs":
+  - https://example.com/slides1.pdf
+  
+"Course Name/Module 2/Videos":
+  - https://example.com/video3.mp4
+```
+
+Results in:
+```
+downloads/
+  Course Name/
+    Module 1/
+      Videos/
+        video1.mp4
+        video2.mp4
+      PDFs/
+        slides1.pdf
+    Module 2/
+      Videos/
+        video3.mp4
+```
+
 ## Features
 
-- **Sectioned downloads**: Organize URLs by topics/chapters in YAML
+- **Section-based directory organization**: YAML sections map directly to directory paths
+  - Use `/` in section names to create nested directories
+  - Intuitive: what you write in YAML is what you get on disk
 - **Automatic markdown index**: Generated index with links to all downloads
 - **Smart file type detection**: Automatically detects file extensions from URLs and Content-Type headers
   - Supports HTML, PDF, images (JPG, PNG, GIF, SVG), JSON, XML, text files, and more
@@ -122,6 +177,5 @@ Generated: Tue, 17 Jun 2026 10:30:45 PDT
 - **Retry logic**: Automatic retries with configurable backoff for transient failures
 - **Smart error handling**: 4XX errors (client) are non-retryable, 5XX errors (server) are retried
 - **HTTP timeout**: 30-second timeout prevents hanging on slow servers
-- **Flexible organization**: Three modes for organizing downloaded files
 - **Automatic directory creation**: Creates nested directories as needed
 - **Comment support**: YAML format allows inline comments for documentation

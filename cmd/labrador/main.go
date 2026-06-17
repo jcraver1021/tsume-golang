@@ -15,7 +15,6 @@ var (
 	flagBackoff     = flag.Int("backoff", 1000, "backoff time in milliseconds between retries")
 	flagWorkerCount = flag.Int("worker-count", 1, "number of concurrent workers to use for downloading")
 	flagOutputDir   = flag.String("output-dir", "downloads", "base directory for downloaded files")
-	flagOrgMode     = flag.String("org-mode", "flat", "organization mode: flat, domain, or path")
 )
 
 func main() {
@@ -39,7 +38,6 @@ func main() {
 		BackoffMs:   *flagBackoff,
 		WorkerCount: *flagWorkerCount,
 		OutputDir:   *flagOutputDir,
-		OrgMode:     labrador.OrganizationMode(*flagOrgMode),
 	})
 
 	downloader.Start()

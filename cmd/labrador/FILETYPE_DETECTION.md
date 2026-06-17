@@ -67,37 +67,37 @@ HTTP response has `Content-Type: text/html; charset=utf-8`
   - https://example.com/page              # HTML page → .html
 ```
 
-## Organization Modes
+## Directory Organization
 
-File extensions work with all organization modes:
+File extensions work with section-based directory organization. Section names in your YAML become directory paths:
 
-### Flat Mode
+### YAML Input
+```yaml
+"Documents/Reports":
+  - https://example.com/annual-report.pdf
+  - https://example.com/quarterly-update.pdf
+
+"Documents/Images":
+  - https://example.com/logo.png
+  - https://example.com/chart.svg
+
+"API/Data":
+  - https://api.example.com/config.json
+```
+
+### Resulting Structure
 ```
 downloads/
-  example.com_report.pdf
-  example.com_logo.png
-  example.com_data.json
-```
-
-### Domain Mode
-```
-downloads/
-  example.com/
-    report.pdf
-    logo.png
-    data.json
-```
-
-### Path Mode
-```
-downloads/
-  example.com/
-    docs/
-      report.pdf
-    images/
+  Documents/
+    Reports/
+      annual-report.pdf
+      quarterly-update.pdf
+    Images/
       logo.png
-    api/
-      data.json
+      chart.svg
+  API/
+    Data/
+      config.json
 ```
 
 ## Supported File Types
