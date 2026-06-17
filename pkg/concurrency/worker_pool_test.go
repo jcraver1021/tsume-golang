@@ -112,9 +112,10 @@ func TestWorkerPoolCancellation(t *testing.T) {
 		return JobResult[string, int]{Input: input, Output: len(input), Status: StatusSuccess}
 	}
 
-	wp := NewWorkerPool(job, 2)
+	wp := NewWorkerPool(job, 1) // Single worker to ensure one job is queued
 	wp.Start()
 
+	// Submit more jobs than workers to ensure some are queued
 	resultCh1, err := wp.Submit("test1")
 	if err != nil {
 		t.Fatalf("Submit failed: %v", err)
@@ -125,16 +126,25 @@ func TestWorkerPoolCancellation(t *testing.T) {
 		t.Fatalf("Submit failed: %v", err)
 	}
 
-	wp.Shutdown()
-
-	// After shutdown, result channels should be closed (either after completing or being drained)
-	_, ok1 := <-resultCh1
-	if ok1 {
-		t.Errorf("Expected resultCh1 to be closed after shutdown")
+	resultCh3, err := wp.Submit("test3")
+	if err != nil {
+		t.Fatalf("Submit failed: %v", err)
 	}
 
-	_, ok2 := <-resultCh2
-	if ok2 {
-		t.Errorf("Expected resultCh2 to be closed after shutdown")
+	wp.Shutdown()
+
+	// After shutdown, all result channels should be closed
+	// Some may have completed, some may have been drained without processing
+	channels := []chan JobResult[string, int]{resultCh1, resultCh2, resultCh3}
+	for i, ch := range channels {
+		_, ok := <-ch
+		if ok {
+			// Channel received a value but should still be closed afterwards
+			_, stillOpen := <-ch
+			if stillOpen {
+				t.Errorf("Channel %d is still open after shutdown", i+1)
+			}
+		}
+		// If ok is false, channel was closed without sending (drained during cancellation)
 	}
 }
