@@ -32,7 +32,9 @@ type Player struct {
 	// Sprite composition
 	components     []*SpriteComponent
 	animatedPixels []AnimatedPixel
-	animationFrame int // Current animation frame counter
+
+	// Cache tick from Act() for use in Draw()
+	currentTick int
 }
 
 func NewPlayer(x, y int) *Player {
@@ -52,7 +54,6 @@ func NewPlayer(x, y int) *Player {
 		speed:          defaultPlayerSpeed,
 		components:     components,
 		animatedPixels: animatedPixels,
-		animationFrame: 0,
 	}
 }
 
@@ -110,6 +111,9 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 }
 
 func (p *Player) Act(b def.Scene) {
+	// Cache global tick for use in Draw()
+	p.currentTick = b.Tick()
+
 	if p.playerAction.MoveUp {
 		p.y -= p.speed
 	}
@@ -137,9 +141,6 @@ func (p *Player) Act(b def.Scene) {
 		p.y = b.Height() - p.height
 	}
 
-	// Advance animation frame
-	p.animationFrame++
-
 	p.playerAction = PlayerAction{} // Reset actions after processing
 }
 
@@ -162,9 +163,9 @@ func (p *Player) Draw(img *ebit.Image) {
 		}
 	}
 
-	// Draw animated pixels on top
+	// Draw animated pixels on top using cached tick
 	for _, animPixel := range p.animatedPixels {
-		colorCode := animPixel.Sequence.GetColorAtFrame(p.animationFrame)
+		colorCode := animPixel.Sequence.GetColorAtFrame(p.currentTick)
 		if colorCode != ColorEmpty {
 			img.Set(p.x+animPixel.X, p.y+animPixel.Y, palette[colorCode])
 		}

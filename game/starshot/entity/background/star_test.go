@@ -76,7 +76,8 @@ func TestStarOverlaps(t *testing.T) {
 func TestStarAct(t *testing.T) {
 	star := NewStar(50, 50, 2, 4, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
-	star.Act(nil) // Scene not used in Act
+	scene := testutil.NewMockScene()
+	star.Act(scene) // Scene not used in Act
 
 	gotX, gotY := star.Location()
 	wantX, wantY := 50, 52
@@ -92,8 +93,8 @@ func TestStarAct(t *testing.T) {
 func TestNoVariation(t *testing.T) {
 	v := &NoVariation{}
 
-	for range 100 {
-		gotSize, gotBright := v.Update()
+	for tick := range 100 {
+		gotSize, gotBright := v.Calculate(tick)
 
 		if gotSize != 1.0 {
 			t.Errorf("NoVariation size = %v, want 1.0", gotSize)
@@ -116,8 +117,8 @@ func TestPulsarOscillates(t *testing.T) {
 	var minBright, maxBright float64 = 2.0, 0.0
 
 	// Run for one complete period
-	for range 60 {
-		size, bright := pulsar.Update()
+	for tick := range 60 {
+		size, bright := pulsar.Calculate(tick)
 
 		if size < minSize {
 			minSize = size
@@ -163,15 +164,12 @@ func TestPulsarPeriodic(t *testing.T) {
 	pulsar := NewPulsar(period, 0.5, 0.5)
 
 	// Get initial value
-	initialSize, initialBright := pulsar.Update()
+	initialSize, initialBright := pulsar.Calculate(0)
 
 	// Advance one full period (minus the one we just consumed)
-	for range 59 {
-		pulsar.Update()
-	}
 
 	// After one period, should be back to start
-	gotSize, gotBright := pulsar.Update()
+	gotSize, gotBright := pulsar.Calculate(60)
 
 	tolerance := 0.01
 
@@ -191,8 +189,8 @@ func TestTwinkleWithinBounds(t *testing.T) {
 	wantMin := 1.0 - variation - 0.1 // Small tolerance
 	wantMax := 1.0 + variation + 0.1
 
-	for range 200 {
-		_, bright := twinkle.Update()
+	for tick := range 200 {
+		_, bright := twinkle.Calculate(tick)
 
 		if bright < wantMin || bright > wantMax {
 			t.Errorf("Twinkle brightness = %v, want in range [%v, %v]", bright, wantMin, wantMax)
@@ -205,7 +203,7 @@ func TestTwinkleVaries(t *testing.T) {
 
 	values := make([]float64, 100)
 	for i := range values {
-		_, bright := twinkle.Update()
+		_, bright := twinkle.Calculate(i)
 		values[i] = bright
 	}
 
@@ -236,8 +234,8 @@ func TestFlarePattern(t *testing.T) {
 	elevatedCount := 0
 
 	// Run for enough frames to see at least one flare
-	for range 150 {
-		_, bright := flare.Update()
+	for tick := range 150 {
+		_, bright := flare.Calculate(tick)
 
 		if bright > 1.1 {
 			elevatedCount++
@@ -267,7 +265,8 @@ func TestStarWithVariation(t *testing.T) {
 	star := NewStarWithVariation(100, 100, 1, 10, testColor(), pulsar)
 
 	// Act should update the variation
-	star.Act(nil)
+	scene := testutil.NewMockScene()
+	star.Act(scene)
 
 	// Dimensions should reflect varied size
 	w, h := star.Dimensions()
@@ -288,9 +287,11 @@ func TestStarWithoutVariation(t *testing.T) {
 
 	w1, h1 := star.Dimensions()
 
+	scene := testutil.NewMockScene()
+
 	// Act multiple times
 	for range 100 {
-		star.Act(nil)
+		star.Act(scene)
 	}
 
 	w2, h2 := star.Dimensions()

@@ -54,6 +54,7 @@ type Scene interface {
 	Width() int
 	Height() int
 	Entities() EntityCollection
+	Tick() int // Global animation tick counter
 }
 
 // Entity is the core interface that all game objects must implement

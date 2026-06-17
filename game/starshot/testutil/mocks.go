@@ -9,6 +9,7 @@ type MockScene struct {
 	entities []def.Entity
 	width    int
 	height   int
+	tick     int
 }
 
 // NewMockScene creates a new mock scene with default screen dimensions
@@ -17,6 +18,7 @@ func NewMockScene() *MockScene {
 		entities: []def.Entity{},
 		width:    def.ScreenWidth,
 		height:   def.ScreenHeight,
+		tick:     0,
 	}
 }
 
@@ -26,6 +28,7 @@ func NewMockSceneWithSize(width, height int) *MockScene {
 		entities: []def.Entity{},
 		width:    width,
 		height:   height,
+		tick:     0,
 	}
 }
 
@@ -34,6 +37,12 @@ func (m *MockScene) Width() int { return m.width }
 
 // Height returns the scene height
 func (m *MockScene) Height() int { return m.height }
+
+// Tick returns the current tick counter
+func (m *MockScene) Tick() int { return m.tick }
+
+// IncrementTick advances the tick counter (for testing)
+func (m *MockScene) IncrementTick() { m.tick++ }
 
 // Entities returns the mock entity collection
 func (m *MockScene) Entities() def.EntityCollection {
