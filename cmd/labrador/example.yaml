@@ -1,0 +1,40 @@
+# Example download configuration
+# Each section name becomes a directory path
+# Use "/" to create nested directories (e.g., "Chapter 1/Videos" → downloads/Chapter 1/Videos/)
+
+# Simple single-level sections
+"Chapter 1 - Introduction":
+  - https://go.dev
+  - https://go.dev/doc/tutorial/getting-started
+
+# Nested sections using forward slashes
+"Chapter 2 - Concurrency/Basics":
+  - https://go.dev/doc/effective_go#concurrency
+
+"Chapter 2 - Concurrency/Advanced":
+  - https://go.dev/blog/pipelines
+
+# Deep nesting example
+"Reference/Standard Library/HTTP":
+  - https://pkg.go.dev/net/http
+
+"Reference/Standard Library/JSON":
+  - https://pkg.go.dev/encoding/json
+
+# Organize by content type
+"Documents/Specifications":
+  - https://golang.org/ref/spec
+
+"Documents/Tutorials":
+  - https://go.dev/doc/articles/wiki/
+
+# Example with different file types (commented out)
+# "Media/Images":
+#   - https://example.com/logo.png
+#   - https://example.com/diagram.svg
+#
+# "Media/PDFs":
+#   - https://example.com/manual.pdf
+#
+# "Data/JSON":
+#   - https://api.example.com/config.json
