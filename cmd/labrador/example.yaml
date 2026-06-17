@@ -1,0 +1,24 @@
+# Example download configuration
+# Each key is a section name, and the value is a list of URLs to download
+
+"Chapter 1: Introduction to Go":
+  - https://go.dev
+  - https://go.dev/doc/tutorial/getting-started
+
+"Chapter 2: Concurrency":
+  # Worker pools and goroutines
+  - https://go.dev/doc/effective_go#concurrency
+  - https://go.dev/blog/pipelines
+
+"Chapter 3: Web Development":
+  - https://pkg.go.dev/net/http
+  - https://go.dev/doc/articles/wiki/
+
+"Reference Materials":
+  # Mix of file types - HTML, PDFs, images, etc.
+  - https://golang.org/ref/spec
+  - https://go.dev/doc/
+  # Example PDF (if you have actual PDF URLs):
+  # - https://example.com/documentation.pdf
+  # Example image:
+  # - https://go.dev/images/gophers/motorcycle.svg
