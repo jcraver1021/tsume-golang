@@ -95,7 +95,7 @@ func (b *Banner) Dimensions() (width, height int) {
 	return int(b.width), int(b.height)
 }
 
-func (b *Banner) Overlaps(other def.Entity) bool {
+func (b *Banner) BoundingBoxOverlaps(other def.Entity) bool {
 	return false // Non-interactive
 }
 

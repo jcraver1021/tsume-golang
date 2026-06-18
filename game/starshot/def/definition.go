@@ -62,10 +62,21 @@ type Entity interface {
 	Type() EntityType
 	Location() (x, y int)
 	Dimensions() (width, height int)
-	Overlaps(other Entity) bool
+	// BoundingBoxOverlaps performs fast AABB collision check (broad phase)
+	// Returns true if bounding boxes might be touching
+	BoundingBoxOverlaps(other Entity) bool
 	Act(Scene)
 	Draw(*ebit.Image)
 	CanBeRemoved() bool
+}
+
+// PreciseCollider is an optional interface for entities that need
+// pixel-perfect or shape-based collision detection (narrow phase)
+type PreciseCollider interface {
+	Entity
+	// CollidesWith performs precise collision detection
+	// Only called after BoundingBoxOverlaps returns true
+	CollidesWith(other Entity) bool
 }
 
 // EntityCollection provides access to entities without exposing implementation details
@@ -74,4 +85,28 @@ type EntityCollection interface {
 	Get(EntityType) []Entity
 	IterateForUpdate() <-chan Entity
 	IterateForDraw() <-chan Entity
+}
+
+// Collides performs two-phase collision detection between entities
+// Phase 1: Fast bounding box check via BoundingBoxOverlaps()
+// Phase 2: Precise check via CollidesWith() if both implement PreciseCollider
+// Returns true only if entities are actually colliding
+func Collides(a, b Entity) bool {
+	// Broad phase: cheap bounding box check
+	if !a.BoundingBoxOverlaps(b) {
+		return false
+	}
+
+	// Narrow phase: if both entities need precise collision, use it
+	preciseA, aHasPrecise := a.(PreciseCollider)
+	_, bHasPrecise := b.(PreciseCollider)
+
+	if aHasPrecise && bHasPrecise {
+		// Both have precise collision - use A's implementation
+		return preciseA.CollidesWith(b)
+	}
+
+	// At least one doesn't need precise collision
+	// Bounding box overlap is sufficient
+	return true
 }

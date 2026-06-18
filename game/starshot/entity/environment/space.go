@@ -226,7 +226,7 @@ func (s *Space) Dimensions() (width, height int) {
 	return def.ScreenWidth, def.ScreenHeight
 }
 
-func (s *Space) Overlaps(other def.Entity) bool {
+func (s *Space) BoundingBoxOverlaps(other def.Entity) bool {
 	return false
 }
 

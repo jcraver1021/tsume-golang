@@ -68,7 +68,7 @@ func TestStarOverlaps(t *testing.T) {
 	star := NewStar(10, 10, 1, 4, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
 	// Stars should not overlap (gameplay design choice); all background elements are non-interactive
-	if star.Overlaps(star) {
+	if star.BoundingBoxOverlaps(star) {
 		t.Error("stars should not overlap")
 	}
 }

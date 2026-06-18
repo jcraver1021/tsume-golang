@@ -99,7 +99,7 @@ func (p *Player) Onscreen(b def.Scene) def.OnScreen {
 	return def.Partially
 }
 
-func (p *Player) Overlaps(other def.Entity) bool {
+func (p *Player) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
 	ow, oh := other.Dimensions()
 

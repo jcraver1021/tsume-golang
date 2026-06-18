@@ -257,7 +257,7 @@ func (s *Star) Onscreen(b def.Scene) def.OnScreen {
 	return def.Partially
 }
 
-func (s *Star) Overlaps(other def.Entity) bool {
+func (s *Star) BoundingBoxOverlaps(other def.Entity) bool {
 	return false
 }
 

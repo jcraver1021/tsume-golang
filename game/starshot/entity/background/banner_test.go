@@ -62,7 +62,7 @@ func TestBannerOverlaps(t *testing.T) {
 	}
 
 	// Banners should not overlap (non-interactive background elements)
-	if banner.Overlaps(banner) {
+	if banner.BoundingBoxOverlaps(banner) {
 		t.Error("banners should not overlap")
 	}
 }

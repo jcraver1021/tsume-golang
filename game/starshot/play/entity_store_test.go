@@ -18,13 +18,13 @@ func newMockEntity(t def.EntityType) *mockEntity {
 	return &mockEntity{entityType: t}
 }
 
-func (m *mockEntity) Type() def.EntityType            { return m.entityType }
-func (m *mockEntity) Location() (x, y int)            { return 0, 0 }
-func (m *mockEntity) Dimensions() (width, height int) { return 1, 1 }
-func (m *mockEntity) Overlaps(other def.Entity) bool  { return false }
-func (m *mockEntity) Act(s def.Scene)                 {}
-func (m *mockEntity) Draw(img *ebit.Image)            {}
-func (m *mockEntity) CanBeRemoved() bool              { return m.removed }
+func (m *mockEntity) Type() def.EntityType                      { return m.entityType }
+func (m *mockEntity) Location() (x, y int)                      { return 0, 0 }
+func (m *mockEntity) Dimensions() (width, height int)           { return 1, 1 }
+func (m *mockEntity) BoundingBoxOverlaps(other def.Entity) bool { return false }
+func (m *mockEntity) Act(s def.Scene)                           {}
+func (m *mockEntity) Draw(img *ebit.Image)                      {}
+func (m *mockEntity) CanBeRemoved() bool                        { return m.removed }
 
 func TestEntityStoreImplementsInterface(t *testing.T) {
 	store := play.NewEntityStore()
