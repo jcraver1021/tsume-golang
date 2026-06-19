@@ -2,6 +2,7 @@ package play
 
 import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/entity/player"
 )
@@ -69,7 +70,29 @@ func (g *Game) Update() error {
 
 	g.Scene.Update()
 
+	// Check collisions in play mode
+	if g.State.Mode == GameModePlay {
+		g.checkCollisions()
+	}
+
 	return nil
+}
+
+// checkCollisions checks for player-obstacle collisions
+func (g *Game) checkCollisions() {
+	players := g.Scene.Entities().Get(def.EntityTypePlayer)
+	obstacles := g.Scene.Entities().Get(def.EntityTypeObstacle)
+
+	for _, p := range players {
+		for _, obstacle := range obstacles {
+			if def.Collides(p, obstacle) {
+				// Player hit an obstacle - game over
+				g.State.Mode = GameModeGameOver
+				g.Scene = NewScene(g.State)
+				return
+			}
+		}
+	}
 }
 
 func (g *Game) handleInput() {
@@ -81,7 +104,7 @@ func (g *Game) handleInput() {
 	// Handle mode-specific input
 	switch g.State.Mode {
 	case GameModeIntro:
-		if ebit.IsKeyPressed(g.controls.StartKey) {
+		if inpututil.IsKeyJustPressed(g.controls.StartKey) {
 			g.State.Mode = GameModePlay
 			g.Scene = NewScene(g.State)
 		}
@@ -106,7 +129,12 @@ func (g *Game) handleInput() {
 	case GameModeExitConfirm:
 		// Handle exit confirmation input here
 	case GameModeGameOver:
-		// Handle game over input here
+		if inpututil.IsKeyJustPressed(g.controls.StartKey) {
+			// Return to intro
+			g.State.Mode = GameModeIntro
+			g.State.Wave = 1
+			g.Scene = NewScene(g.State)
+		}
 	}
 }
 

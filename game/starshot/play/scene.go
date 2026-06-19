@@ -31,6 +31,8 @@ func NewScene(state *GameState) *Scene {
 		initIntroMode(scene)
 	case GameModePlay:
 		initPlayMode(scene, state)
+	case GameModeGameOver:
+		initGameOverMode(scene)
 	}
 
 	return scene
