@@ -33,7 +33,7 @@ func TestSpaceImplementsEntity(t *testing.T) {
 		t.Error("Space should never be removed")
 	}
 
-	if space.Overlaps(space) {
+	if space.BoundingBoxOverlaps(space) {
 		t.Error("Space should not overlap anything")
 	}
 }

@@ -95,8 +95,8 @@ func (b *Banner) Dimensions() (width, height int) {
 	return int(b.width), int(b.height)
 }
 
-func (b *Banner) Overlaps(other def.Entity) bool {
-	return false // Non-interactive
+func (b *Banner) BoundingBoxOverlaps(other def.Entity) bool {
+	return false
 }
 
 func (b *Banner) Act(scene def.Scene) {
@@ -106,14 +106,11 @@ func (b *Banner) Act(scene def.Scene) {
 }
 
 func (b *Banner) Draw(img *ebit.Image) {
-	// Draw optional background box
 	if b.bgColor != nil {
 		b.drawBackgroundBox(img)
 	}
 
-	// Draw text
 	opts := &text.DrawOptions{}
-	// Center the text horizontally at the given x position
 	opts.GeoM.Translate(float64(b.x)-b.width/2, float64(b.y))
 	opts.ColorScale.ScaleWithColor(b.textColor)
 	text.Draw(img, b.text, b.fontFace, opts)
@@ -134,7 +131,8 @@ func (b *Banner) drawBackgroundBox(img *ebit.Image) {
 
 func (b *Banner) CanBeRemoved() bool {
 	if b.maxFrames == 0 {
-		return false // Permanent
+		return false
 	}
+
 	return b.frameCount >= b.maxFrames
 }
