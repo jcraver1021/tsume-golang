@@ -10,23 +10,23 @@ import (
 
 func TestAnimationSequence(t *testing.T) {
 	testCases := []struct {
-		name     string
-		sequence []color.RGBA
+		name          string
+		sequence      []color.RGBA
 		frameDuration int
 	}{
 		{"SingleFrame", []color.RGBA{{255, 0, 0, 255}}, 1},
 		{"TwoFrames", []color.RGBA{{255, 0, 0, 255}, {0, 255, 0, 255}}, 2},
 		{"ThreeFrames", []color.RGBA{{255, 0, 0, 255}, {0, 255, 0, 255}, {0, 0, 255, 255}}, 3},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			animSeq := NewAnimationSequence(tc.sequence, tc.frameDuration)
-			
+
 			for i := 0; i < len(tc.sequence)*tc.frameDuration; i++ {
 				wantColor := tc.sequence[i/tc.frameDuration]
 				gotColor := animSeq.GetColor()
-				
+
 				if gotColor != wantColor {
 					t.Errorf("GetColor() = %v, want %v", gotColor, wantColor)
 				}
@@ -36,7 +36,7 @@ func TestAnimationSequence(t *testing.T) {
 				if gotColorSecondCall != wantColor {
 					t.Errorf("GetColor() on second call = %v, want %v", gotColorSecondCall, wantColor)
 				}
-				
+
 				animSeq.Advance()
 			}
 
@@ -52,11 +52,11 @@ func TestAnimationSequence(t *testing.T) {
 
 func TestColorMatrixCreation(t *testing.T) {
 	testCases := []struct {
-		name           string
-		matrix         [][]int
-		colorCodes     map[int]color.RGBA
-		animationSeqs  map[int]*AnimationSequence
-		wantError    error
+		name          string
+		matrix        [][]int
+		colorCodes    map[int]color.RGBA
+		animationSeqs map[int]*AnimationSequence
+		wantError     error
 	}{
 		{
 			name: "ValidMatrix",
@@ -71,14 +71,14 @@ func TestColorMatrixCreation(t *testing.T) {
 				4: {255, 255, 0, 255},
 			},
 			animationSeqs: map[int]*AnimationSequence{},
-			wantError: nil,
+			wantError:     nil,
 		},
 		{
-			name: "EmptyMatrix",
-			matrix: [][]int{},
-			colorCodes: map[int]color.RGBA{},
+			name:          "EmptyMatrix",
+			matrix:        [][]int{},
+			colorCodes:    map[int]color.RGBA{},
 			animationSeqs: map[int]*AnimationSequence{},
-			wantError: ErrInvalidMatrix,
+			wantError:     ErrInvalidMatrix,
 		},
 		{
 			name: "NonRectangularMatrix",
@@ -86,9 +86,9 @@ func TestColorMatrixCreation(t *testing.T) {
 				{1, 2},
 				{3},
 			},
-			colorCodes: map[int]color.RGBA{},
+			colorCodes:    map[int]color.RGBA{},
 			animationSeqs: map[int]*AnimationSequence{},
-			wantError: ErrInvalidMatrix,
+			wantError:     ErrInvalidMatrix,
 		},
 		{
 			name: "KeyCollision",
@@ -121,10 +121,10 @@ func TestColorMatrixCreation(t *testing.T) {
 
 func TestColorMatrixRender(t *testing.T) {
 	testCases := []struct {
-		name           string
-		matrix         [][]int
-		colorCodes     map[int]color.RGBA
-		animationSeqs  map[int]*AnimationSequence
+		name                string
+		matrix              [][]int
+		colorCodes          map[int]color.RGBA
+		animationSeqs       map[int]*AnimationSequence
 		wantRenderedInOrder [][][]color.RGBA
 	}{
 		{
@@ -218,5 +218,3 @@ func renderingsAreEqual(a, b [][]color.RGBA) bool {
 
 	return true
 }
-
-

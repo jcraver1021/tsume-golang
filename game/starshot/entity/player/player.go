@@ -1,17 +1,20 @@
 package player
 
-// implements the player entity
+// New ColorMatrix-based player implementation
 
 import (
+	"embed"
+	"path"
+
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
+	"tsumegolang/game/starshot/draw"
 )
 
-const (
-	defaultPlayerSpeed      = 5
-	defaultPlayerSideLength = 32
-)
+//go:embed sprites/*.yaml
+var spriteFiles embed.FS
 
+// PlayerAction represents player input state
 type PlayerAction struct {
 	MoveUp    bool
 	MoveDown  bool
@@ -20,61 +23,64 @@ type PlayerAction struct {
 	Shoot     bool
 }
 
+// PlayerController is an interface for entities that can respond to player input
+type PlayerController interface {
+	def.Entity
+	SetPlayerAction(action PlayerAction)
+}
+
+const defaultPlayerSpeed = 5
+
 type Player struct {
-	x      int
-	y      int
-	width  int
-	height int
-	speed  int
+	x, y          int
+	width, height int
+	speed         int
 
 	playerAction PlayerAction
 
-	// Sprite composition
-	components     []*SpriteComponent
-	animatedPixels []AnimatedPixel
-
-	// Cache tick from Act() for use in Draw()
-	currentTick int
+	// ColorMatrix-based sprite
+	sprite *draw.ColorMatrix
 }
 
-func NewPlayer(x, y int) *Player {
-	// Default configuration: core hull + basic engine
-	components := []*SpriteComponent{
-		CoreHull(),
-		BasicEngine(),
+// NewPlayer creates a new ColorMatrix-based player
+func NewPlayer(x, y int) (*Player, error) {
+	// Load core hull
+	hullData, err := spriteFiles.ReadFile("sprites/core_hull.yaml")
+	if err != nil {
+		return nil, err
 	}
 
-	animatedPixels := BasicEngineAnimatedPixels()
+	hull, err := draw.ColorMatrixFromBytes(hullData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Load basic engine
+	engineData, err := spriteFiles.ReadFile("sprites/basic_engine.yaml")
+	if err != nil {
+		return nil, err
+	}
+
+	engine, err := draw.ColorMatrixFromBytes(engineData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Compose hull + engine (engine overlays hull)
+	if err := hull.Compose(engine, 0, 0); err != nil {
+		return nil, err
+	}
+
+	width, height := hull.Dimensions()
 
 	return &Player{
-		x:              x,
-		y:              y,
-		width:          defaultPlayerSideLength,
-		height:         defaultPlayerSideLength,
-		speed:          defaultPlayerSpeed,
-		components:     components,
-		animatedPixels: animatedPixels,
-	}
-}
-
-// AddComponent adds a sprite component to the player (for power-ups)
-func (p *Player) AddComponent(component *SpriteComponent) {
-	p.components = append(p.components, component)
-}
-
-// RemoveComponent removes a sprite component by name
-func (p *Player) RemoveComponent(name string) {
-	for i, comp := range p.components {
-		if comp.Name == name {
-			p.components = append(p.components[:i], p.components[i+1:]...)
-			return
-		}
-	}
-}
-
-// AddAnimatedPixels adds animated pixels (e.g., for weapon effects)
-func (p *Player) AddAnimatedPixels(pixels []AnimatedPixel) {
-	p.animatedPixels = append(p.animatedPixels, pixels...)
+		x:      x,
+		y:      y,
+		width:  width,
+		height: height,
+		speed:  defaultPlayerSpeed,
+		sprite: hull,
+	}, nil
 }
 
 func (p *Player) Type() def.EntityType {
@@ -89,20 +95,9 @@ func (p *Player) Dimensions() (width, height int) {
 	return p.width, p.height
 }
 
-func (p *Player) Onscreen(b def.Scene) def.OnScreen {
-	if p.x+p.width < 0 || p.x > b.Width() || p.y+p.height < 0 || p.y > b.Height() {
-		return def.OffScreen
-	}
-	if p.x >= 0 && p.x+p.width <= b.Width() && p.y >= 0 && p.y+p.height <= b.Height() {
-		return def.Fully
-	}
-	return def.Partially
-}
-
 func (p *Player) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
 	ow, oh := other.Dimensions()
-
 	return !(p.x+p.width < ox || p.x > ox+ow || p.y+p.height < oy || p.y > oy+oh)
 }
 
@@ -111,9 +106,6 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 }
 
 func (p *Player) Act(b def.Scene) {
-	// Cache global tick for use in Draw()
-	p.currentTick = b.Tick()
-
 	if p.playerAction.MoveUp {
 		p.y -= p.speed
 	}
@@ -145,33 +137,35 @@ func (p *Player) Act(b def.Scene) {
 }
 
 func (p *Player) Draw(img *ebit.Image) {
-	palette := GetColorPalette()
+	// Render sprite (advances animations automatically)
+	pixels := p.sprite.Render()
 
-	// Draw all components in order
-	for _, component := range p.components {
-		for row := range component.Height {
-			for col := range component.Width {
-				if row < len(component.Data) && col < len(component.Data[row]) {
-					colorCode := component.Data[row][col]
-					if colorCode != ColorEmpty {
-						screenX := p.x + component.OffsetX + col
-						screenY := p.y + component.OffsetY + row
-						img.Set(screenX, screenY, palette[colorCode])
-					}
-				}
+	for row := range pixels {
+		for col := range pixels[row] {
+			color := pixels[row][col]
+			if color.A > 0 { // Only draw non-transparent pixels
+				img.Set(p.x+col, p.y+row, color)
 			}
-		}
-	}
-
-	// Draw animated pixels on top using cached tick
-	for _, animPixel := range p.animatedPixels {
-		colorCode := animPixel.Sequence.GetColorAtFrame(p.currentTick)
-		if colorCode != ColorEmpty {
-			img.Set(p.x+animPixel.X, p.y+animPixel.Y, palette[colorCode])
 		}
 	}
 }
 
 func (p *Player) CanBeRemoved() bool {
 	return false
+}
+
+// AddComponent allows dynamic composition of power-ups
+func (p *Player) AddComponent(componentPath string) error {
+	data, err := spriteFiles.ReadFile(path.Join("sprites", componentPath))
+	if err != nil {
+		return err
+	}
+
+	component, err := draw.ColorMatrixFromBytes(data)
+	if err != nil {
+		return err
+	}
+
+	// Compose the new component onto the existing sprite
+	return p.sprite.Compose(component, 0, 0)
 }

@@ -26,24 +26,18 @@ func initWave1(b def.Scene) {
 	// Starfield background - use wave-specific density
 	density := waveStarDensity[1]
 	b.Entities().Add(environment.NewSpace(density, b))
+	b.Entities().Add(environment.NewAsteroidField(0.01, func() obstacle.AsteroidSize {
+		if rand.Float64() < 0.7 {
+			return obstacle.AsteroidMassive
+		}
+		return obstacle.AsteroidColossal
+	}))
 
 	// Player entity - centered at bottom
-	player := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)
-	b.Entities().Add(player)
-
-	// Spawn initial asteroids
-	spawnAsteroids(b, 5)
-}
-
-// spawnAsteroids creates the specified number of asteroids at random positions
-func spawnAsteroids(b def.Scene, count int) {
-	for range count {
-		// Random x position across screen width
-		x := rand.Intn(def.ScreenWidth)
-		// Start above screen
-		y := -rand.Intn(def.ScreenHeight / 2)
-
-		asteroid := obstacle.NewRandomAsteroid(x, y)
-		b.Entities().Add(asteroid)
+	player, err := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)
+	if err != nil {
+		// If player creation fails, panic (this should not happen in normal operation)
+		panic(err)
 	}
+	b.Entities().Add(player)
 }

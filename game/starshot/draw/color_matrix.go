@@ -6,18 +6,16 @@ import (
 )
 
 var (
-	ErrInvalidMatrix = fmt.Errorf("invalid matrix: must be non-empty and rectangular")
-	ErrKeyCollision = fmt.Errorf("color code key collision")
+	ErrInvalidMatrix          = fmt.Errorf("invalid matrix: must be non-empty and rectangular")
+	ErrKeyCollision           = fmt.Errorf("color code key collision")
 	ErrIncompatibleDimensions = fmt.Errorf("incompatible dimensions for operation")
 )
 
-
-
 type AnimationSequence struct {
-	Frames		  []color.RGBA 
-	FrameDuration int          
-	CurrentFrame   int        
-	CurrentTick  int
+	Frames        []color.RGBA
+	FrameDuration int
+	CurrentFrame  int
+	CurrentTick   int
 }
 
 func NewAnimationSequence(frames []color.RGBA, frameDuration int) *AnimationSequence {
@@ -26,9 +24,9 @@ func NewAnimationSequence(frames []color.RGBA, frameDuration int) *AnimationSequ
 	}
 
 	return &AnimationSequence{
-		Frames:     frames,
+		Frames:        frames,
 		FrameDuration: frameDuration,
-		CurrentFrame:   0,
+		CurrentFrame:  0,
 		CurrentTick:   0,
 	}
 }
@@ -47,14 +45,14 @@ func (a *AnimationSequence) Advance() {
 		a.CurrentTick = 0
 		a.CurrentFrame++
 		if a.CurrentFrame >= len(a.Frames) {
-			a.CurrentFrame = 0 
+			a.CurrentFrame = 0
 		}
 	}
 }
 
 type ColorMatrix struct {
-	Matrix [][]int
-	ColorCodes map[int]color.RGBA
+	Matrix             [][]int
+	ColorCodes         map[int]color.RGBA
 	animationSequences map[int]*AnimationSequence
 }
 
@@ -82,13 +80,11 @@ func NewColorMatrix(matrix [][]int, colorCodes map[int]color.RGBA, animationSequ
 	}
 
 	return &ColorMatrix{
-		Matrix: matrix,
-		ColorCodes: colorCodes,
+		Matrix:             matrix,
+		ColorCodes:         colorCodes,
 		animationSequences: animationSequences,
 	}, nil
 }
-
-
 
 func (cm *ColorMatrix) Render() [][]color.RGBA {
 	height := len(cm.Matrix)
@@ -98,7 +94,7 @@ func (cm *ColorMatrix) Render() [][]color.RGBA {
 		rendered[i] = make([]color.RGBA, width)
 	}
 
-	for row := range height {	
+	for row := range height {
 		for col := range width {
 			colorCode := cm.Matrix[row][col]
 			if animSeq, exists := cm.animationSequences[colorCode]; exists {
@@ -106,7 +102,7 @@ func (cm *ColorMatrix) Render() [][]color.RGBA {
 			} else if colorCode, exists := cm.ColorCodes[colorCode]; exists {
 				rendered[row][col] = colorCode
 			} else {
-				rendered[row][col] = color.RGBA{0, 0, 0, 0} 
+				rendered[row][col] = color.RGBA{0, 0, 0, 0}
 			}
 		}
 	}
@@ -116,6 +112,14 @@ func (cm *ColorMatrix) Render() [][]color.RGBA {
 	}
 
 	return rendered
+}
+
+// Dimensions returns the width and height of the color matrix
+func (cm *ColorMatrix) Dimensions() (width, height int) {
+	if len(cm.Matrix) == 0 {
+		return 0, 0
+	}
+	return len(cm.Matrix[0]), len(cm.Matrix)
 }
 
 func (cm *ColorMatrix) AppendRight(other *ColorMatrix) error {
@@ -143,6 +147,11 @@ func (cm *ColorMatrix) AppendBelow(other *ColorMatrix) error {
 }
 
 func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
+	// Initialize maps if nil
+	if cm.animationSequences == nil {
+		cm.animationSequences = make(map[int]*AnimationSequence)
+	}
+
 	// First reindex the colors and animations of the other matrix to avoid collisions
 	reindex := map[int]int{}
 	maxCode := 0
@@ -156,12 +165,16 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 			maxCode = code
 		}
 	}
-	
+
 	// Start by checking if the other matrix encodes the same color codes
 	colorToCode := map[color.RGBA]int{}
 	for code, colorValue := range cm.ColorCodes {
 		colorToCode[colorValue] = code
 	}
+
+	// Handle blending for semi-transparent pixels
+	blendedColors := make(map[[2]int]int) // [baseCode, overlayCode] -> blendedCode
+
 	for code, colorValue := range other.ColorCodes {
 		if existingCode, exists := colorToCode[colorValue]; exists {
 			reindex[code] = existingCode
@@ -189,12 +202,108 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 			// We just skip any pixels that are out of bounds.
 			if newRow >= 0 && newRow < len(cm.Matrix) && newCol >= 0 && newCol < len(cm.Matrix[0]) {
 				otherCode := other.Matrix[row][col]
-				if reindexedCode, exists := reindex[otherCode]; exists {
-					cm.Matrix[newRow][newCol] = reindexedCode
+
+				// Get the overlay color
+				var overlayColor color.RGBA
+				var hasOverlay bool
+				if animSeq, hasAnim := other.animationSequences[otherCode]; hasAnim {
+					if len(animSeq.Frames) > 0 {
+						overlayColor = animSeq.Frames[0]
+						hasOverlay = true
+					}
+				} else if colorValue, hasColor := other.ColorCodes[otherCode]; hasColor {
+					overlayColor = colorValue
+					hasOverlay = true
+				}
+
+				if !hasOverlay || overlayColor.A == 0 {
+					// Fully transparent - don't change base
+					continue
+				}
+
+				if overlayColor.A == 255 {
+					// Fully opaque - simple overwrite
+					if reindexedCode, exists := reindex[otherCode]; exists {
+						cm.Matrix[newRow][newCol] = reindexedCode
+					}
+					continue
+				}
+
+				// Semi-transparent - need to blend with base
+				baseCode := cm.Matrix[newRow][newCol]
+
+				// Check if we already computed this blend
+				blendKey := [2]int{baseCode, otherCode}
+				if blendedCode, exists := blendedColors[blendKey]; exists {
+					cm.Matrix[newRow][newCol] = blendedCode
+					continue
+				}
+
+				// Get base color
+				var baseColor color.RGBA
+				if animSeq, hasAnim := cm.animationSequences[baseCode]; hasAnim {
+					if len(animSeq.Frames) > 0 {
+						baseColor = animSeq.Frames[0]
+					}
+				} else if colorValue, hasColor := cm.ColorCodes[baseCode]; hasColor {
+					baseColor = colorValue
+				}
+
+				// Alpha composite: overlay OVER base
+				blended := alphaComposite(overlayColor, baseColor)
+
+				// Create new color code for blended result
+				if existingCode, exists := colorToCode[blended]; exists {
+					cm.Matrix[newRow][newCol] = existingCode
+					blendedColors[blendKey] = existingCode
+				} else {
+					maxCode++
+					cm.ColorCodes[maxCode] = blended
+					colorToCode[blended] = maxCode
+					cm.Matrix[newRow][newCol] = maxCode
+					blendedColors[blendKey] = maxCode
 				}
 			}
 		}
 	}
 
 	return nil
+}
+
+// alphaComposite performs Porter-Duff "source over destination" alpha compositing
+// Returns the result of compositing src over dst
+func alphaComposite(src, dst color.RGBA) color.RGBA {
+	if src.A == 255 {
+		return src // Fully opaque source
+	}
+	if src.A == 0 {
+		return dst // Fully transparent source
+	}
+	if dst.A == 0 {
+		return src // Transparent destination
+	}
+
+	// Convert to float for calculations
+	srcA := float32(src.A) / 255.0
+	dstA := float32(dst.A) / 255.0
+
+	// Result alpha
+	outA := srcA + dstA*(1-srcA)
+
+	// Avoid division by zero
+	if outA == 0 {
+		return color.RGBA{0, 0, 0, 0}
+	}
+
+	// Result color channels
+	outR := (float32(src.R)*srcA + float32(dst.R)*dstA*(1-srcA)) / outA
+	outG := (float32(src.G)*srcA + float32(dst.G)*dstA*(1-srcA)) / outA
+	outB := (float32(src.B)*srcA + float32(dst.B)*dstA*(1-srcA)) / outA
+
+	return color.RGBA{
+		R: uint8(outR),
+		G: uint8(outG),
+		B: uint8(outB),
+		A: uint8(outA * 255.0),
+	}
 }

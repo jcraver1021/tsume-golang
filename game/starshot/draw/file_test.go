@@ -71,9 +71,9 @@ animation_sequences:
 
 	// Verify color codes were converted correctly
 	expectedColors := map[int]color.RGBA{
-		1: {R: 255, G: 0, B: 0, A: 255},   // Red
-		2: {R: 0, G: 255, B: 0, A: 255},   // Green
-		3: {R: 0, G: 0, B: 255, A: 255},   // Blue
+		1: {R: 255, G: 0, B: 0, A: 255}, // Red
+		2: {R: 0, G: 255, B: 0, A: 255}, // Green
+		3: {R: 0, G: 0, B: 255, A: 255}, // Blue
 	}
 
 	for code, expectedColor := range expectedColors {

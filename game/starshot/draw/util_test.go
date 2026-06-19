@@ -8,8 +8,8 @@ import (
 
 func TestNewMatrix(t *testing.T) {
 	testCases := []struct {
-		name  string
-		width int
+		name   string
+		width  int
 		height int
 	}{
 		{"3x3", 3, 3},

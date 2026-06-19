@@ -236,6 +236,7 @@ func (s *Space) maybeAddStar(layer Layer, b def.Scene) *background.Star {
 		y := -10 // start above the screen
 		return newStar(x, y, layer)
 	}
+
 	return nil
 }
 

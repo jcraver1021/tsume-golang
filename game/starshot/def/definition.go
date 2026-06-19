@@ -89,7 +89,7 @@ type EntityCollection interface {
 
 // Collides performs two-phase collision detection between entities
 // Phase 1: Fast bounding box check via BoundingBoxOverlaps()
-// Phase 2: Precise check via CollidesWith() if both implement PreciseCollider
+// Phase 2: Precise check via CollidesWith() if at least one implements PreciseCollider
 // Returns true only if entities are actually colliding
 func Collides(a, b Entity) bool {
 	// Broad phase: cheap bounding box check
@@ -97,16 +97,20 @@ func Collides(a, b Entity) bool {
 		return false
 	}
 
-	// Narrow phase: if both entities need precise collision, use it
+	// Narrow phase: if either entity has precise collision, use it
 	preciseA, aHasPrecise := a.(PreciseCollider)
-	_, bHasPrecise := b.(PreciseCollider)
+	preciseB, bHasPrecise := b.(PreciseCollider)
 
-	if aHasPrecise && bHasPrecise {
-		// Both have precise collision - use A's implementation
+	if aHasPrecise {
+		// A has precise collision - use it
 		return preciseA.CollidesWith(b)
 	}
 
-	// At least one doesn't need precise collision
-	// Bounding box overlap is sufficient
+	if bHasPrecise {
+		// B has precise collision - use it
+		return preciseB.CollidesWith(a)
+	}
+
+	// Neither has precise collision - bounding box overlap is sufficient
 	return true
 }

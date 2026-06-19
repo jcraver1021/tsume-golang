@@ -120,7 +120,7 @@ func (g *Game) handleInput() {
 		// Apply player action to all player entities (even zero or more than one)
 		players := g.Scene.Entities().Get(def.EntityTypePlayer)
 		for _, p := range players {
-			if playerEntity, ok := p.(*player.Player); ok {
+			if playerEntity, ok := p.(player.PlayerController); ok {
 				playerEntity.SetPlayerAction(playerAction)
 			}
 		}
