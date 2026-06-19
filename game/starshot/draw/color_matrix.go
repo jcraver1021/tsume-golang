@@ -40,6 +40,7 @@ func (a *AnimationSequence) GetColor() color.RGBA {
 }
 
 func (a *AnimationSequence) Advance() {
+	// We avoid modulo for performance
 	a.CurrentTick++
 	if a.CurrentTick >= a.FrameDuration {
 		a.CurrentTick = 0

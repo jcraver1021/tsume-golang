@@ -45,13 +45,10 @@ func NewPulsar(period float64, sizeVariation, brightnessVariation float64) *Puls
 }
 
 func (p *Pulsar) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
-	// Calculate phase from global tick
 	phase := float64(tick) * p.frequency
 
-	// Sine wave oscillation: ranges from -1 to 1
 	wave := math.Sin(phase)
 
-	// Convert to multipliers: 1.0 +/- amplitude * wave
 	sizeMultiplier = 1.0 + (p.sizeAmplitude * wave)
 	brightnessMultiplier = 1.0 + (p.brightAmplitude * wave)
 
@@ -75,11 +72,8 @@ func NewTwinkle(changeFrames int, variation float64) *Twinkle {
 }
 
 func (t *Twinkle) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
-	// Determine which interval we're in
 	interval := tick / t.changeInterval
 
-	// Generate pseudo-random brightness for this interval
-	// Use interval as seed for deterministic but varied brightness
 	pseudoRandom := float64((interval*2654435761)%1000) / 1000.0
 	targetBrightness := 1.0 + (pseudoRandom-0.5)*2*t.variation
 
@@ -195,13 +189,8 @@ func (s *Star) updateAppearance(tick int) {
 		sizeMultiplier, brightnessMultiplier = s.variation.Calculate(tick)
 	}
 
-	// Apply size multiplier
-	s.currentSize = int(float64(s.baseSize) * sizeMultiplier)
-	if s.currentSize < 1 {
-		s.currentSize = 1
-	}
+	s.currentSize = max(int(float64(s.baseSize)*sizeMultiplier), 1)
 
-	// Apply brightness multiplier to color
 	s.currentColor = color.RGBA{
 		R: uint8(clamp(float64(s.baseColor.R)*brightnessMultiplier, 0, 255)),
 		G: uint8(clamp(float64(s.baseColor.G)*brightnessMultiplier, 0, 255)),

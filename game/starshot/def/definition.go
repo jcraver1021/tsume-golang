@@ -40,7 +40,7 @@ const (
 	ScreenHeight = 640
 )
 
-// OnScreen indicates whether an entity is visible on screen
+// OnScreen indicates an object's visibility relative to the screen boundaries
 type OnScreen int
 
 const (

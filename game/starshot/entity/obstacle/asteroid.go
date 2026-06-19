@@ -9,7 +9,6 @@ import (
 	"tsumegolang/game/starshot/draw"
 )
 
-// AsteroidSize represents the size category of an asteroid
 type AsteroidSize int
 
 const (
@@ -182,19 +181,15 @@ type craterInfo struct {
 
 // generateAsteroidSprite creates a procedural multi-colored asteroid
 func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMatrix {
-	// Generate irregular shape and get crater positions
 	shape, craters := generateProceduralShape(width, height, size)
 
-	// Create matrix from shape
 	matrix := make([][]int, height)
 	for i := range matrix {
 		matrix[i] = make([]int, width)
 	}
 
-	// Generate base color palette with variation
 	basePalette := generateRockPalette()
 
-	// Apply colors with variation based on position
 	colorCodes := map[int]color.RGBA{
 		0: {0, 0, 0, 0}, // Transparent
 	}
@@ -207,10 +202,8 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 				continue
 			}
 
-			// Choose color based on position and randomness
 			colorIndex := selectRockColor(row, col, width, height)
 
-			// Check if inside any crater - if so, use darker palette colors
 			for _, crater := range craters {
 				dx := col - crater.cx
 				dy := row - crater.cy
@@ -233,7 +226,6 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 
 			rockColor := basePalette[colorIndex]
 
-			// Check if this color already exists
 			existingCode := 0
 			for code, c := range colorCodes {
 				if c == rockColor {
@@ -254,7 +246,6 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 
 	cm, err := draw.NewColorMatrix(matrix, colorCodes, nil)
 	if err != nil {
-		// Fallback to simple single-color asteroid
 		return createFallbackAsteroid(width, height)
 	}
 
@@ -421,13 +412,6 @@ func generateRockPalette() []color.RGBA {
 			},
 		}
 	}
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // selectRockColor chooses a color based on position (creates gradient effect)

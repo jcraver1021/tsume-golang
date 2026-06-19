@@ -8,7 +8,7 @@ import (
 )
 
 func TestAlphaComposite(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name      string
 		src       color.RGBA
 		dst       color.RGBA
@@ -76,19 +76,14 @@ func TestAlphaComposite(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Access the function through the package - need to make it exported or test through Compose
-			// Since alphaComposite is private, we'll test it via Compose behavior
-			// Actually, let's make alphaComposite exported for testing
-
-			// For now, test via Compose
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			baseMatrix := [][]int{{1}}
-			baseColors := map[int]color.RGBA{1: tt.dst}
+			baseColors := map[int]color.RGBA{1: tc.dst}
 			base, _ := NewColorMatrix(baseMatrix, baseColors, nil)
 
 			overlayMatrix := [][]int{{2}}
-			overlayColors := map[int]color.RGBA{2: tt.src}
+			overlayColors := map[int]color.RGBA{2: tc.src}
 			overlay, _ := NewColorMatrix(overlayMatrix, overlayColors, nil)
 
 			base.Compose(overlay, 0, 0)
@@ -104,10 +99,10 @@ func TestAlphaComposite(t *testing.T) {
 				}
 			}
 
-			checkChannel("R", result.R, tt.wantR, tt.tolerance)
-			checkChannel("G", result.G, tt.wantG, tt.tolerance)
-			checkChannel("B", result.B, tt.wantB, tt.tolerance)
-			checkChannel("A", result.A, tt.wantA, tt.tolerance)
+			checkChannel("R", result.R, tc.wantR, tc.tolerance)
+			checkChannel("G", result.G, tc.wantG, tc.tolerance)
+			checkChannel("B", result.B, tc.wantB, tc.tolerance)
+			checkChannel("A", result.A, tc.wantA, tc.tolerance)
 		})
 	}
 }

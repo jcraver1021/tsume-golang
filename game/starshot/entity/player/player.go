@@ -1,7 +1,5 @@
 package player
 
-// New ColorMatrix-based player implementation
-
 import (
 	"embed"
 	"path"

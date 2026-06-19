@@ -47,7 +47,7 @@ func TestAsteroidFieldGeneratesAsteroids(t *testing.T) {
 	initialCount := scene.EntityCount()
 
 	// Call Act() multiple times
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		field.Act(scene)
 	}
 
@@ -143,9 +143,10 @@ func TestAsteroidFieldRandomSizeDistribution(t *testing.T) {
 
 	for _, entity := range scene.GetEntities() {
 		w, _ := entity.Dimensions()
-		if w == smallWidth {
+		switch w {
+		case smallWidth:
 			smallCount++
-		} else if w == largeWidth {
+		case largeWidth:
 			largeCount++
 		}
 	}
@@ -223,7 +224,7 @@ func TestAsteroidFieldPositionDistribution(t *testing.T) {
 	field := environment.NewAsteroidField(1.0, sizeFn)
 
 	// Generate many asteroids
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		field.Act(scene)
 	}
 

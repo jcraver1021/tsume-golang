@@ -52,7 +52,6 @@ type animationSequenceYAML struct {
 }
 
 func ColorMatrixFromFile(path string) (*ColorMatrix, error) {
-	// Read the YAML file
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -62,22 +61,18 @@ func ColorMatrixFromFile(path string) (*ColorMatrix, error) {
 }
 
 func ColorMatrixFromBytes(data []byte) (*ColorMatrix, error) {
-	// Unmarshal into intermediate structure with hexColor
 	var yamlData colorMatrixYAML
 	if err := yaml.Unmarshal(data, &yamlData); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
 	}
 
-	// Convert ColorCodesHex (map[int]hexColor) to ColorCodes (map[int]color.RGBA)
 	colorCodes := make(map[int]color.RGBA)
 	for code, hexColor := range yamlData.ColorCodesHex {
 		colorCodes[code] = color.RGBA(hexColor)
 	}
 
-	// Convert AnimationSequences from hexColor to color.RGBA
 	animationSequences := make(map[int]*AnimationSequence)
 	for code, animSeqYAML := range yamlData.AnimationSequences {
-		// Convert hexColor frames to color.RGBA frames
 		frames := make([]color.RGBA, len(animSeqYAML.FramesHex))
 		for i, hexColor := range animSeqYAML.FramesHex {
 			frames[i] = color.RGBA(hexColor)
@@ -86,6 +81,5 @@ func ColorMatrixFromBytes(data []byte) (*ColorMatrix, error) {
 		animationSequences[code] = NewAnimationSequence(frames, animSeqYAML.FrameDuration)
 	}
 
-	// Create and return the ColorMatrix using the existing constructor
 	return NewColorMatrix(yamlData.Matrix, colorCodes, animationSequences)
 }
