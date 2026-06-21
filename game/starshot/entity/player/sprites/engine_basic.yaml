@@ -1,0 +1,41 @@
+# Basic Engine sprite definition
+
+matrix:
+  # Mount: Center
+  # Size: 8x8
+  - [0, 1, 1, 0, 0, 1, 1, 0]
+  - [1, 1, 1, 1, 1, 1, 1, 1]
+  - [1, 2, 2, 1, 1, 2, 2, 1]
+  - [1, 2, 2, 1, 1, 2, 2, 1]
+  - [0, 3, 3, 0, 0, 3, 3, 0]
+  - [0, 2, 2, 0, 0, 2, 2, 0]
+  - [4, 3, 3, 4, 4, 3, 3, 4]
+  - [4, 5, 5, 4, 4, 5, 5, 4]
+
+color_codes:
+  0: "#00000000"  # Transparent
+  1: "#A9A9A9FF"  # Dark Gray connector
+  2: "#4682B4FF"  # Metallic Blue chassi
+
+animation_sequences:
+  3: # Glowing metallic blue chassi
+    frames:
+      - "#A3AF96FF"  # Bright yellow over metallic blue
+      - "#7599A5FF"  # Halfway yellow over metallic blue  
+      - "#4682B4FF"  # Metallic Blue
+      - "#7599A5FF"  # Halfway yellow over metallic blue
+    frame_duration: 15
+  4: # Outer exhaust glow
+    frames:
+      - "#FFDC7888"  # Bright yellow transparent
+      - "#FFC86488"  # Medium yellow transparent
+      - "#DCA05088"  # Dim yellow transparent
+      - "#FFC86488"  # Medium yellow transparent (back up)
+    frame_duration: 15
+  5: # Inner exhaust glow
+    frames:
+      - "#FFDC78FF"  # Bright yellow
+      - "#FFC864FF"  # Medium yellow
+      - "#DCA050FF"  # Dim yellow
+      - "#FFC864FF"  # Medium yellow (back up)
+    frame_duration: 15

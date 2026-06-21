@@ -1,7 +1,6 @@
 package player
 
 import (
-	"embed"
 	"path"
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
@@ -9,8 +8,6 @@ import (
 	"tsumegolang/game/starshot/draw"
 )
 
-//go:embed sprites/*.yaml
-var spriteFiles embed.FS
 
 // PlayerAction represents player input state
 type PlayerAction struct {
@@ -32,12 +29,12 @@ const defaultPlayerSpeed = 5
 type Player struct {
 	x, y          int
 	width, height int
-	speed         int
+	
+	hull *Hull
+	engine *Engine
+	sprite *draw.ColorMatrix
 
 	playerAction PlayerAction
-
-	// ColorMatrix-based sprite
-	sprite *draw.ColorMatrix
 }
 
 // NewPlayer creates a new ColorMatrix-based player
@@ -71,14 +68,72 @@ func NewPlayer(x, y int) (*Player, error) {
 
 	width, height := hull.Dimensions()
 
-	return &Player{
+	p := &Player{
 		x:      x,
 		y:      y,
 		width:  width,
 		height: height,
-		speed:  defaultPlayerSpeed,
-		sprite: hull,
-	}, nil
+	}
+
+	// Load defaults
+	p.hull, err = loadDefaultHull()
+	if err != nil {
+		return nil, err
+	}
+
+	p.engine, err = loadDefaultEngine()
+	if err != nil {
+		return nil, err
+	}
+
+	// Compose sprites
+	p.composePlayerSprites()
+
+	return p, nil
+}
+
+func loadDefaultHull() (*Hull, error) {
+	return BasicHull()
+}
+
+func loadDefaultEngine() (*Engine, error) {
+	return BasicEngine()
+}
+
+func (p *Player) composePlayerSprites() error {
+	// Load hull
+	if p.hull == nil {
+		return nil
+	}
+	hull := p.hull.sprite
+
+	// Compose hull + engine (engine overlays hull)
+	if p.engine != nil {
+		offsetX, offsetY := p.computeEngineMountOffset()
+		if err := hull.Compose(p.engine.sprite, offsetX, offsetY); err != nil {
+			return err
+		}
+	}
+
+	p.sprite = hull
+	return nil
+}
+
+func (p *Player) computeEngineMountOffset() (offsetX, offsetY int) {
+	if p.engine == nil {
+		return 0, 0
+	}
+
+	switch p.engine.EngineMount {
+	case EngineMountCenter:
+		offsetX = (p.width - p.engine.sprite.Width()) / 2
+		offsetY = p.height - p.engine.sprite.Height()
+	default:
+		offsetX = 0
+		offsetY = 0
+	}
+
+	return offsetX, offsetY
 }
 
 func (p *Player) Type() def.EntityType {
@@ -105,16 +160,16 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 
 func (p *Player) Act(b def.Scene) {
 	if p.playerAction.MoveUp {
-		p.y -= p.speed
+		p.y -= p.engine.vUp
 	}
 	if p.playerAction.MoveDown {
-		p.y += p.speed
+		p.y += p.engine.vDown
 	}
 	if p.playerAction.MoveLeft {
-		p.x -= p.speed
+		p.x -= p.engine.vLeft
 	}
 	if p.playerAction.MoveRight {
-		p.x += p.speed
+		p.x += p.engine.vRight
 	}
 
 	// Clamp to screen bounds
