@@ -3,36 +3,49 @@ package obstacle_test
 import (
 	"testing"
 
+	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/entity/obstacle"
-	"tsumegolang/game/starshot/entity/player"
 )
+
+// mockEntity is a simple bounding-box entity for collision tests
+type mockEntity struct {
+	x, y, width, height int
+}
+
+func (m *mockEntity) Type() def.EntityType            { return def.EntityTypePlayer }
+func (m *mockEntity) Location() (x, y int)            { return m.x, m.y }
+func (m *mockEntity) Dimensions() (width, height int) { return m.width, m.height }
+func (m *mockEntity) Act(def.Scene)                   {}
+func (m *mockEntity) Draw(*ebit.Image)                {}
+func (m *mockEntity) CanBeRemoved() bool              { return false }
+func (m *mockEntity) BoundingBoxOverlaps(other def.Entity) bool {
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(m.x+m.width < ox || m.x > ox+ow || m.y+m.height < oy || m.y > oy+oh)
+}
 
 func TestAsteroidCollisionWithTransparentPixels(t *testing.T) {
 	// Create a small asteroid at a specific position
 	asteroid := obstacle.NewAsteroid(100, 100, obstacle.AsteroidSmall) // 12x12
 
-	// Create a player that overlaps with the asteroid's bounding box
-	// but might not overlap with solid pixels
-	player, err := player.NewPlayer(105, 105) // 32x32, overlaps bounding box
-	if err != nil {
-		t.Fatalf("Failed to create player: %v", err)
-	}
+	// Create a simple entity that overlaps with the asteroid's bounding box
+	entity := &mockEntity{x: 105, y: 105, width: 32, height: 32}
 
 	// First check: bounding boxes should overlap
-	if !asteroid.BoundingBoxOverlaps(player) {
+	if !asteroid.BoundingBoxOverlaps(entity) {
 		t.Error("Bounding boxes should overlap")
 	}
 
 	// Second check: Use the Collides helper which should use precise collision
 	// Since asteroid implements PreciseCollider, it should check actual pixels
-	collision := def.Collides(asteroid, player)
+	collision := def.Collides(asteroid, entity)
 
 	// We can't predict the exact result without knowing the procedural shape,
 	// but we can verify the collision detection ran without panic
 	t.Logf("Collision detected: %v (depends on procedural shape)", collision)
 
-	// The key is that Collides() should call asteroid.CollidesWith(player)
+	// The key is that Collides() should call asteroid.CollidesWith(entity)
 	// and only count solid (non-transparent) pixels
 }
 
@@ -104,22 +117,19 @@ func TestAsteroidCollisionOnlyCountsSolidPixels(t *testing.T) {
 
 func TestOneWayPreciseCollision(t *testing.T) {
 	// Test that collision works when only ONE entity is a PreciseCollider
-	// This is the typical case: asteroid (precise) vs player (bounding box)
+	// This is the typical case: asteroid (precise) vs simple entity (bounding box)
 
 	asteroid := obstacle.NewAsteroid(100, 100, obstacle.AsteroidLarge)
 
 	// Verify asteroid is a PreciseCollider (compile-time check)
 	var _ def.PreciseCollider = asteroid
 
-	// Create a simple player
-	player, err := player.NewPlayer(110, 110)
-	if err != nil {
-		t.Fatalf("Failed to create player: %v", err)
-	}
+	// Create a simple entity with bounding box collision only
+	entity := &mockEntity{x: 110, y: 110, width: 32, height: 32}
 
 	// Check collision both ways
-	collision1 := def.Collides(asteroid, player)
-	collision2 := def.Collides(player, asteroid)
+	collision1 := def.Collides(asteroid, entity)
+	collision2 := def.Collides(entity, asteroid)
 
 	// Should get the same result regardless of order
 	if collision1 != collision2 {
