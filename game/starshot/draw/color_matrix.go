@@ -87,9 +87,21 @@ func NewColorMatrix(matrix [][]int, colorCodes map[int]color.RGBA, animationSequ
 	}, nil
 }
 
+func (cm *ColorMatrix) Width() int {
+	if len(cm.Matrix) == 0 {
+		return 0
+	}
+
+	return len(cm.Matrix[0])
+}
+
+func (cm *ColorMatrix) Height() int {
+	return len(cm.Matrix)
+}
+
 func (cm *ColorMatrix) Render() [][]color.RGBA {
-	height := len(cm.Matrix)
-	width := len(cm.Matrix[0])
+	height := cm.Height()
+	width := cm.Width()
 	rendered := make([][]color.RGBA, height)
 	for i := range rendered {
 		rendered[i] = make([]color.RGBA, width)
