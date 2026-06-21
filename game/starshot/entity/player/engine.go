@@ -4,7 +4,6 @@ import (
 	"tsumegolang/game/starshot/draw"
 )
 
-
 type EngineMount int
 
 const (
@@ -13,11 +12,11 @@ const (
 
 type Engine struct {
 	EngineMount EngineMount
-	vUp int
-	vDown int
-	vLeft int
-	vRight int
-	sprite *draw.ColorMatrix
+	vUp         int
+	vDown       int
+	vLeft       int
+	vRight      int
+	sprite      *draw.ColorMatrix
 }
 
 // Basic

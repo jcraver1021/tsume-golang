@@ -8,7 +8,6 @@ import (
 	"tsumegolang/game/starshot/draw"
 )
 
-
 // PlayerAction represents player input state
 type PlayerAction struct {
 	MoveUp    bool
@@ -29,8 +28,8 @@ const defaultPlayerSpeed = 5
 type Player struct {
 	x, y          int
 	width, height int
-	
-	hull *Hull
+
+	hull   *Hull
 	engine *Engine
 	sprite *draw.ColorMatrix
 

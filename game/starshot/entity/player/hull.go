@@ -24,7 +24,7 @@ func BasicHull() (*Hull, error) {
 
 	return &Hull{
 		sprite: sprite,
-		}, nil
+	}, nil
 }
 
 // Add more hulls here as needed
