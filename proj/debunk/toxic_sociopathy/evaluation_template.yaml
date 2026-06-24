@@ -1,0 +1,87 @@
+# Citation Evaluation Template
+# Copy this template for each citation you evaluate
+
+citation_id: ""  # e.g., "lie01_005" or "intro_003"
+section: ""      # e.g., "Lie #1: Abortion Is Health Care"
+citation_number: 0
+url: ""
+full_citation: ""
+
+# =============================================================================
+# ACCESSIBILITY
+# =============================================================================
+accessibility:
+  status: "" # ACCESSIBLE | PAYWALLED | PAYWALLED_NO_ACCESS | DEAD_LINK | REDIRECT | REMOVED | NO_URL | REQUIRES_AUTH
+  notes: ""
+  archive_url: ""  # If retrieved from Internet Archive
+  download_date: ""
+
+# =============================================================================
+# SOURCE TYPE
+# =============================================================================
+source_type:
+  primary: "" # See schema for full list
+  secondary: []  # Additional types if applicable
+  outlet: ""
+  publication_date: ""
+
+# =============================================================================
+# CREDIBILITY ASSESSMENT
+# =============================================================================
+credibility:
+  rating: 0  # 1-5 scale (see schema)
+  reasoning: ""
+  conflicts: []
+  methodological_notes: ""
+
+# =============================================================================
+# REPRESENTATION ACCURACY
+# =============================================================================
+representation:
+  accuracy: "" # ACCURATE | ACCURATE_BUT_CHERRY_PICKED | MISLEADING_CONTEXT | MISLEADING_OUTDATED | PARTIAL_TRUTH | MISREPRESENTED | CONTRADICTS | INACCESSIBLE | NOT_RELEVANT
+  severity: ""  # MINOR | MODERATE | SEVERE (if not ACCURATE)
+  misrep_type: []  # See schema for types
+
+  book_claim: ""
+  source_quote: ""
+  context_missing: ""
+  notes: ""
+
+# =============================================================================
+# BIAS ASSESSMENT
+# =============================================================================
+bias:
+  political: ""  # LEFT | CENTER_LEFT | CENTER | CENTER_RIGHT | RIGHT | EXTREME_LEFT | EXTREME_RIGHT
+  funding: ""    # See schema
+  author_expertise: ""
+  institutional_bias: ""
+  methodological_concerns: []
+
+# =============================================================================
+# META-ASSESSMENT
+# =============================================================================
+meta:
+  support: ""  # STRONG_SUPPORT | WEAK_SUPPORT | NO_SUPPORT | INDETERMINATE
+  red_flags: []  # RETRACTED | DISCREDITED | EXTREMIST | SATIRE | MISATTRIBUTED | FABRICATED | CIRCULAR
+  overall_notes: ""
+  alternative_interpretations: ""
+
+# =============================================================================
+# VERIFICATION METADATA
+# =============================================================================
+verification:
+  verified_by: ""
+  verification_date: ""
+  time_spent_minutes: 0
+  requires_followup: false
+  followup_notes: ""
+
+# =============================================================================
+# SCORING (Optional)
+# =============================================================================
+scoring:
+  accessibility: 0  # 0-2
+  credibility: 0    # 1-5
+  representation: 0 # 0-3
+  red_flag_penalty: 0  # -5 if major red flag
+  total_score: 0    # Sum of above (max 10)
