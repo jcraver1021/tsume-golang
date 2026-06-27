@@ -3,28 +3,10 @@ package play_test
 import (
 	"testing"
 
-	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/play"
+	"tsumegolang/game/starshot/testutil"
 )
-
-// mockEntity is a minimal test entity
-type mockEntity struct {
-	entityType def.EntityType
-	removed    bool
-}
-
-func newMockEntity(t def.EntityType) *mockEntity {
-	return &mockEntity{entityType: t}
-}
-
-func (m *mockEntity) Type() def.EntityType                      { return m.entityType }
-func (m *mockEntity) Location() (x, y int)                      { return 0, 0 }
-func (m *mockEntity) Dimensions() (width, height int)           { return 1, 1 }
-func (m *mockEntity) BoundingBoxOverlaps(other def.Entity) bool { return false }
-func (m *mockEntity) Act(s def.Scene)                           {}
-func (m *mockEntity) Draw(img *ebit.Image)                      {}
-func (m *mockEntity) CanBeRemoved() bool                        { return m.removed }
 
 func TestEntityStoreImplementsInterface(t *testing.T) {
 	store := play.NewEntityStore()
@@ -33,7 +15,7 @@ func TestEntityStoreImplementsInterface(t *testing.T) {
 
 func TestEntityStoreAdd(t *testing.T) {
 	store := play.NewEntityStore()
-	entity := newMockEntity(def.EntityTypePlayer)
+	entity := testutil.NewMockEntity(def.EntityTypePlayer)
 
 	store.Add(entity)
 
@@ -52,9 +34,9 @@ func TestEntityStoreIterateForUpdateOrder(t *testing.T) {
 	store := play.NewEntityStore()
 
 	// Add entities in random order
-	background := newMockEntity(def.EntityTypeBackground)
-	player := newMockEntity(def.EntityTypePlayer)
-	enemy := newMockEntity(def.EntityTypeEnemy)
+	background := testutil.NewMockEntity(def.EntityTypeBackground)
+	player := testutil.NewMockEntity(def.EntityTypePlayer)
+	enemy := testutil.NewMockEntity(def.EntityTypeEnemy)
 
 	store.Add(background)
 	store.Add(enemy)
@@ -89,9 +71,9 @@ func TestEntityStoreIterateForDrawOrder(t *testing.T) {
 	store := play.NewEntityStore()
 
 	// Add entities
-	background := newMockEntity(def.EntityTypeBackground)
-	player := newMockEntity(def.EntityTypePlayer)
-	enemy := newMockEntity(def.EntityTypeEnemy)
+	background := testutil.NewMockEntity(def.EntityTypeBackground)
+	player := testutil.NewMockEntity(def.EntityTypePlayer)
+	enemy := testutil.NewMockEntity(def.EntityTypeEnemy)
 
 	store.Add(background)
 	store.Add(enemy)
@@ -124,10 +106,10 @@ func TestEntityStoreIterateForDrawOrder(t *testing.T) {
 func TestEntityStoreRemovesMarkedEntities(t *testing.T) {
 	store := play.NewEntityStore()
 
-	entity1 := newMockEntity(def.EntityTypeEnemy)
-	entity2 := newMockEntity(def.EntityTypeEnemy)
-	entity2.removed = true // Mark for removal
-	entity3 := newMockEntity(def.EntityTypeEnemy)
+	entity1 := testutil.NewMockEntity(def.EntityTypeEnemy)
+	entity2 := testutil.NewMockEntity(def.EntityTypeEnemy)
+	entity2.Removed = true // Mark for removal
+	entity3 := testutil.NewMockEntity(def.EntityTypeEnemy)
 
 	store.Add(entity1)
 	store.Add(entity2)
@@ -161,10 +143,10 @@ func TestEntityStoreSameTypeOrderPreserved(t *testing.T) {
 	store := play.NewEntityStore()
 
 	// Add multiple enemies in specific order
-	enemies := []*mockEntity{
-		newMockEntity(def.EntityTypeEnemy),
-		newMockEntity(def.EntityTypeEnemy),
-		newMockEntity(def.EntityTypeEnemy),
+	enemies := []*testutil.MockEntity{
+		testutil.NewMockEntity(def.EntityTypeEnemy),
+		testutil.NewMockEntity(def.EntityTypeEnemy),
+		testutil.NewMockEntity(def.EntityTypeEnemy),
 	}
 
 	for _, e := range enemies {
@@ -172,9 +154,9 @@ func TestEntityStoreSameTypeOrderPreserved(t *testing.T) {
 	}
 
 	// Collect iteration order
-	var collected []*mockEntity
+	var collected []*testutil.MockEntity
 	for entity := range store.IterateForUpdate() {
-		collected = append(collected, entity.(*mockEntity))
+		collected = append(collected, entity.(*testutil.MockEntity))
 	}
 
 	// Verify FIFO order within the type
@@ -193,9 +175,9 @@ func TestEntityStoreTypeGet(t *testing.T) {
 	store := play.NewEntityStore()
 
 	// Add entities of different types
-	player := newMockEntity(def.EntityTypePlayer)
-	enemy := newMockEntity(def.EntityTypeEnemy)
-	background := newMockEntity(def.EntityTypeBackground)
+	player := testutil.NewMockEntity(def.EntityTypePlayer)
+	enemy := testutil.NewMockEntity(def.EntityTypeEnemy)
+	background := testutil.NewMockEntity(def.EntityTypeBackground)
 
 	store.Add(player)
 	store.Add(enemy)

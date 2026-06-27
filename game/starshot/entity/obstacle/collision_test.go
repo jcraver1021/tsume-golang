@@ -3,34 +3,21 @@ package obstacle_test
 import (
 	"testing"
 
-	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/entity/obstacle"
+	"tsumegolang/game/starshot/testutil"
 )
-
-// mockEntity is a simple bounding-box entity for collision tests
-type mockEntity struct {
-	x, y, width, height int
-}
-
-func (m *mockEntity) Type() def.EntityType            { return def.EntityTypePlayer }
-func (m *mockEntity) Location() (x, y int)            { return m.x, m.y }
-func (m *mockEntity) Dimensions() (width, height int) { return m.width, m.height }
-func (m *mockEntity) Act(def.Scene)                   {}
-func (m *mockEntity) Draw(*ebit.Image)                {}
-func (m *mockEntity) CanBeRemoved() bool              { return false }
-func (m *mockEntity) BoundingBoxOverlaps(other def.Entity) bool {
-	ox, oy := other.Location()
-	ow, oh := other.Dimensions()
-	return !(m.x+m.width < ox || m.x > ox+ow || m.y+m.height < oy || m.y > oy+oh)
-}
 
 func TestAsteroidCollisionWithTransparentPixels(t *testing.T) {
 	// Create a small asteroid at a specific position
 	asteroid := obstacle.NewAsteroid(100, 100, obstacle.AsteroidSmall) // 12x12
 
 	// Create a simple entity that overlaps with the asteroid's bounding box
-	entity := &mockEntity{x: 105, y: 105, width: 32, height: 32}
+	entity := testutil.NewMockEntity(def.EntityTypePlayer)
+	entity.X = 105
+	entity.Y = 105
+	entity.Width = 32
+	entity.Height = 32
 
 	// First check: bounding boxes should overlap
 	if !asteroid.BoundingBoxOverlaps(entity) {
@@ -125,7 +112,11 @@ func TestOneWayPreciseCollision(t *testing.T) {
 	var _ def.PreciseCollider = asteroid
 
 	// Create a simple entity with bounding box collision only
-	entity := &mockEntity{x: 110, y: 110, width: 32, height: 32}
+	entity := testutil.NewMockEntity(def.EntityTypePlayer)
+	entity.X = 110
+	entity.Y = 110
+	entity.Width = 32
+	entity.Height = 32
 
 	// Check collision both ways
 	collision1 := def.Collides(asteroid, entity)

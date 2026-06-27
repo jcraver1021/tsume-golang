@@ -29,6 +29,9 @@ type Banner struct {
 
 	// Cached dimensions
 	width, height float64
+
+	// Rendering layer
+	entityType def.EntityType
 }
 
 // BannerOptions provides advanced configuration for banner creation
@@ -39,7 +42,8 @@ type BannerOptions struct {
 	TextColor       color.RGBA
 	BackgroundColor *color.RGBA
 	Padding         int
-	DurationFrames  int // 0 = permanent
+	DurationFrames  int            // 0 = permanent
+	EntityType      def.EntityType // Rendering layer (defaults to Background)
 }
 
 // NewBanner creates a simple permanent banner centered at the given position
@@ -51,6 +55,20 @@ func NewBanner(text string, x, y int, fontSize float64, c color.RGBA) (*Banner, 
 		FontSize:       fontSize,
 		TextColor:      c,
 		DurationFrames: 0, // permanent
+		EntityType:     def.EntityTypeBackground,
+	})
+}
+
+// NewUIBanner creates a UI overlay banner (drawn on top of everything)
+func NewUIBanner(text string, x, y int, fontSize float64, c color.RGBA) (*Banner, error) {
+	return NewBannerWithOptions(BannerOptions{
+		Text:           text,
+		X:              x,
+		Y:              y,
+		FontSize:       fontSize,
+		TextColor:      c,
+		DurationFrames: 0, // permanent
+		EntityType:     def.EntityTypeUI,
 	})
 }
 
@@ -66,6 +84,12 @@ func NewBannerWithOptions(opts BannerOptions) (*Banner, error) {
 	// Measure text dimensions for caching
 	width, height := text.Measure(opts.Text, face, 0)
 
+	// Default to Background if not specified
+	entityType := opts.EntityType
+	if entityType == 0 && opts.EntityType != def.EntityTypeUI {
+		entityType = def.EntityTypeBackground
+	}
+
 	return &Banner{
 		text:       opts.Text,
 		fontFace:   face,
@@ -78,13 +102,14 @@ func NewBannerWithOptions(opts BannerOptions) (*Banner, error) {
 		frameCount: 0,
 		width:      width,
 		height:     height,
+		entityType: entityType,
 	}, nil
 }
 
 // Entity interface implementation
 
 func (b *Banner) Type() def.EntityType {
-	return def.EntityTypeBackground
+	return b.entityType
 }
 
 func (b *Banner) Location() (x, y int) {

@@ -283,6 +283,45 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 	return nil
 }
 
+// ComposeExpanding overlays another ColorMatrix on top of this one, expanding the base matrix if needed.
+// The overlay is centered on the base matrix. If the overlay is larger, the base matrix grows to accommodate it.
+// This is useful for death animations where an explosion (larger) needs to overlay a ship (smaller).
+func (cm *ColorMatrix) ComposeExpanding(other *ColorMatrix) error {
+	baseWidth := cm.Width()
+	baseHeight := cm.Height()
+	overlayWidth := other.Width()
+	overlayHeight := other.Height()
+
+	// Calculate new dimensions (max of both)
+	newWidth := max(baseWidth, overlayWidth)
+	newHeight := max(baseHeight, overlayHeight)
+
+	// Calculate offsets to center the smaller sprite
+	baseOffsetX := (newWidth - baseWidth) / 2
+	baseOffsetY := (newHeight - baseHeight) / 2
+	overlayOffsetX := (newWidth - overlayWidth) / 2
+	overlayOffsetY := (newHeight - overlayHeight) / 2
+
+	// Create new matrix with expanded dimensions
+	newMatrix := make([][]int, newHeight)
+	for i := range newMatrix {
+		newMatrix[i] = make([]int, newWidth)
+	}
+
+	// Copy base matrix into new matrix at centered position
+	for row := range cm.Matrix {
+		for col := range cm.Matrix[row] {
+			newMatrix[row+baseOffsetY][col+baseOffsetX] = cm.Matrix[row][col]
+		}
+	}
+
+	// Update cm.Matrix to the expanded matrix
+	cm.Matrix = newMatrix
+
+	// Now compose the overlay at its centered position
+	return cm.Compose(other, overlayOffsetX, overlayOffsetY)
+}
+
 // alphaComposite performs Porter-Duff "source over destination" alpha compositing
 // Returns the result of compositing src over dst
 func alphaComposite(src, dst color.RGBA) color.RGBA {

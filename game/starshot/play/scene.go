@@ -11,6 +11,7 @@ type Scene struct {
 	width    int
 	height   int
 	tick     int // Global animation tick counter
+	state    *GameState
 }
 
 // Interface implementation methods
@@ -24,6 +25,7 @@ func NewScene(state *GameState) *Scene {
 		entities: NewEntityStore(),
 		width:    def.ScreenWidth,
 		height:   def.ScreenHeight,
+		state:    state,
 	}
 
 	switch state.Mode {
@@ -32,16 +34,35 @@ func NewScene(state *GameState) *Scene {
 	case GameModePlay:
 		initPlayMode(scene, state)
 	case GameModeGameOver:
-		initGameOverMode(scene)
+		// Game over mode reuses the play scene with overlay banners
+		// No initialization needed
 	}
 
 	return scene
 }
 
 func (s *Scene) Update() {
-	s.tick++ // Increment global tick counter
-	for e := range s.entities.IterateForUpdate() {
-		e.Act(s)
+	s.tick++ // Increment global tick counter (always advance)
+
+	// Check if we should skip this frame due to slowdown
+	shouldUpdate := true
+	if s.state.SlowdownActive {
+		// Update every Nth frame based on multiplier
+		// Example: 0.3x = update every 3rd frame (skip 2 out of 3)
+		frameInterval := int(1.0 / s.state.SlowdownMultiplier)
+		shouldUpdate = (s.tick % frameInterval) == 0
+
+		// Decrement slowdown counter
+		s.state.SlowdownFramesLeft--
+		if s.state.SlowdownFramesLeft <= 0 {
+			s.state.SlowdownActive = false
+		}
+	}
+
+	if shouldUpdate {
+		for e := range s.entities.IterateForUpdate() {
+			e.Act(s)
+		}
 	}
 }
 
