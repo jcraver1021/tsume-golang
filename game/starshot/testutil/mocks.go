@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 )
 
@@ -108,3 +109,47 @@ func (m *MockEntityCollection) IterateForDraw() <-chan def.Entity {
 	}()
 	return ch
 }
+
+// MockEntity is a simple test implementation of def.Entity
+type MockEntity struct {
+	EntityType          def.EntityType
+	X, Y, Width, Height int
+	Removed             bool
+}
+
+// NewMockEntity creates a basic mock entity
+func NewMockEntity(entityType def.EntityType) *MockEntity {
+	return &MockEntity{
+		EntityType: entityType,
+		X:          0,
+		Y:          0,
+		Width:      10,
+		Height:     10,
+		Removed:    false,
+	}
+}
+
+// Type returns the entity type
+func (m *MockEntity) Type() def.EntityType { return m.EntityType }
+
+// Location returns the entity position
+func (m *MockEntity) Location() (x, y int) { return m.X, m.Y }
+
+// Dimensions returns the entity size
+func (m *MockEntity) Dimensions() (width, height int) { return m.Width, m.Height }
+
+// BoundingBoxOverlaps implements basic AABB collision
+func (m *MockEntity) BoundingBoxOverlaps(other def.Entity) bool {
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(m.X+m.Width < ox || m.X > ox+ow || m.Y+m.Height < oy || m.Y > oy+oh)
+}
+
+// Act does nothing in the mock
+func (m *MockEntity) Act(scene def.Scene) {}
+
+// Draw does nothing in the mock
+func (m *MockEntity) Draw(img *ebit.Image) {}
+
+// CanBeRemoved returns the Removed flag
+func (m *MockEntity) CanBeRemoved() bool { return m.Removed }

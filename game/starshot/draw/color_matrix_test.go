@@ -8,6 +8,61 @@ import (
 	. "tsumegolang/game/starshot/draw"
 )
 
+func TestComposeExpanding(t *testing.T) {
+	// Create a small base sprite (2×2)
+	baseMatrix := [][]int{
+		{1, 1},
+		{1, 1},
+	}
+	baseColors := map[int]color.RGBA{
+		1: {255, 0, 0, 255}, // Red
+	}
+	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	if err != nil {
+		t.Fatalf("Failed to create base matrix: %v", err)
+	}
+
+	// Create a larger overlay sprite (4×4)
+	overlayMatrix := [][]int{
+		{2, 2, 2, 2},
+		{2, 0, 0, 2},
+		{2, 0, 0, 2},
+		{2, 2, 2, 2},
+	}
+	overlayColors := map[int]color.RGBA{
+		2: {0, 0, 255, 255}, // Blue
+	}
+	overlay, err := NewColorMatrix(overlayMatrix, overlayColors, nil)
+	if err != nil {
+		t.Fatalf("Failed to create overlay matrix: %v", err)
+	}
+
+	// Compose expanding
+	err = base.ComposeExpanding(overlay)
+	if err != nil {
+		t.Fatalf("ComposeExpanding failed: %v", err)
+	}
+
+	// Base should now be 4×4
+	if base.Width() != 4 || base.Height() != 4 {
+		t.Errorf("Expected expanded size 4×4, got %d×%d", base.Width(), base.Height())
+	}
+
+	// Center should have the original red sprite (centered in 4×4 = offset 1,1)
+	// Edges should have blue from overlay
+	rendered := base.Render()
+
+	// Check corners (should be blue from overlay)
+	if rendered[0][0] != (color.RGBA{0, 0, 255, 255}) {
+		t.Errorf("Top-left corner should be blue, got %v", rendered[0][0])
+	}
+
+	// Check center (should be red from base, centered at 1,1 and 2,2)
+	if rendered[1][1] != (color.RGBA{255, 0, 0, 255}) {
+		t.Errorf("Center should be red, got %v", rendered[1][1])
+	}
+}
+
 func TestAnimationSequence(t *testing.T) {
 	testCases := []struct {
 		name          string

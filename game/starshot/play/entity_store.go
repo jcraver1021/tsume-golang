@@ -8,6 +8,7 @@ import (
 )
 
 var entityTypeCapacity = map[def.EntityType]int{
+	def.EntityTypeUI:          8,
 	def.EntityTypeEnvironment: 8,
 	def.EntityTypePlayer:      1,
 	def.EntityTypeTeam:        8,

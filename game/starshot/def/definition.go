@@ -8,7 +8,8 @@ import (
 type EntityType int
 
 const (
-	EntityTypeEnvironment EntityType = iota
+	EntityTypeUI EntityType = iota // UI overlays (drawn on top of everything)
+	EntityTypeEnvironment
 	EntityTypePlayer
 	EntityTypeTeam
 	EntityTypeEnemy
@@ -17,6 +18,7 @@ const (
 )
 
 var EntityTypes = []EntityType{
+	EntityTypeUI,
 	EntityTypeEnvironment,
 	EntityTypePlayer,
 	EntityTypeTeam,
@@ -26,6 +28,7 @@ var EntityTypes = []EntityType{
 }
 
 var EntityTypeNames = map[EntityType]string{
+	EntityTypeUI:          "UI",
 	EntityTypeEnvironment: "Environment",
 	EntityTypePlayer:      "Player",
 	EntityTypeTeam:        "Team",
@@ -77,6 +80,30 @@ type PreciseCollider interface {
 	// CollidesWith performs precise collision detection
 	// Only called after BoundingBoxOverlaps returns true
 	CollidesWith(other Entity) bool
+}
+
+// ExplosionSize specifies the visual scale of an explosion effect
+type ExplosionSize int
+
+const (
+	ExplosionSmall ExplosionSize = iota
+	ExplosionMedium
+	ExplosionLarge
+)
+
+// DeathEffect specifies what happens when an entity dies
+type DeathEffect struct {
+	ExplosionSize      ExplosionSize
+	SlowdownMultiplier float64 // 0.0 = no slowdown, 0.3 = 30% speed, 1.0 = normal
+	SlowdownDuration   int     // Frames to maintain slowdown (0 = no slowdown)
+}
+
+// Mortal is an optional interface for entities that can die and spawn effects
+type Mortal interface {
+	Entity
+	GetDeathEffect() DeathEffect
+	MarkAsDead(scene Scene)
+	IsDead() bool
 }
 
 // EntityCollection provides access to entities without exposing implementation details

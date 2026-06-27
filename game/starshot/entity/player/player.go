@@ -34,47 +34,21 @@ type Player struct {
 	sprite *draw.ColorMatrix
 
 	playerAction PlayerAction
+
+	dead                 bool
+	explosionFrameCount  int // Frames since death
+	explosionMaxDuration int // Total frames the explosion animation lasts
 }
 
 // NewPlayer creates a new ColorMatrix-based player
 func NewPlayer(x, y int) (*Player, error) {
-	// Load core hull
-	hullData, err := spriteFiles.ReadFile("sprites/core_hull.yaml")
-	if err != nil {
-		return nil, err
-	}
-
-	hull, err := draw.ColorMatrixFromBytes(hullData)
-	if err != nil {
-		return nil, err
-	}
-
-	// Load basic engine
-	engineData, err := spriteFiles.ReadFile("sprites/basic_engine.yaml")
-	if err != nil {
-		return nil, err
-	}
-
-	engine, err := draw.ColorMatrixFromBytes(engineData)
-	if err != nil {
-		return nil, err
-	}
-
-	// Compose hull + engine (engine overlays hull)
-	if err := hull.Compose(engine, 0, 0); err != nil {
-		return nil, err
-	}
-
-	width, height := hull.Dimensions()
-
 	p := &Player{
-		x:      x,
-		y:      y,
-		width:  width,
-		height: height,
+		x: x,
+		y: y,
 	}
 
 	// Load defaults
+	var err error
 	p.hull, err = loadDefaultHull()
 	if err != nil {
 		return nil, err
@@ -87,6 +61,10 @@ func NewPlayer(x, y int) (*Player, error) {
 
 	// Compose sprites
 	p.composePlayerSprites()
+
+	// Set dimensions based on the composed sprite
+	p.width = p.sprite.Width()
+	p.height = p.sprite.Height()
 
 	return p, nil
 }
@@ -158,6 +136,12 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 }
 
 func (p *Player) Act(b def.Scene) {
+	if p.dead {
+		// Track explosion animation progress
+		p.explosionFrameCount++
+		return
+	}
+
 	if p.playerAction.MoveUp {
 		p.y -= p.engine.vUp
 	}
@@ -203,7 +187,11 @@ func (p *Player) Draw(img *ebit.Image) {
 }
 
 func (p *Player) CanBeRemoved() bool {
-	return false
+	if !p.dead {
+		return false
+	}
+	// Remove player after explosion animation completes
+	return p.explosionFrameCount >= p.explosionMaxDuration
 }
 
 // AddComponent allows dynamic composition of power-ups
@@ -220,4 +208,53 @@ func (p *Player) AddComponent(componentPath string) error {
 
 	// Compose the new component onto the existing sprite
 	return p.sprite.Compose(component, 0, 0)
+}
+
+// Mortal interface implementation
+
+func (p *Player) GetDeathEffect() def.DeathEffect {
+	return def.DeathEffect{
+		ExplosionSize:      def.ExplosionLarge,
+		SlowdownMultiplier: 0.3, // 30% speed
+		SlowdownDuration:   90,  // ~1.5 seconds at 60 TPS
+	}
+}
+
+func (p *Player) MarkAsDead(scene def.Scene) {
+	p.dead = true
+	p.explosionFrameCount = 0
+	// Note: explosion composition happens via ComposeExplosion() called externally
+}
+
+// ComposeExplosion overlays an explosion sprite on the player
+// Called by the game logic after loading the sprite from the effects package
+func (p *Player) ComposeExplosion(explosionSprite *draw.ColorMatrix) error {
+	// Store original dimensions before composing
+	oldWidth := p.width
+	oldHeight := p.height
+
+	// Compose explosion over player sprite (expanding if needed)
+	if err := p.sprite.ComposeExpanding(explosionSprite); err != nil {
+		return err
+	}
+
+	// Update dimensions to match new sprite size
+	p.width = p.sprite.Width()
+	p.height = p.sprite.Height()
+
+	// Recenter player position so explosion is centered on where player was
+	// (sprite grew, so we need to shift position back)
+	centerShiftX := (p.width - oldWidth) / 2
+	centerShiftY := (p.height - oldHeight) / 2
+	p.x -= centerShiftX
+	p.y -= centerShiftY
+
+	// Set explosion duration (96 frames for large explosion: 8 frames × 12 ticks/frame)
+	p.explosionMaxDuration = 96
+
+	return nil
+}
+
+func (p *Player) IsDead() bool {
+	return p.dead
 }

@@ -5,6 +5,7 @@ import (
 
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/play"
+	"tsumegolang/game/starshot/testutil"
 )
 
 func TestSceneImplementsInterface(t *testing.T) {
@@ -50,7 +51,7 @@ func TestSceneUpdate(t *testing.T) {
 	// Add trackable entities
 	actCount := 0
 	trackingEntity := &actTrackingEntity{
-		mockEntity: newMockEntity(def.EntityTypePlayer),
+		MockEntity: testutil.NewMockEntity(def.EntityTypePlayer),
 		onAct: func() {
 			actCount++
 		},
@@ -98,7 +99,7 @@ func TestSceneIntroModeHasEntities(t *testing.T) {
 
 // actTrackingEntity wraps an entity and tracks Act calls
 type actTrackingEntity struct {
-	*mockEntity
+	*testutil.MockEntity
 	onAct func()
 }
 
