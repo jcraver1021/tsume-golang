@@ -1,41 +1,33 @@
-# Basic Engine sprite definition
-
 matrix:
-  # Mount: Center
-  # Size: 8x8
-  - [0, 1, 1, 0, 0, 1, 1, 0]
-  - [1, 1, 1, 1, 1, 1, 1, 1]
-  - [1, 2, 2, 1, 1, 2, 2, 1]
-  - [1, 2, 2, 1, 1, 2, 2, 1]
-  - [0, 3, 3, 0, 0, 3, 3, 0]
-  - [0, 2, 2, 0, 0, 2, 2, 0]
-  - [4, 3, 3, 4, 4, 3, 3, 4]
-  - [4, 5, 5, 4, 4, 5, 5, 4]
-
+- '01100110'
+- '11111111'
+- '12211221'
+- '12211221'
+- '03300330'
+- '02200220'
+- '43344334'
+- '45544554'
 color_codes:
-  0: "#00000000"  # Transparent
-  1: "#A9A9A9FF"  # Dark Gray connector
-  2: "#4682B4FF"  # Metallic Blue chassi
-
+  '0': '#00000000'
+  '1': '#A9A9A9FF'
+  '2': '#4682B4FF'
+  a: '#A3AF96FF'
+  b: '#7599A5FF'
+  c: '#4682B4FF'
+  d: '#FFDC7888'
+  e: '#FFC86488'
+  f: '#DCA05088'
+  g: '#FFDC78FF'
+  h: '#FFC864FF'
+  i: '#DCA050FF'
 animation_sequences:
-  3: # Glowing metallic blue chassi
-    frames:
-      - "#A3AF96FF"  # Bright yellow over metallic blue
-      - "#7599A5FF"  # Halfway yellow over metallic blue  
-      - "#4682B4FF"  # Metallic Blue
-      - "#7599A5FF"  # Halfway yellow over metallic blue
+  '3':
+    frames: abcb
     frame_duration: 15
-  4: # Outer exhaust glow
-    frames:
-      - "#FFDC7888"  # Bright yellow transparent
-      - "#FFC86488"  # Medium yellow transparent
-      - "#DCA05088"  # Dim yellow transparent
-      - "#FFC86488"  # Medium yellow transparent (back up)
+  '4':
+    frames: defe
     frame_duration: 15
-  5: # Inner exhaust glow
-    frames:
-      - "#FFDC78FF"  # Bright yellow
-      - "#FFC864FF"  # Medium yellow
-      - "#DCA050FF"  # Dim yellow
-      - "#FFC864FF"  # Medium yellow (back up)
+  '5':
+    frames: ghih
     frame_duration: 15
+

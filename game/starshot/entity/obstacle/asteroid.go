@@ -183,22 +183,29 @@ type craterInfo struct {
 func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMatrix {
 	shape, craters := generateProceduralShape(width, height, size)
 
-	matrix := make([][]int, height)
+	matrix := make([][]draw.ColorKey, height)
 	for i := range matrix {
-		matrix[i] = make([]int, width)
+		matrix[i] = make([]draw.ColorKey, width)
 	}
 
 	basePalette := generateRockPalette()
 
-	colorCodes := map[int]color.RGBA{
-		0: {0, 0, 0, 0}, // Transparent
+	colorCodes := draw.ColorMap{
+		"0": {0, 0, 0, 0}, // Transparent
 	}
-	nextCode := 1
+	nextCode := 1 // Start from 1 for visible colors
+
+	// Helper to convert int to ColorKey
+	intToKey := func(n int) draw.ColorKey {
+		// Use ASCII printable characters starting from space (32)
+		// This gives us 95 different keys which should be more than enough
+		return draw.ColorKey(string(rune(32 + n)))
+	}
 
 	for row := range shape {
 		for col := range shape[row] {
 			if !shape[row][col] {
-				matrix[row][col] = 0 // Transparent
+				matrix[row][col] = "0" // Transparent
 				continue
 			}
 
@@ -226,7 +233,7 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 
 			rockColor := basePalette[colorIndex]
 
-			existingCode := 0
+			var existingCode draw.ColorKey
 			for code, c := range colorCodes {
 				if c == rockColor {
 					existingCode = code
@@ -234,17 +241,18 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 				}
 			}
 
-			if existingCode > 0 {
+			if existingCode != "" {
 				matrix[row][col] = existingCode
 			} else {
-				colorCodes[nextCode] = rockColor
-				matrix[row][col] = nextCode
+				key := intToKey(nextCode)
+				colorCodes[key] = rockColor
+				matrix[row][col] = key
 				nextCode++
 			}
 		}
 	}
 
-	cm, err := draw.NewColorMatrix(matrix, colorCodes, nil)
+	cm, err := draw.NewColorMatrix(matrix, &colorCodes, nil)
 	if err != nil {
 		return createFallbackAsteroid(width, height)
 	}
@@ -458,18 +466,18 @@ func noiseValue(x float64) float64 {
 
 // createFallbackAsteroid creates a simple single-color asteroid if generation fails
 func createFallbackAsteroid(width, height int) *draw.ColorMatrix {
-	matrix := make([][]int, height)
+	matrix := make([][]draw.ColorKey, height)
 	for i := range matrix {
-		matrix[i] = make([]int, width)
+		matrix[i] = make([]draw.ColorKey, width)
 		for j := range matrix[i] {
-			matrix[i][j] = 1 // All solid
+			matrix[i][j] = "1" // All solid
 		}
 	}
 
-	colors := map[int]color.RGBA{
-		1: {R: 100, G: 100, B: 100, A: 255},
+	colors := draw.ColorMap{
+		"1": {R: 100, G: 100, B: 100, A: 255},
 	}
 
-	cm, _ := draw.NewColorMatrix(matrix, colors, nil)
+	cm, _ := draw.NewColorMatrix(matrix, &colors, nil)
 	return cm
 }

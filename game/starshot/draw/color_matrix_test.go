@@ -10,29 +10,30 @@ import (
 
 func TestComposeExpanding(t *testing.T) {
 	// Create a small base sprite (2×2)
-	baseMatrix := [][]int{
-		{1, 1},
-		{1, 1},
+	baseMatrix := [][]ColorKey{
+		{"1", "1"},
+		{"1", "1"},
 	}
-	baseColors := map[int]color.RGBA{
-		1: {255, 0, 0, 255}, // Red
+	baseColors := ColorMap{
+		"1": {255, 0, 0, 255}, // Red
 	}
-	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	base, err := NewColorMatrix(baseMatrix, &baseColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create base matrix: %v", err)
 	}
 
 	// Create a larger overlay sprite (4×4)
-	overlayMatrix := [][]int{
-		{2, 2, 2, 2},
-		{2, 0, 0, 2},
-		{2, 0, 0, 2},
-		{2, 2, 2, 2},
+	overlayMatrix := [][]ColorKey{
+		{"2", "2", "2", "2"},
+		{"2", "0", "0", "2"},
+		{"2", "0", "0", "2"},
+		{"2", "2", "2", "2"},
 	}
-	overlayColors := map[int]color.RGBA{
-		2: {0, 0, 255, 255}, // Blue
+	overlayColors := ColorMap{
+		"2": {0, 0, 255, 255}, // Blue
+		"0": {0, 0, 0, 0},     // Transparent
 	}
-	overlay, err := NewColorMatrix(overlayMatrix, overlayColors, nil)
+	overlay, err := NewColorMatrix(overlayMatrix, &overlayColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create overlay matrix: %v", err)
 	}
@@ -66,20 +67,36 @@ func TestComposeExpanding(t *testing.T) {
 func TestAnimationSequence(t *testing.T) {
 	testCases := []struct {
 		name          string
-		sequence      []color.RGBA
+		frames        []ColorKey
+		colors        ColorMap
 		frameDuration int
 	}{
-		{"SingleFrame", []color.RGBA{{255, 0, 0, 255}}, 1},
-		{"TwoFrames", []color.RGBA{{255, 0, 0, 255}, {0, 255, 0, 255}}, 2},
-		{"ThreeFrames", []color.RGBA{{255, 0, 0, 255}, {0, 255, 0, 255}, {0, 0, 255, 255}}, 3},
+		{
+			"SingleFrame",
+			[]ColorKey{"r"},
+			ColorMap{"r": {255, 0, 0, 255}},
+			1,
+		},
+		{
+			"TwoFrames",
+			[]ColorKey{"r", "g"},
+			ColorMap{"r": {255, 0, 0, 255}, "g": {0, 255, 0, 255}},
+			2,
+		},
+		{
+			"ThreeFrames",
+			[]ColorKey{"r", "g", "b"},
+			ColorMap{"r": {255, 0, 0, 255}, "g": {0, 255, 0, 255}, "b": {0, 0, 255, 255}},
+			3,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			animSeq := NewAnimationSequence(tc.sequence, tc.frameDuration)
+			animSeq := NewAnimationSequence(&tc.colors, tc.frames, tc.frameDuration)
 
-			for i := 0; i < len(tc.sequence)*tc.frameDuration; i++ {
-				wantColor := tc.sequence[i/tc.frameDuration]
+			for i := 0; i < len(tc.frames)*tc.frameDuration; i++ {
+				wantColor := tc.colors[tc.frames[i/tc.frameDuration]]
 				gotColor := animSeq.GetColor()
 
 				if gotColor != wantColor {
@@ -96,7 +113,7 @@ func TestAnimationSequence(t *testing.T) {
 			}
 
 			// After completing the full cycle, it should loop back to the first frame
-			wantColor := tc.sequence[0]
+			wantColor := tc.colors[tc.frames[0]]
 			gotColor := animSeq.GetColor()
 			if gotColor != wantColor {
 				t.Errorf("After full cycle, GetColor() = %v, want %v", gotColor, wantColor)
@@ -108,62 +125,65 @@ func TestAnimationSequence(t *testing.T) {
 func TestColorMatrixCreation(t *testing.T) {
 	testCases := []struct {
 		name          string
-		matrix        [][]int
-		colorCodes    map[int]color.RGBA
-		animationSeqs map[int]*AnimationSequence
+		matrix        [][]ColorKey
+		colorCodes    ColorMap
+		animationSeqs map[ColorKey]*AnimationSequence
 		wantError     error
 	}{
 		{
 			name: "ValidMatrix",
-			matrix: [][]int{
-				{1, 2},
-				{3, 4},
+			matrix: [][]ColorKey{
+				{"1", "2"},
+				{"3", "4"},
 			},
-			colorCodes: map[int]color.RGBA{
-				1: {255, 0, 0, 255},
-				2: {0, 255, 0, 255},
-				3: {0, 0, 255, 255},
-				4: {255, 255, 0, 255},
+			colorCodes: ColorMap{
+				"1": {255, 0, 0, 255},
+				"2": {0, 255, 0, 255},
+				"3": {0, 0, 255, 255},
+				"4": {255, 255, 0, 255},
 			},
-			animationSeqs: map[int]*AnimationSequence{},
+			animationSeqs: map[ColorKey]*AnimationSequence{},
 			wantError:     nil,
 		},
 		{
 			name:          "EmptyMatrix",
-			matrix:        [][]int{},
-			colorCodes:    map[int]color.RGBA{},
-			animationSeqs: map[int]*AnimationSequence{},
+			matrix:        [][]ColorKey{},
+			colorCodes:    ColorMap{},
+			animationSeqs: map[ColorKey]*AnimationSequence{},
 			wantError:     ErrInvalidMatrix,
 		},
 		{
 			name: "NonRectangularMatrix",
-			matrix: [][]int{
-				{1, 2},
-				{3},
+			matrix: [][]ColorKey{
+				{"1", "2"},
+				{"3"},
 			},
-			colorCodes:    map[int]color.RGBA{},
-			animationSeqs: map[int]*AnimationSequence{},
+			colorCodes:    ColorMap{},
+			animationSeqs: map[ColorKey]*AnimationSequence{},
 			wantError:     ErrInvalidMatrix,
 		},
 		{
 			name: "KeyCollision",
-			matrix: [][]int{
-				{1, 2},
-				{3, 4},
+			matrix: [][]ColorKey{
+				{"1", "2"},
+				{"3", "4"},
 			},
-			colorCodes: map[int]color.RGBA{
-				1: {255, 0, 0, 255},
+			colorCodes: ColorMap{
+				"1": {255, 0, 0, 255},
 			},
-			animationSeqs: map[int]*AnimationSequence{
-				1: NewAnimationSequence([]color.RGBA{{0, 255, 0, 255}}, 1),
-			},
+			animationSeqs: func() map[ColorKey]*AnimationSequence {
+				cm := ColorMap{"a": {0, 255, 0, 255}}
+				return map[ColorKey]*AnimationSequence{
+					"1": NewAnimationSequence(&cm, []ColorKey{"a"}, 1),
+				}
+			}(),
 			wantError: ErrKeyCollision,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cm, err := NewColorMatrix(tc.matrix, tc.colorCodes, tc.animationSeqs)
+			cm, err := NewColorMatrix(tc.matrix, &tc.colorCodes, tc.animationSeqs)
 			if !errors.Is(err, tc.wantError) {
 				t.Errorf("NewColorMatrix() error = %v, want %v", err, tc.wantError)
 			}
@@ -177,24 +197,24 @@ func TestColorMatrixCreation(t *testing.T) {
 func TestColorMatrixRender(t *testing.T) {
 	testCases := []struct {
 		name                string
-		matrix              [][]int
-		colorCodes          map[int]color.RGBA
-		animationSeqs       map[int]*AnimationSequence
+		matrix              [][]ColorKey
+		colorCodes          ColorMap
+		animationSeqs       map[ColorKey]*AnimationSequence
 		wantRenderedInOrder [][][]color.RGBA
 	}{
 		{
 			name: "SimpleMatrixNoAnimation",
-			matrix: [][]int{
-				{1, 2},
-				{3, 4},
+			matrix: [][]ColorKey{
+				{"1", "2"},
+				{"3", "4"},
 			},
-			colorCodes: map[int]color.RGBA{
-				1: {255, 0, 0, 255},
-				2: {0, 255, 0, 255},
-				3: {0, 0, 255, 255},
-				4: {255, 255, 0, 255},
+			colorCodes: ColorMap{
+				"1": {255, 0, 0, 255},
+				"2": {0, 255, 0, 255},
+				"3": {0, 0, 255, 255},
+				"4": {255, 255, 0, 255},
 			},
-			animationSeqs: map[int]*AnimationSequence{},
+			animationSeqs: map[ColorKey]*AnimationSequence{},
 			wantRenderedInOrder: [][][]color.RGBA{
 				{
 					{{255, 0, 0, 255}, {0, 255, 0, 255}},
@@ -208,18 +228,21 @@ func TestColorMatrixRender(t *testing.T) {
 		},
 		{
 			name: "SimpleMatrixWithAnimation",
-			matrix: [][]int{
-				{1, 2},
-				{3, 4},
+			matrix: [][]ColorKey{
+				{"1", "2"},
+				{"3", "4"},
 			},
-			colorCodes: map[int]color.RGBA{
-				1: {255, 0, 0, 255},
-				3: {0, 0, 255, 255},
-				4: {255, 255, 0, 255},
+			colorCodes: ColorMap{
+				"1": {255, 0, 0, 255},
+				"3": {0, 0, 255, 255},
+				"4": {255, 255, 0, 255},
 			},
-			animationSeqs: map[int]*AnimationSequence{
-				2: NewAnimationSequence([]color.RGBA{{0, 255, 0, 255}, {0, 128, 0, 255}}, 1),
-			},
+			animationSeqs: func() map[ColorKey]*AnimationSequence {
+				cm := ColorMap{"g": {0, 255, 0, 255}, "G": {0, 128, 0, 255}}
+				return map[ColorKey]*AnimationSequence{
+					"2": NewAnimationSequence(&cm, []ColorKey{"g", "G"}, 1),
+				}
+			}(),
 			wantRenderedInOrder: [][][]color.RGBA{
 				{
 					{{255, 0, 0, 255}, {0, 255, 0, 255}},
@@ -239,7 +262,7 @@ func TestColorMatrixRender(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			cm, err := NewColorMatrix(tc.matrix, tc.colorCodes, tc.animationSeqs)
+			cm, err := NewColorMatrix(tc.matrix, &tc.colorCodes, tc.animationSeqs)
 			if err != nil {
 				t.Fatalf("NewColorMatrix() error = %v", err)
 			}

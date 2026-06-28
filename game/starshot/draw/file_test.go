@@ -15,25 +15,25 @@ func TestColorMatrixFromFile(t *testing.T) {
 	yamlPath := filepath.Join(tmpDir, "test_matrix.yaml")
 
 	yamlContent := `matrix:
-  - [1, 2, 3]
-  - [2, 3, 4]
-  - [3, 4, 5]
+  - "123"
+  - "234"
+  - "345"
 
 color_codes:
-  1: "#FF0000FF"  # Red
-  2: "#00FF00FF"  # Green
-  3: "#0000FFFF"  # Blue
+  "1": "#FF0000FF"  # Red
+  "2": "#00FF00FF"  # Green
+  "3": "#0000FFFF"  # Blue
+  "y": "#FFFF00FF"  # Yellow (for animation)
+  "m": "#FF00FFFF"  # Magenta (for animation)
+  "c": "#00FFFFFF"  # Cyan (for animation)
+  "w": "#FFFFFFFF"  # White (for animation)
 
 animation_sequences:
-  4:
-    frames:
-      - "#FFFF00FF"  # Yellow
-      - "#FF00FFFF"  # Magenta
+  "4":
+    frames: "ym"  # Yellow, Magenta
     frame_duration: 5
-  5:
-    frames:
-      - "#00FFFFFF"  # Cyan
-      - "#FFFFFFFF"  # White
+  "5":
+    frames: "cw"  # Cyan, White
     frame_duration: 10
 `
 
@@ -56,34 +56,34 @@ animation_sequences:
 	}
 
 	// Verify matrix contents
-	want := [][]int{
-		{1, 2, 3},
-		{2, 3, 4},
-		{3, 4, 5},
+	want := [][]ColorKey{
+		{"1", "2", "3"},
+		{"2", "3", "4"},
+		{"3", "4", "5"},
 	}
 	for i := range cm.Matrix {
 		for j := range cm.Matrix[i] {
 			if cm.Matrix[i][j] != want[i][j] {
-				t.Errorf("Matrix[%d][%d] = %d, want %d", i, j, cm.Matrix[i][j], want[i][j])
+				t.Errorf("Matrix[%d][%d] = %q, want %q", i, j, cm.Matrix[i][j], want[i][j])
 			}
 		}
 	}
 
 	// Verify color codes were converted correctly
-	expectedColors := map[int]color.RGBA{
-		1: {R: 255, G: 0, B: 0, A: 255}, // Red
-		2: {R: 0, G: 255, B: 0, A: 255}, // Green
-		3: {R: 0, G: 0, B: 255, A: 255}, // Blue
+	expectedColors := ColorMap{
+		"1": {R: 255, G: 0, B: 0, A: 255}, // Red
+		"2": {R: 0, G: 255, B: 0, A: 255}, // Green
+		"3": {R: 0, G: 0, B: 255, A: 255}, // Blue
 	}
 
 	for code, expectedColor := range expectedColors {
-		gotColor, exists := cm.ColorCodes[code]
+		gotColor, exists := (*cm.ColorCodes)[code]
 		if !exists {
-			t.Errorf("ColorCodes[%d] does not exist", code)
+			t.Errorf("ColorCodes[%q] does not exist", code)
 			continue
 		}
 		if gotColor != expectedColor {
-			t.Errorf("ColorCodes[%d] = %+v, want %+v", code, gotColor, expectedColor)
+			t.Errorf("ColorCodes[%q] = %+v, want %+v", code, gotColor, expectedColor)
 		}
 	}
 }
@@ -116,11 +116,11 @@ func TestColorMatrixFromFileInvalidHexColor(t *testing.T) {
 	yamlPath := filepath.Join(tmpDir, "invalid_color.yaml")
 
 	yamlContent := `matrix:
-  - [1, 2]
+  - "12"
 
 color_codes:
-  1: "#INVALID"  # Invalid hex format
-  2: "#00FF00FF"
+  "1": "#INVALID"  # Invalid hex format
+  "2": "#00FF00FF"
 `
 
 	if err := os.WriteFile(yamlPath, []byte(yamlContent), 0644); err != nil {
@@ -138,21 +138,21 @@ func TestColorMatrixFromFileWithAnimations(t *testing.T) {
 	yamlPath := filepath.Join(tmpDir, "animated.yaml")
 
 	yamlContent := `matrix:
-  - [1, 2]
-  - [2, 3]
+  - "12"
+  - "23"
 
 color_codes:
-  1: "#FF0000FF"
+  "1": "#FF0000FF"
+  "g": "#00FF00FF"  # Green for animation
+  "b": "#0000FFFF"  # Blue for animation
+  "y": "#FFFF00FF"  # Yellow for animation
 
 animation_sequences:
-  2:
-    frames:
-      - "#00FF00FF"
-      - "#0000FFFF"
+  "2":
+    frames: "gb"
     frame_duration: 4
-  3:
-    frames:
-      - "#FFFF00FF"
+  "3":
+    frames: "y"
     frame_duration: 1
 `
 
@@ -165,9 +165,9 @@ animation_sequences:
 		t.Fatalf("ColorMatrixFromFile() error = %v", err)
 	}
 
-	// Verify we have 1 static color and 2 animations
-	if len(cm.ColorCodes) != 1 {
-		t.Errorf("ColorCodes length = %d, want 1", len(cm.ColorCodes))
+	// Verify we have the right number of color codes (1 static + 3 for animations)
+	if len(*cm.ColorCodes) != 4 {
+		t.Errorf("ColorCodes length = %d, want 4", len(*cm.ColorCodes))
 	}
 
 	// Render to verify animations work
