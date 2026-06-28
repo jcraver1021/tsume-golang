@@ -40,15 +40,15 @@ func (h *hexColor) UnmarshalYAML(unmarshal func(any) error) error {
 
 // colorMatrixYAML is the intermediate structure for unmarshaling from YAML
 type colorMatrixYAML struct {
-	Matrix             [][]int                        `yaml:"matrix"`
-	ColorCodesHex      map[int]hexColor               `yaml:"color_codes"`
-	AnimationSequences map[int]*animationSequenceYAML `yaml:"animation_sequences"`
+	Matrix             []string                          `yaml:"matrix"`
+	ColorCodesHex      map[string]hexColor               `yaml:"color_codes"`
+	AnimationSequences map[string]*animationSequenceYAML `yaml:"animation_sequences"`
 }
 
 // animationSequenceYAML is the intermediate structure for animation sequences
 type animationSequenceYAML struct {
-	FramesHex     []hexColor `yaml:"frames"`
-	FrameDuration int        `yaml:"frame_duration"`
+	FramesStr     string `yaml:"frames"`
+	FrameDuration int    `yaml:"frame_duration"`
 }
 
 func ColorMatrixFromFile(path string) (*ColorMatrix, error) {
@@ -66,20 +66,60 @@ func ColorMatrixFromBytes(data []byte) (*ColorMatrix, error) {
 		return nil, fmt.Errorf("failed to unmarshal YAML: %w", err)
 	}
 
-	colorCodes := make(map[int]color.RGBA)
-	for code, hexColor := range yamlData.ColorCodesHex {
-		colorCodes[code] = color.RGBA(hexColor)
+	// Parse color codes
+	colorCodes := make(ColorMap)
+	for keyStr, hexColor := range yamlData.ColorCodesHex {
+		key, err := fromString(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid color key %q: %w", keyStr, err)
+		}
+		colorCodes[key] = color.RGBA(hexColor)
 	}
 
-	animationSequences := make(map[int]*AnimationSequence)
-	for code, animSeqYAML := range yamlData.AnimationSequences {
-		frames := make([]color.RGBA, len(animSeqYAML.FramesHex))
-		for i, hexColor := range animSeqYAML.FramesHex {
-			frames[i] = color.RGBA(hexColor)
+	// Parse matrix rows (each row is a string of color keys)
+	matrix := make([][]ColorKey, len(yamlData.Matrix))
+	for i, rowStr := range yamlData.Matrix {
+		matrix[i] = make([]ColorKey, len(rowStr))
+		for j, char := range rowStr {
+			key, err := fromString(string(char))
+			if err != nil {
+				return nil, fmt.Errorf("invalid color key at matrix[%d][%d]: %w", i, j, err)
+			}
+			matrix[i][j] = key
+		}
+	}
+
+	// Parse animation sequences
+	animationSequences := make(map[ColorKey]*AnimationSequence)
+	for keyStr, animSeqYAML := range yamlData.AnimationSequences {
+		key, err := fromString(keyStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid animation sequence key %q: %w", keyStr, err)
 		}
 
-		animationSequences[code] = NewAnimationSequence(frames, animSeqYAML.FrameDuration)
+		// Build the color map for this animation from the frames string
+		animColorMap := make(ColorMap)
+		frames := make([]ColorKey, len(animSeqYAML.FramesStr))
+		for i, char := range animSeqYAML.FramesStr {
+			frameKey, err := fromString(string(char))
+			if err != nil {
+				return nil, fmt.Errorf("invalid frame key in animation %q at position %d: %w", keyStr, i, err)
+			}
+			frames[i] = frameKey
+
+			// Add to the animation's color map if not already present
+			if _, exists := animColorMap[frameKey]; !exists {
+				// Check if the color is in the main color codes
+				if colorValue, exists := colorCodes[frameKey]; exists {
+					animColorMap[frameKey] = colorValue
+				} else {
+					return nil, fmt.Errorf("animation frame key %q not found in color_codes", string(frameKey))
+				}
+			}
+		}
+
+		animationSequences[key] = NewAnimationSequence(&animColorMap, frames, animSeqYAML.FrameDuration)
 	}
 
-	return NewColorMatrix(yamlData.Matrix, colorCodes, animationSequences)
+	return NewColorMatrix(matrix, &colorCodes, animationSequences)
 }

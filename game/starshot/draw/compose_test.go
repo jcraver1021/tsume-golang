@@ -9,32 +9,32 @@ import (
 
 func TestComposeSkipsTransparentPixels(t *testing.T) {
 	// Create a base matrix with a solid color
-	baseMatrix := [][]int{
-		{1, 1, 1},
-		{1, 1, 1},
-		{1, 1, 1},
+	baseMatrix := [][]ColorKey{
+		{"1", "1", "1"},
+		{"1", "1", "1"},
+		{"1", "1", "1"},
 	}
-	baseColors := map[int]color.RGBA{
-		1: {R: 255, G: 0, B: 0, A: 255}, // Red
+	baseColors := ColorMap{
+		"1": {R: 255, G: 0, B: 0, A: 255}, // Red
 	}
 
-	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	base, err := NewColorMatrix(baseMatrix, &baseColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create base matrix: %v", err)
 	}
 
 	// Create overlay with transparent pixels and one opaque pixel
-	overlayMatrix := [][]int{
-		{0, 0, 0},
-		{0, 2, 0},
-		{0, 0, 0},
+	overlayMatrix := [][]ColorKey{
+		{"0", "0", "0"},
+		{"0", "2", "0"},
+		{"0", "0", "0"},
 	}
-	overlayColors := map[int]color.RGBA{
-		0: {R: 0, G: 0, B: 0, A: 0},     // Transparent
-		2: {R: 0, G: 255, B: 0, A: 255}, // Green
+	overlayColors := ColorMap{
+		"0": {R: 0, G: 0, B: 0, A: 0},     // Transparent
+		"2": {R: 0, G: 255, B: 0, A: 255}, // Green
 	}
 
-	overlay, err := NewColorMatrix(overlayMatrix, overlayColors, nil)
+	overlay, err := NewColorMatrix(overlayMatrix, &overlayColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create overlay matrix: %v", err)
 	}
@@ -64,29 +64,29 @@ func TestComposeSkipsTransparentPixels(t *testing.T) {
 
 func TestComposeWithAnimatedTransparentPixels(t *testing.T) {
 	// Base matrix with solid color
-	baseMatrix := [][]int{{1, 1}, {1, 1}}
-	baseColors := map[int]color.RGBA{
-		1: {R: 255, G: 0, B: 0, A: 255}, // Red
+	baseMatrix := [][]ColorKey{{"1", "1"}, {"1", "1"}}
+	baseColors := ColorMap{
+		"1": {R: 255, G: 0, B: 0, A: 255}, // Red
 	}
 
-	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	base, err := NewColorMatrix(baseMatrix, &baseColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create base matrix: %v", err)
 	}
 
 	// Overlay with transparent animation and one opaque pixel
-	overlayMatrix := [][]int{{0, 2}, {0, 0}}
-	overlayColors := map[int]color.RGBA{
-		2: {R: 0, G: 255, B: 0, A: 255}, // Green
+	overlayMatrix := [][]ColorKey{{"0", "2"}, {"0", "0"}}
+	overlayColors := ColorMap{
+		"2": {R: 0, G: 255, B: 0, A: 255}, // Green
 	}
-	overlayAnimations := map[int]*AnimationSequence{
-		0: NewAnimationSequence([]color.RGBA{
-			{R: 0, G: 0, B: 0, A: 0}, // Transparent
-			{R: 0, G: 0, B: 0, A: 0}, // Transparent
-		}, 1),
+	animColors := ColorMap{
+		"t": {R: 0, G: 0, B: 0, A: 0}, // Transparent
+	}
+	overlayAnimations := map[ColorKey]*AnimationSequence{
+		"0": NewAnimationSequence(&animColors, []ColorKey{"t", "t"}, 1),
 	}
 
-	overlay, err := NewColorMatrix(overlayMatrix, overlayColors, overlayAnimations)
+	overlay, err := NewColorMatrix(overlayMatrix, &overlayColors, overlayAnimations)
 	if err != nil {
 		t.Fatalf("Failed to create overlay matrix: %v", err)
 	}
@@ -113,23 +113,23 @@ func TestComposeWithAnimatedTransparentPixels(t *testing.T) {
 
 func TestComposeSemiTransparentBlending(t *testing.T) {
 	// Base: solid red
-	baseMatrix := [][]int{{1}}
-	baseColors := map[int]color.RGBA{
-		1: {R: 255, G: 0, B: 0, A: 255}, // Opaque red
+	baseMatrix := [][]ColorKey{{"1"}}
+	baseColors := ColorMap{
+		"1": {R: 255, G: 0, B: 0, A: 255}, // Opaque red
 	}
 
-	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	base, err := NewColorMatrix(baseMatrix, &baseColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create base: %v", err)
 	}
 
 	// Overlay: 50% transparent green
-	overlayMatrix := [][]int{{2}}
-	overlayColors := map[int]color.RGBA{
-		2: {R: 0, G: 255, B: 0, A: 128}, // 50% green
+	overlayMatrix := [][]ColorKey{{"2"}}
+	overlayColors := ColorMap{
+		"2": {R: 0, G: 255, B: 0, A: 128}, // 50% green
 	}
 
-	overlay, err := NewColorMatrix(overlayMatrix, overlayColors, nil)
+	overlay, err := NewColorMatrix(overlayMatrix, &overlayColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create overlay: %v", err)
 	}
@@ -168,36 +168,36 @@ func TestComposeSemiTransparentBlending(t *testing.T) {
 
 func TestComposeMultipleSemiTransparent(t *testing.T) {
 	// Base: solid white
-	baseMatrix := [][]int{{1, 1}, {1, 1}}
-	baseColors := map[int]color.RGBA{
-		1: {R: 255, G: 255, B: 255, A: 255}, // White
+	baseMatrix := [][]ColorKey{{"1", "1"}, {"1", "1"}}
+	baseColors := ColorMap{
+		"1": {R: 255, G: 255, B: 255, A: 255}, // White
 	}
 
-	base, err := NewColorMatrix(baseMatrix, baseColors, nil)
+	base, err := NewColorMatrix(baseMatrix, &baseColors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create base: %v", err)
 	}
 
 	// First overlay: 50% red top-left
-	overlay1Matrix := [][]int{{2, 0}, {0, 0}}
-	overlay1Colors := map[int]color.RGBA{
-		0: {R: 0, G: 0, B: 0, A: 0},     // Transparent
-		2: {R: 255, G: 0, B: 0, A: 128}, // 50% red
+	overlay1Matrix := [][]ColorKey{{"2", "0"}, {"0", "0"}}
+	overlay1Colors := ColorMap{
+		"0": {R: 0, G: 0, B: 0, A: 0},     // Transparent
+		"2": {R: 255, G: 0, B: 0, A: 128}, // 50% red
 	}
 
-	overlay1, err := NewColorMatrix(overlay1Matrix, overlay1Colors, nil)
+	overlay1, err := NewColorMatrix(overlay1Matrix, &overlay1Colors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create overlay1: %v", err)
 	}
 
 	// Second overlay: 50% blue bottom-right
-	overlay2Matrix := [][]int{{0, 0}, {0, 3}}
-	overlay2Colors := map[int]color.RGBA{
-		0: {R: 0, G: 0, B: 0, A: 0},     // Transparent
-		3: {R: 0, G: 0, B: 255, A: 128}, // 50% blue
+	overlay2Matrix := [][]ColorKey{{"0", "0"}, {"0", "3"}}
+	overlay2Colors := ColorMap{
+		"0": {R: 0, G: 0, B: 0, A: 0},     // Transparent
+		"3": {R: 0, G: 0, B: 255, A: 128}, // 50% blue
 	}
 
-	overlay2, err := NewColorMatrix(overlay2Matrix, overlay2Colors, nil)
+	overlay2, err := NewColorMatrix(overlay2Matrix, &overlay2Colors, nil)
 	if err != nil {
 		t.Fatalf("Failed to create overlay2: %v", err)
 	}

@@ -6,24 +6,44 @@ import (
 )
 
 var (
+	ErrInvalidColorKey        = fmt.Errorf("invalid color key: must be a single character")
 	ErrInvalidMatrix          = fmt.Errorf("invalid matrix: must be non-empty and rectangular")
 	ErrKeyCollision           = fmt.Errorf("color code key collision")
 	ErrIncompatibleDimensions = fmt.Errorf("incompatible dimensions for operation")
 )
 
+type ColorKey string
+
+func (ck ColorKey) valid() bool {
+	return len(ck) == 1 // ColorKey should be a single character
+}
+
+func fromString(s string) (ColorKey, error) {
+	ck := ColorKey(s)
+	if !ck.valid() {
+		return "", ErrInvalidColorKey
+	}
+
+	return ck, nil
+}
+
+type ColorMap map[ColorKey]color.RGBA
+
 type AnimationSequence struct {
-	Frames        []color.RGBA
+	ColorMap      *ColorMap
+	Frames        []ColorKey
 	FrameDuration int
 	CurrentFrame  int
 	CurrentTick   int
 }
 
-func NewAnimationSequence(frames []color.RGBA, frameDuration int) *AnimationSequence {
+func NewAnimationSequence(colorMap *ColorMap, frames []ColorKey, frameDuration int) *AnimationSequence {
 	if frameDuration <= 0 {
 		frameDuration = 1 // Default to 1 if invalid
 	}
 
 	return &AnimationSequence{
+		ColorMap:      colorMap,
 		Frames:        frames,
 		FrameDuration: frameDuration,
 		CurrentFrame:  0,
@@ -36,7 +56,7 @@ func (a *AnimationSequence) GetColor() color.RGBA {
 		return color.RGBA{0, 0, 0, 0} // Return transparent if no frames
 	}
 
-	return a.Frames[a.CurrentFrame]
+	return (*a.ColorMap)[a.Frames[a.CurrentFrame]]
 }
 
 func (a *AnimationSequence) Advance() {
@@ -52,12 +72,12 @@ func (a *AnimationSequence) Advance() {
 }
 
 type ColorMatrix struct {
-	Matrix             [][]int
-	ColorCodes         map[int]color.RGBA
-	animationSequences map[int]*AnimationSequence
+	Matrix             [][]ColorKey
+	ColorCodes         *ColorMap
+	animationSequences map[ColorKey]*AnimationSequence
 }
 
-func NewColorMatrix(matrix [][]int, colorCodes map[int]color.RGBA, animationSequences map[int]*AnimationSequence) (*ColorMatrix, error) {
+func NewColorMatrix(matrix [][]ColorKey, colorCodes *ColorMap, animationSequences map[ColorKey]*AnimationSequence) (*ColorMatrix, error) {
 	if len(matrix) == 0 || len(matrix[0]) == 0 {
 		return nil, ErrInvalidMatrix
 	}
@@ -68,14 +88,14 @@ func NewColorMatrix(matrix [][]int, colorCodes map[int]color.RGBA, animationSequ
 		}
 	}
 
-	for colorCode := range colorCodes {
+	for colorCode := range *colorCodes {
 		if _, exists := animationSequences[colorCode]; exists {
 			return nil, ErrKeyCollision
 		}
 	}
 
 	for colorCode := range animationSequences {
-		if _, exists := colorCodes[colorCode]; exists {
+		if _, exists := (*colorCodes)[colorCode]; exists {
 			return nil, ErrKeyCollision
 		}
 	}
@@ -112,8 +132,8 @@ func (cm *ColorMatrix) Render() [][]color.RGBA {
 			colorCode := cm.Matrix[row][col]
 			if animSeq, exists := cm.animationSequences[colorCode]; exists {
 				rendered[row][col] = animSeq.GetColor()
-			} else if colorCode, exists := cm.ColorCodes[colorCode]; exists {
-				rendered[row][col] = colorCode
+			} else if colorValue, exists := (*cm.ColorCodes)[colorCode]; exists {
+				rendered[row][col] = colorValue
 			} else {
 				rendered[row][col] = color.RGBA{0, 0, 0, 0}
 			}
@@ -135,7 +155,7 @@ func (cm *ColorMatrix) Dimensions() (width, height int) {
 	return len(cm.Matrix[0]), len(cm.Matrix)
 }
 
-func (cm *ColorMatrix) AppendRight(other *ColorMatrix) error {
+func (cm *ColorMatrix) appendRight(other *ColorMatrix) error {
 	if len(cm.Matrix) != len(other.Matrix) {
 		return ErrIncompatibleDimensions
 	}
@@ -148,7 +168,7 @@ func (cm *ColorMatrix) AppendRight(other *ColorMatrix) error {
 	return nil
 }
 
-func (cm *ColorMatrix) AppendBelow(other *ColorMatrix) error {
+func (cm *ColorMatrix) appendBelow(other *ColorMatrix) error {
 	if len(cm.Matrix[0]) != len(other.Matrix[0]) {
 		return ErrIncompatibleDimensions
 	}
@@ -162,47 +182,51 @@ func (cm *ColorMatrix) AppendBelow(other *ColorMatrix) error {
 func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 	// Initialize maps if nil
 	if cm.animationSequences == nil {
-		cm.animationSequences = make(map[int]*AnimationSequence)
+		cm.animationSequences = make(map[ColorKey]*AnimationSequence)
 	}
 
 	// First reindex the colors and animations of the other matrix to avoid collisions
-	reindex := map[int]int{}
+	reindex := map[ColorKey]ColorKey{}
 	maxCode := 0
-	for code := range cm.ColorCodes {
-		if code > maxCode {
-			maxCode = code
+	for code := range *cm.ColorCodes {
+		codeNum := int(code[0])
+		if codeNum > maxCode {
+			maxCode = codeNum
 		}
 	}
 	for code := range cm.animationSequences {
-		if code > maxCode {
-			maxCode = code
+		codeNum := int(code[0])
+		if codeNum > maxCode {
+			maxCode = codeNum
 		}
 	}
 
 	// Start by checking if the other matrix encodes the same color codes
-	colorToCode := map[color.RGBA]int{}
-	for code, colorValue := range cm.ColorCodes {
+	colorToCode := map[color.RGBA]ColorKey{}
+	for code, colorValue := range *cm.ColorCodes {
 		colorToCode[colorValue] = code
 	}
 
 	// Handle blending for semi-transparent pixels
-	blendedColors := make(map[[2]int]int) // [baseCode, overlayCode] -> blendedCode
+	blendedColors := make(map[[2]ColorKey]ColorKey) // [baseCode, overlayCode] -> blendedCode
 
-	for code, colorValue := range other.ColorCodes {
+	for code, colorValue := range *other.ColorCodes {
 		if existingCode, exists := colorToCode[colorValue]; exists {
 			reindex[code] = existingCode
 		} else {
 			maxCode++
-			reindex[code] = maxCode
-			cm.ColorCodes[maxCode] = colorValue
+			newKey := ColorKey(string(rune(maxCode)))
+			reindex[code] = newKey
+			(*cm.ColorCodes)[newKey] = colorValue
 		}
 	}
 
 	// We assume all animation sequences are unique, so we reindex them as well
 	for code, animSeq := range other.animationSequences {
 		maxCode++
-		reindex[code] = maxCode
-		cm.animationSequences[maxCode] = animSeq
+		newKey := ColorKey(string(rune(maxCode)))
+		reindex[code] = newKey
+		cm.animationSequences[newKey] = animSeq
 	}
 
 	// Now we can add in the reindexed other matrix into this one at the specified offset
@@ -221,10 +245,10 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 				var hasOverlay bool
 				if animSeq, hasAnim := other.animationSequences[otherCode]; hasAnim {
 					if len(animSeq.Frames) > 0 {
-						overlayColor = animSeq.Frames[0]
+						overlayColor = (*animSeq.ColorMap)[animSeq.Frames[0]]
 						hasOverlay = true
 					}
-				} else if colorValue, hasColor := other.ColorCodes[otherCode]; hasColor {
+				} else if colorValue, hasColor := (*other.ColorCodes)[otherCode]; hasColor {
 					overlayColor = colorValue
 					hasOverlay = true
 				}
@@ -246,7 +270,7 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 				baseCode := cm.Matrix[newRow][newCol]
 
 				// Check if we already computed this blend
-				blendKey := [2]int{baseCode, otherCode}
+				blendKey := [2]ColorKey{baseCode, otherCode}
 				if blendedCode, exists := blendedColors[blendKey]; exists {
 					cm.Matrix[newRow][newCol] = blendedCode
 					continue
@@ -256,9 +280,9 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 				var baseColor color.RGBA
 				if animSeq, hasAnim := cm.animationSequences[baseCode]; hasAnim {
 					if len(animSeq.Frames) > 0 {
-						baseColor = animSeq.Frames[0]
+						baseColor = (*animSeq.ColorMap)[animSeq.Frames[0]]
 					}
-				} else if colorValue, hasColor := cm.ColorCodes[baseCode]; hasColor {
+				} else if colorValue, hasColor := (*cm.ColorCodes)[baseCode]; hasColor {
 					baseColor = colorValue
 				}
 
@@ -271,10 +295,11 @@ func (cm *ColorMatrix) Compose(other *ColorMatrix, offsetX, offsetY int) error {
 					blendedColors[blendKey] = existingCode
 				} else {
 					maxCode++
-					cm.ColorCodes[maxCode] = blended
-					colorToCode[blended] = maxCode
-					cm.Matrix[newRow][newCol] = maxCode
-					blendedColors[blendKey] = maxCode
+					newKey := ColorKey(string(rune(maxCode)))
+					(*cm.ColorCodes)[newKey] = blended
+					colorToCode[blended] = newKey
+					cm.Matrix[newRow][newCol] = newKey
+					blendedColors[blendKey] = newKey
 				}
 			}
 		}
@@ -303,9 +328,9 @@ func (cm *ColorMatrix) ComposeExpanding(other *ColorMatrix) error {
 	overlayOffsetY := (newHeight - overlayHeight) / 2
 
 	// Create new matrix with expanded dimensions
-	newMatrix := make([][]int, newHeight)
+	newMatrix := make([][]ColorKey, newHeight)
 	for i := range newMatrix {
-		newMatrix[i] = make([]int, newWidth)
+		newMatrix[i] = make([]ColorKey, newWidth)
 	}
 
 	// Copy base matrix into new matrix at centered position

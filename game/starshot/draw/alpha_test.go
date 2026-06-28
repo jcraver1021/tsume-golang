@@ -78,13 +78,13 @@ func TestAlphaComposite(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			baseMatrix := [][]int{{1}}
-			baseColors := map[int]color.RGBA{1: tc.dst}
-			base, _ := NewColorMatrix(baseMatrix, baseColors, nil)
+			baseMatrix := [][]ColorKey{{"1"}}
+			baseColors := ColorMap{"1": tc.dst}
+			base, _ := NewColorMatrix(baseMatrix, &baseColors, nil)
 
-			overlayMatrix := [][]int{{2}}
-			overlayColors := map[int]color.RGBA{2: tc.src}
-			overlay, _ := NewColorMatrix(overlayMatrix, overlayColors, nil)
+			overlayMatrix := [][]ColorKey{{"2"}}
+			overlayColors := ColorMap{"2": tc.src}
+			overlay, _ := NewColorMatrix(overlayMatrix, &overlayColors, nil)
 
 			base.Compose(overlay, 0, 0)
 			result := base.Render()[0][0]
