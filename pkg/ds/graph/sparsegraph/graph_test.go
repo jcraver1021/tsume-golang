@@ -365,7 +365,7 @@ func TestGetAllEdges(t *testing.T) {
 			// Check all edges in ascending order by weight.
 			want := graph.NewEdgeHeap(tc.edges)
 			got := graph.NewEdgeHeap(gotEdges)
-			for i := 0; i < len(got); i++ {
+			for i := range got {
 				if !got[i].Equals(want[i]) {
 					t.Errorf("GetAllEdges() edge %d = %v; want %v", i, got[i], want[i])
 				}
