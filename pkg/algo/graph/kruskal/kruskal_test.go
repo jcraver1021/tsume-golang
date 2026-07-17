@@ -3,6 +3,7 @@ package kruskal_test
 import (
 	"testing"
 
+	"tsumegolang/pkg/algo/graph/common"
 	. "tsumegolang/pkg/algo/graph/kruskal"
 	"tsumegolang/pkg/ds/graph"
 	"tsumegolang/pkg/ds/graph/sparsegraph"
@@ -136,7 +137,7 @@ func TestMSTError(t *testing.T) {
 				{From: 1, To: 2, Weight: 1.1},
 				{From: 2, To: 0, Weight: 1.5},
 			},
-			wantErr: ErrDirectedGraph,
+			wantErr: common.ErrNeedUndirectedGraph,
 		},
 	}
 
