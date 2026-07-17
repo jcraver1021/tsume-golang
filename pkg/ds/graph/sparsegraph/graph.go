@@ -25,6 +25,12 @@ func NewGraph(n int, directed bool) (*Graph, error) {
 	}, nil
 }
 
+// IsDirected returns true if the graph is directed, false if it is undirected.
+func (g *Graph) IsDirected() bool {
+	return g.directed
+}
+
+// Copy creates a deep copy of the graph and returns it.
 func (g *Graph) Copy() *Graph {
 	newGraph, _ := NewGraph(len(g.nodes), g.directed)
 	for i, adj := range g.nodes {
@@ -46,11 +52,6 @@ func (g *Graph) checkIdx(i int) error {
 	}
 
 	return nil
-}
-
-// IsDirected returns true if the graph is directed, false if it is undirected.
-func (g *Graph) IsDirected() bool {
-	return g.directed
 }
 
 // GetSize returns the number of nodes in the graph.
