@@ -1,6 +1,7 @@
 package kruskal
 
 import (
+	"tsumegolang/pkg/algo/graph/common"
 	"tsumegolang/pkg/ds/disjointset"
 	"tsumegolang/pkg/ds/graph"
 )
@@ -8,7 +9,8 @@ import (
 // Graph interface defines the methods required for a graph to be used with Kruskal's algorithm.
 // We do not require a specific graph implementation, but it must support the following methods:
 // - GetSize: returns the number of nodes in the graph.
-// - ConnectBidirectional: connects two nodes bidirectionally with a given weight.
+// - IsDirected: returns true if the graph is directed, false otherwise.
+// - Connect: connects two nodes with a given weight.
 // - GetAllEdges: returns all edges in the graph as triples [weight, from, to].
 type Graph interface {
 	GetSize() int
@@ -23,7 +25,7 @@ type Graph interface {
 func MST(original, mst Graph) error {
 	// Kruskal's algorithm requires an undirected graph.
 	if original.IsDirected() {
-		return ErrDirectedGraph
+		return common.ErrNeedUndirectedGraph
 	}
 
 	// We will assume that mst is empty.

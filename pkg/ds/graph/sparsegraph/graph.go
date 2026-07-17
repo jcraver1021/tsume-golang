@@ -25,6 +25,20 @@ func NewGraph(n int, directed bool) (*Graph, error) {
 	}, nil
 }
 
+func (g *Graph) Copy() *Graph {
+	newGraph, _ := NewGraph(len(g.nodes), g.directed)
+	for i, adj := range g.nodes {
+		if adj == nil {
+			continue
+		}
+		for j, w := range adj {
+			newGraph.Connect(i, j, w)
+		}
+	}
+
+	return newGraph
+}
+
 // checkIdx checks if the given index is valid for the graph.
 func (g *Graph) checkIdx(i int) error {
 	if i < 0 || i >= len(g.nodes) {
@@ -70,6 +84,35 @@ func (g *Graph) Connect(i, j int, w float64) error {
 	return nil
 }
 
+// Disconnect removes the edge from node i to node j.
+// Returns an error if either node index is invalid or if the edge does not exist.
+func (g *Graph) Disconnect(i, j int) error {
+	if err := g.checkIdx(i); err != nil {
+		return err
+	}
+	if err := g.checkIdx(j); err != nil {
+		return err
+	}
+
+	// Special consideration for undirected graphs.
+	if !g.directed && i > j {
+		// The edge is stored in the lower index node's adjacency list.
+		i, j = j, i
+	}
+
+	if g.nodes[i] == nil {
+		return ErrNoSuchEdge
+	}
+
+	if _, exists := g.nodes[i][j]; !exists {
+		return ErrNoSuchEdge
+	}
+
+	delete(g.nodes[i], j)
+
+	return nil
+}
+
 // GetEdge retrieves the edge from node i to node j.
 // Returns the edge and a boolean indicating whether the edge exists.
 func (g *Graph) GetEdge(i, j int) (graph.Edge, bool) {
@@ -92,6 +135,16 @@ func (g *Graph) GetEdge(i, j int) (graph.Edge, bool) {
 
 	w, exists := g.nodes[i][j]
 	return graph.Edge{From: i, To: j, Weight: w}, exists
+}
+
+// GetAllNodes returns a slice of all nodes in the graph.
+func (g *Graph) GetAllNodes() []int {
+	nodes := make([]int, len(g.nodes))
+	for i := range g.nodes {
+		nodes[i] = i
+	}
+
+	return nodes
 }
 
 // GetAllEdges returns all edges in the graph as a slice of triples [weight, from, to].
