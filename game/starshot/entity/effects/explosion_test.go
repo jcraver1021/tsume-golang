@@ -8,8 +8,7 @@ import (
 )
 
 func TestExplosionSmall(t *testing.T) {
-	scene := testutil.NewMockScene()
-	explosion, err := NewExplosion(100, 100, scene, def.ExplosionSmall)
+	explosion, err := NewExplosion(100, 100, ExplosionSmall)
 	if err != nil {
 		t.Fatalf("Failed to create small explosion: %v", err)
 	}
@@ -30,6 +29,7 @@ func TestExplosionSmall(t *testing.T) {
 		t.Error("Explosion should not be removable immediately after creation")
 	}
 
+	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (40 frames for small)
 	for i := 0; i < 39; i++ {
 		explosion.Act(scene)
@@ -46,8 +46,7 @@ func TestExplosionSmall(t *testing.T) {
 }
 
 func TestExplosionMedium(t *testing.T) {
-	scene := testutil.NewMockScene()
-	explosion, err := NewExplosion(200, 200, scene, def.ExplosionMedium)
+	explosion, err := NewExplosion(200, 200, ExplosionMedium)
 	if err != nil {
 		t.Fatalf("Failed to create medium explosion: %v", err)
 	}
@@ -58,6 +57,7 @@ func TestExplosionMedium(t *testing.T) {
 		t.Errorf("Expected dimensions 32×32, got %d×%d", width, height)
 	}
 
+	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (60 frames for medium)
 	for i := 0; i < 59; i++ {
 		explosion.Act(scene)
@@ -74,8 +74,7 @@ func TestExplosionMedium(t *testing.T) {
 }
 
 func TestExplosionLarge(t *testing.T) {
-	scene := testutil.NewMockScene()
-	explosion, err := NewExplosion(300, 300, scene, def.ExplosionLarge)
+	explosion, err := NewExplosion(300, 300, ExplosionLarge)
 	if err != nil {
 		t.Fatalf("Failed to create large explosion: %v", err)
 	}
@@ -86,6 +85,7 @@ func TestExplosionLarge(t *testing.T) {
 		t.Errorf("Expected dimensions 48×48, got %d×%d", width, height)
 	}
 
+	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (96 frames for large)
 	for i := 0; i < 95; i++ {
 		explosion.Act(scene)
@@ -102,10 +102,9 @@ func TestExplosionLarge(t *testing.T) {
 }
 
 func TestExplosionCentering(t *testing.T) {
-	scene := testutil.NewMockScene()
 	spawnX, spawnY := 100, 100
 
-	explosion, err := NewExplosion(spawnX, spawnY, scene, def.ExplosionSmall)
+	explosion, err := NewExplosion(spawnX, spawnY, ExplosionSmall)
 	if err != nil {
 		t.Fatalf("Failed to create explosion: %v", err)
 	}
@@ -127,8 +126,7 @@ func TestExplosionCentering(t *testing.T) {
 }
 
 func TestExplosionNoCollision(t *testing.T) {
-	scene := testutil.NewMockScene()
-	explosion, err := NewExplosion(100, 100, scene, def.ExplosionSmall)
+	explosion, err := NewExplosion(100, 100, ExplosionSmall)
 	if err != nil {
 		t.Fatalf("Failed to create explosion: %v", err)
 	}

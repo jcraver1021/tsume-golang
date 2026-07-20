@@ -1,14 +1,5 @@
 package def
 
-// ExplosionSize specifies the visual scale of an explosion effect
-type ExplosionSize int
-
-const (
-	ExplosionSmall ExplosionSize = iota
-	ExplosionMedium
-	ExplosionLarge
-)
-
 // Mortal is an optional interface for entities that can die and spawn effects
 type Mortal interface {
 	Entity
@@ -17,11 +8,15 @@ type Mortal interface {
 	IsDead() bool
 }
 
-// DeathEffect specifies what happens when an entity dies
+// DeathEffect specifies what happens when an entity dies.
+// SpawnVisualEffect, if non-nil, is called with the entity's center coordinates
+// and the current scene; it should only spawn visual entities (particles,
+// explosions, etc.). Damage-dealing blast behaviour is declared separately by
+// implementing def.Explosive — the game loop applies it automatically on death.
 type DeathEffect struct {
-	ExplosionSize      ExplosionSize
-	SlowdownMultiplier float64 // 0.0 = no slowdown, 0.3 = 30% speed, 1.0 = normal
-	SlowdownDuration   int     // Frames to maintain slowdown (0 = no slowdown)
+	SpawnVisualEffect  func(cx, cy int, scene Scene) // nil = no visual effect
+	SlowdownMultiplier float64                       // 0.0 = no slowdown, 0.3 = 30% speed, 1.0 = normal
+	SlowdownDuration   int                           // Frames to maintain slowdown (0 = no slowdown)
 }
 
 // Damageable is an optional interface for entities with hit points.

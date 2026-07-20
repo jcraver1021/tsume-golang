@@ -12,17 +12,24 @@ import (
 //go:embed sprites/*.yaml
 var spriteFiles embed.FS
 
-// LoadExplosionSprite loads an explosion sprite of the given size
-// This is exported so other packages (like player) can load explosion sprites
-// without duplicating the sprite files
-func LoadExplosionSprite(size def.ExplosionSize) (*draw.ColorMatrix, error) {
+// ExplosionSize specifies the visual scale of an explosion effect.
+type ExplosionSize int
+
+const (
+	ExplosionSmall  ExplosionSize = iota
+	ExplosionMedium ExplosionSize = iota
+	ExplosionLarge  ExplosionSize = iota
+)
+
+// LoadExplosionSprite loads the sprite sheet for the given explosion size.
+func LoadExplosionSprite(size ExplosionSize) (*draw.ColorMatrix, error) {
 	var spriteFile string
 	switch size {
-	case def.ExplosionSmall:
+	case ExplosionSmall:
 		spriteFile = "sprites/explosion_small.yaml"
-	case def.ExplosionMedium:
+	case ExplosionMedium:
 		spriteFile = "sprites/explosion_medium.yaml"
-	case def.ExplosionLarge:
+	case ExplosionLarge:
 		spriteFile = "sprites/explosion_large.yaml"
 	default:
 		return nil, fmt.Errorf("unknown explosion size: %d", size)
@@ -44,22 +51,20 @@ type Explosion struct {
 	maxFrames     int
 }
 
-// NewExplosion creates an explosion effect at the given location
-func NewExplosion(x, y int, scene def.Scene, size def.ExplosionSize) (*Explosion, error) {
-	// Load sprite using shared loader
+// NewExplosion creates an explosion entity at the given center coordinates.
+func NewExplosion(cx, cy int, size ExplosionSize) (*Explosion, error) {
 	sprite, err := LoadExplosionSprite(size)
 	if err != nil {
 		return nil, err
 	}
 
-	// Determine duration based on size
 	var maxFrames int
 	switch size {
-	case def.ExplosionSmall:
+	case ExplosionSmall:
 		maxFrames = 40 // 4 frames × 10 ticks/frame
-	case def.ExplosionMedium:
+	case ExplosionMedium:
 		maxFrames = 60 // 6 frames × 10 ticks/frame
-	case def.ExplosionLarge:
+	case ExplosionLarge:
 		maxFrames = 96 // 8 frames × 12 ticks/frame
 	default:
 		return nil, fmt.Errorf("unknown explosion size: %d", size)
@@ -68,8 +73,8 @@ func NewExplosion(x, y int, scene def.Scene, size def.ExplosionSize) (*Explosion
 	width, height := sprite.Dimensions()
 
 	return &Explosion{
-		x:          x - width/2, // Center on spawn location
-		y:          y - height/2,
+		x:          cx - width/2,
+		y:          cy - height/2,
 		width:      width,
 		height:     height,
 		sprite:     sprite,

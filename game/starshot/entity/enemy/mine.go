@@ -6,6 +6,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/entity/effects"
 )
 
 const (
@@ -154,9 +155,11 @@ func (m *Mine) CanBeRemoved() bool {
 
 func (m *Mine) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
-		ExplosionSize:      def.ExplosionLarge,
-		SlowdownMultiplier: 0,
-		SlowdownDuration:   0,
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosion(cx, cy, effects.ExplosionLarge); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
 	}
 }
 

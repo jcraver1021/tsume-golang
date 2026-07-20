@@ -7,6 +7,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/entity/effects"
 )
 
 type AsteroidSize int
@@ -225,13 +226,16 @@ func (a *Asteroid) CanBeRemoved() bool {
 // --- Mortal ---
 
 func (a *Asteroid) GetDeathEffect() def.DeathEffect {
-	size := def.ExplosionSmall
+	expSize := effects.ExplosionSmall
 	if a.size >= AsteroidMedium {
-		size = def.ExplosionMedium
+		expSize = effects.ExplosionMedium
 	}
 	return def.DeathEffect{
-		ExplosionSize:    size,
-		SlowdownDuration: 0,
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosion(cx, cy, expSize); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
 	}
 }
 
