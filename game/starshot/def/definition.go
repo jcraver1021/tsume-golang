@@ -114,6 +114,16 @@ type EntityCollection interface {
 	IterateForDraw() <-chan Entity
 }
 
+// Weapon is implemented by anything that can be equipped and fired by the player.
+// Fire is called with the spawn origin and the current scene; the weapon is
+// responsible for creating and adding its projectiles.
+// TickCooldown and Ready decouple rate-of-fire from the player's own update loop.
+type Weapon interface {
+	Fire(originX, originY int, scene Scene)
+	TickCooldown()
+	Ready() bool
+}
+
 // Damageable is an optional interface for entities with hit points.
 // TakeDamage reduces HP; callers should then check IsDead() via Mortal.
 type Damageable interface {

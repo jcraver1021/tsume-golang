@@ -6,7 +6,6 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
-	"tsumegolang/game/starshot/entity/projectile"
 )
 
 // PlayerAction represents player input state
@@ -19,9 +18,11 @@ type PlayerAction struct {
 }
 
 // PlayerController is an interface for entities that can respond to player input
+// and have their weapon swapped at runtime.
 type PlayerController interface {
 	def.Entity
 	SetPlayerAction(action PlayerAction)
+	SetWeapon(weapon def.Weapon)
 }
 
 const defaultPlayerSpeed = 5
@@ -34,8 +35,8 @@ type Player struct {
 	engine *Engine
 	sprite *draw.ColorMatrix
 
-	playerAction  PlayerAction
-	shootCooldown int // frames remaining before player can shoot again
+	playerAction PlayerAction
+	weapon       def.Weapon
 
 	hp    int
 	maxHP int
@@ -45,11 +46,12 @@ type Player struct {
 	explosionMaxDuration int // Total frames the explosion animation lasts
 }
 
-// NewPlayer creates a new ColorMatrix-based player
-func NewPlayer(x, y int) (*Player, error) {
+// NewPlayer creates a new ColorMatrix-based player with the given weapon equipped.
+func NewPlayer(x, y int, weapon def.Weapon) (*Player, error) {
 	p := &Player{
-		x: x,
-		y: y,
+		x:      x,
+		y:      y,
+		weapon: weapon,
 	}
 
 	// Load defaults
@@ -151,6 +153,10 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 	p.playerAction = action
 }
 
+func (p *Player) SetWeapon(weapon def.Weapon) {
+	p.weapon = weapon
+}
+
 func (p *Player) Act(b def.Scene) {
 	if p.dead {
 		// Track explosion animation progress
@@ -185,15 +191,14 @@ func (p *Player) Act(b def.Scene) {
 		p.y = b.Height() - p.height
 	}
 
-	// Handle shooting
-	if p.shootCooldown > 0 {
-		p.shootCooldown--
-	}
-	if p.playerAction.Shoot && p.shootCooldown == 0 {
-		bulletX := p.x + p.width/2 - 1 // center bullet on ship
-		bulletY := p.y - 8
-		b.Entities().Add(projectile.NewBullet(bulletX, bulletY))
-		p.shootCooldown = 12 // ~5 shots/second at 60 FPS
+	// Handle shooting via equipped weapon
+	if p.weapon != nil {
+		p.weapon.TickCooldown()
+		if p.playerAction.Shoot && p.weapon.Ready() {
+			originX := p.x + p.width/2 - 1
+			originY := p.y - 8
+			p.weapon.Fire(originX, originY, b)
+		}
 	}
 
 	p.playerAction = PlayerAction{} // Reset actions after processing

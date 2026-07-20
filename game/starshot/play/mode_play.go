@@ -8,6 +8,7 @@ import (
 	"tsumegolang/game/starshot/entity/environment"
 	"tsumegolang/game/starshot/entity/obstacle"
 	"tsumegolang/game/starshot/entity/player"
+	"tsumegolang/game/starshot/entity/projectile"
 )
 
 var (
@@ -35,7 +36,7 @@ func initWave1(b def.Scene) {
 	}))
 
 	// Player entity - centered at bottom
-	player, err := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)
+	player, err := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50, projectile.NewBasicGun())
 	if err != nil {
 		panic(err)
 	}
