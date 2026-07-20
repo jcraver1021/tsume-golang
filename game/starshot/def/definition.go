@@ -140,6 +140,15 @@ type Impulsable interface {
 	ApplyImpulse(dvx, dvy float64)
 }
 
+// Explosive is implemented by projectiles that detonate with area damage.
+// BlastRadius is the damage falloff distance in pixels; BlastDamage is the
+// flat HP removed from every Damageable entity whose center is within that radius.
+type Explosive interface {
+	Entity
+	BlastRadius() float64
+	BlastDamage() int
+}
+
 // Collides performs two-phase collision detection between entities
 // Phase 1: Fast bounding box check via BoundingBoxOverlaps()
 // Phase 2: Precise check via CollidesWith() if at least one implements PreciseCollider

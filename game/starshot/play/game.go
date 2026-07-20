@@ -2,6 +2,7 @@ package play
 
 import (
 	"image/color"
+	"math"
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -227,6 +228,44 @@ func (g *Game) checkCollisions() {
 			break
 		}
 	}
+
+	// Bombs vs obstacles and enemies
+	for _, b := range bullets {
+		bomb, ok := b.(*projectile.Bomb)
+		if !ok || bomb.CanBeRemoved() {
+			continue
+		}
+
+		detonated := false
+		for _, obs := range obstacles {
+			if m, ok := obs.(def.Mortal); ok && m.IsDead() {
+				continue
+			}
+			if !def.Collides(b, obs) {
+				continue
+			}
+			g.applyBombBlast(bomb)
+			g.handleDeath(bomb)
+			detonated = true
+			break
+		}
+
+		if detonated {
+			continue
+		}
+
+		for _, enemy := range enemies {
+			if m, ok := enemy.(def.Mortal); ok && m.IsDead() {
+				continue
+			}
+			if !def.Collides(b, enemy) {
+				continue
+			}
+			g.applyBombBlast(bomb)
+			g.handleDeath(bomb)
+			break
+		}
+	}
 }
 
 // applyDamage deals damage to an entity via the Damageable interface.
@@ -264,6 +303,42 @@ func (g *Game) applyBulletHit(target def.Entity, impactX float64) {
 		offsetX := impactX - centerX
 		// Small upward push plus lateral component based on where bullet hit
 		imp.ApplyImpulse(-offsetX/halfW*12.0, -2.0)
+	}
+}
+
+// applyBombBlast damages every Damageable entity whose center lies within the
+// bomb's blast radius, triggering handleDeath on any that are killed.
+func (g *Game) applyBombBlast(exp def.Explosive) {
+	bx, by := exp.Location()
+	bw, bh := exp.Dimensions()
+	cx := float64(bx + bw/2)
+	cy := float64(by + bh/2)
+	radius := exp.BlastRadius()
+
+	targets := append(
+		g.Scene.Entities().Get(def.EntityTypeObstacle),
+		g.Scene.Entities().Get(def.EntityTypeEnemy)...,
+	)
+
+	for _, target := range targets {
+		if m, ok := target.(def.Mortal); ok && m.IsDead() {
+			continue
+		}
+		tx, ty := target.Location()
+		tw, th := target.Dimensions()
+		tcx := float64(tx + tw/2)
+		tcy := float64(ty + th/2)
+		dx := tcx - cx
+		dy := tcy - cy
+		if math.Sqrt(dx*dx+dy*dy) > radius {
+			continue
+		}
+		if d, ok := target.(def.Damageable); ok {
+			d.TakeDamage(exp.BlastDamage())
+			if mortal, ok := target.(def.Mortal); ok && mortal.IsDead() {
+				g.handleDeath(mortal)
+			}
+		}
 	}
 }
 
@@ -360,11 +435,12 @@ func (g *Game) handleInput() {
 		}
 	case GameModePlay:
 		playerAction := player.PlayerAction{
-			MoveUp:    ebit.IsKeyPressed(ebit.KeyArrowUp),
-			MoveDown:  ebit.IsKeyPressed(ebit.KeyArrowDown),
-			MoveLeft:  ebit.IsKeyPressed(ebit.KeyArrowLeft),
-			MoveRight: ebit.IsKeyPressed(ebit.KeyArrowRight),
-			Shoot:     ebit.IsKeyPressed(ebit.KeySpace),
+			MoveUp:         ebit.IsKeyPressed(ebit.KeyArrowUp),
+			MoveDown:       ebit.IsKeyPressed(ebit.KeyArrowDown),
+			MoveLeft:       ebit.IsKeyPressed(ebit.KeyArrowLeft),
+			MoveRight:      ebit.IsKeyPressed(ebit.KeyArrowRight),
+			ShootPrimary:   ebit.IsKeyPressed(ebit.KeySpace),
+			ShootSecondary: ebit.IsKeyPressed(ebit.KeyZ),
 		}
 
 		// Apply player action to all player entities (even zero or more than one)

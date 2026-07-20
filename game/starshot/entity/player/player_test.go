@@ -9,7 +9,7 @@ import (
 // newTestPlayer creates a player with no weapon (nil is handled gracefully).
 func newTestPlayer(t *testing.T) *player.Player {
 	t.Helper()
-	p, err := player.NewPlayer(240, 400, nil)
+	p, err := player.NewPlayer(240, 400, nil, nil)
 	if err != nil {
 		t.Fatalf("NewPlayer returned error: %v", err)
 	}

@@ -10,22 +10,34 @@ import (
 
 // PlayerAction represents player input state
 type PlayerAction struct {
-	MoveUp    bool
-	MoveDown  bool
-	MoveLeft  bool
-	MoveRight bool
-	Shoot     bool
+	MoveUp         bool
+	MoveDown       bool
+	MoveLeft       bool
+	MoveRight      bool
+	ShootPrimary   bool
+	ShootSecondary bool
 }
 
 // PlayerController is an interface for entities that can respond to player input
-// and have their weapon swapped at runtime.
+// and have their weapons swapped at runtime.
 type PlayerController interface {
 	def.Entity
 	SetPlayerAction(action PlayerAction)
-	SetWeapon(weapon def.Weapon)
+	SetPrimaryWeapon(weapon def.Weapon)
+	SetSecondaryWeapon(weapon def.Weapon)
 }
 
 const defaultPlayerSpeed = 5
+
+// weaponSprite is implemented by weapons that provide a hull-composited visual.
+// MountOffsetX returns the x pixel offset (from the hull's left edge) at which
+// the weapon sprite should be composited — weapons declare their own position so
+// a center cannon and a wing-mounted gun can coexist without overlapping.
+type weaponSprite interface {
+	Sprite() *draw.ColorMatrix
+	MountOffsetX(hullWidth int) int
+	MountOffsetY() int
+}
 
 type Player struct {
 	x, y          int
@@ -35,8 +47,9 @@ type Player struct {
 	engine *Engine
 	sprite *draw.ColorMatrix
 
-	playerAction PlayerAction
-	weapon       def.Weapon
+	playerAction    PlayerAction
+	primaryWeapon   def.Weapon
+	secondaryWeapon def.Weapon
 
 	hp    int
 	maxHP int
@@ -46,12 +59,13 @@ type Player struct {
 	explosionMaxDuration int // Total frames the explosion animation lasts
 }
 
-// NewPlayer creates a new ColorMatrix-based player with the given weapon equipped.
-func NewPlayer(x, y int, weapon def.Weapon) (*Player, error) {
+// NewPlayer creates a new ColorMatrix-based player. Either weapon may be nil.
+func NewPlayer(x, y int, primaryWeapon, secondaryWeapon def.Weapon) (*Player, error) {
 	p := &Player{
-		x:      x,
-		y:      y,
-		weapon: weapon,
+		x:               x,
+		y:               y,
+		primaryWeapon:   primaryWeapon,
+		secondaryWeapon: secondaryWeapon,
 	}
 
 	// Load defaults
@@ -110,6 +124,16 @@ func (p *Player) composePlayerSprites() error {
 		}
 	}
 
+	// Compose each weapon's sprite onto the hull at its declared mount position.
+	for _, w := range []def.Weapon{p.primaryWeapon, p.secondaryWeapon} {
+		if ws, ok := w.(weaponSprite); ok {
+			gunSprite := ws.Sprite()
+			if gunSprite != nil {
+				_ = hull.Compose(gunSprite, ws.MountOffsetX(hull.Width()), ws.MountOffsetY())
+			}
+		}
+	}
+
 	p.sprite = hull
 	return nil
 }
@@ -153,8 +177,12 @@ func (p *Player) SetPlayerAction(action PlayerAction) {
 	p.playerAction = action
 }
 
-func (p *Player) SetWeapon(weapon def.Weapon) {
-	p.weapon = weapon
+func (p *Player) SetPrimaryWeapon(weapon def.Weapon) {
+	p.primaryWeapon = weapon
+}
+
+func (p *Player) SetSecondaryWeapon(weapon def.Weapon) {
+	p.secondaryWeapon = weapon
 }
 
 func (p *Player) Act(b def.Scene) {
@@ -191,15 +219,11 @@ func (p *Player) Act(b def.Scene) {
 		p.y = b.Height() - p.height
 	}
 
-	// Handle shooting via equipped weapon
-	if p.weapon != nil {
-		p.weapon.TickCooldown()
-		if p.playerAction.Shoot && p.weapon.Ready() {
-			originX := p.x + p.width/2 - 1
-			originY := p.y - 8
-			p.weapon.Fire(originX, originY, b)
-		}
-	}
+	// Handle shooting via each equipped weapon
+	originX := p.x + p.width/2 - 1
+	originY := p.y - 8
+	fireWeapon(p.primaryWeapon, p.playerAction.ShootPrimary, originX, originY, b)
+	fireWeapon(p.secondaryWeapon, p.playerAction.ShootSecondary, originX, originY, b)
 
 	p.playerAction = PlayerAction{} // Reset actions after processing
 }
@@ -304,3 +328,13 @@ func (p *Player) TakeDamage(amount int) {
 
 func (p *Player) CurrentHP() int { return p.hp }
 func (p *Player) MaxHP() int     { return p.maxHP }
+
+func fireWeapon(w def.Weapon, triggered bool, originX, originY int, scene def.Scene) {
+	if w == nil {
+		return
+	}
+	w.TickCooldown()
+	if triggered && w.Ready() {
+		w.Fire(originX, originY, scene)
+	}
+}
