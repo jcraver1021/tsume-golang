@@ -329,6 +329,15 @@ func (p *Player) TakeDamage(amount int) {
 func (p *Player) CurrentHP() int { return p.hp }
 func (p *Player) MaxHP() int     { return p.maxHP }
 
+// SecondaryAmmo returns the current and max ammo of the secondary weapon.
+// hasWeapon is false when no ammo-based secondary is equipped.
+func (p *Player) SecondaryAmmo() (current, max int, hasWeapon bool) {
+	if a, ok := p.secondaryWeapon.(def.AmmoBased); ok {
+		return a.Ammo(), a.MaxAmmo(), true
+	}
+	return 0, 0, false
+}
+
 func fireWeapon(w def.Weapon, triggered bool, originX, originY int, scene def.Scene) {
 	if w == nil {
 		return

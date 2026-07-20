@@ -140,6 +140,25 @@ type Impulsable interface {
 	ApplyImpulse(dvx, dvy float64)
 }
 
+// GameStateReader provides read access to game-wide state for UI entities.
+type GameStateReader interface {
+	GetWave() int
+	GetScore() int
+}
+
+// Scorer is implemented by entities that award points when killed.
+type Scorer interface {
+	Entity
+	ScoreValue() int
+}
+
+// AmmoBased is implemented by weapons that consume finite ammo rather than
+// firing unlimitedly. Used by the HUD to display remaining ammo.
+type AmmoBased interface {
+	Ammo() int
+	MaxAmmo() int
+}
+
 // Explosive is implemented by projectiles that detonate with area damage.
 // BlastRadius is the damage falloff distance in pixels; BlastDamage is the
 // flat HP removed from every Damageable entity whose center is within that radius.

@@ -12,6 +12,8 @@ const (
 	chaserSpeed      = 2
 	chaserLookahead  = 60 // px ahead to scan for obstacles
 	chaserDodgeForce = 3  // lateral push when dodging
+	chaserMaxHP      = 3
+	chaserValue      = 10
 )
 
 // Chaser is a hostile ship that pursues the player and steers around asteroids.
@@ -41,8 +43,8 @@ func NewChaser(x, y int) (*Chaser, error) {
 		width:  w,
 		height: h,
 		sprite: sprite,
-		hp:     3,
-		maxHP:  3,
+		hp:     chaserMaxHP,
+		maxHP:  chaserMaxHP,
 	}, nil
 }
 
@@ -194,8 +196,17 @@ func (c *Chaser) TakeDamage(amount int) {
 	}
 }
 
-func (c *Chaser) CurrentHP() int { return c.hp }
-func (c *Chaser) MaxHP() int     { return c.maxHP }
+func (c *Chaser) CurrentHP() int {
+	return c.hp
+}
+
+func (c *Chaser) MaxHP() int {
+	return c.maxHP
+}
+
+func (c *Chaser) ScoreValue() int {
+	return chaserValue
+}
 
 // generateChaserSprite builds a 14×14 hostile arrowhead ship pointing downward.
 func generateChaserSprite() *draw.ColorMatrix {

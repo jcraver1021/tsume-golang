@@ -8,6 +8,7 @@ import (
 	"tsumegolang/game/starshot/entity/environment"
 	"tsumegolang/game/starshot/entity/obstacle"
 	"tsumegolang/game/starshot/entity/player"
+	"tsumegolang/game/starshot/entity/ui"
 )
 
 var (
@@ -19,11 +20,11 @@ var (
 func initPlayMode(b def.Scene, state *GameState) {
 	switch state.Wave {
 	case 1:
-		initWave1(b)
+		initWave1(b, state)
 	}
 }
 
-func initWave1(b def.Scene) {
+func initWave1(b def.Scene, state *GameState) {
 	// Starfield background - use wave-specific density
 	density := waveStarDensity[1]
 	b.Entities().Add(environment.NewSpace(density, b))
@@ -55,4 +56,6 @@ func initWave1(b def.Scene) {
 		panic(err)
 	}
 	b.Entities().Add(chaser)
+
+	b.Entities().Add(ui.NewHUD(state))
 }

@@ -41,11 +41,15 @@ func DefaultGameControlSettings() *GameControlSettings {
 type GameState struct {
 	Mode               GameMode
 	Wave               int
+	Score              int
 	SlowdownActive     bool
 	SlowdownMultiplier float64 // 1.0 = normal, 0.3 = 30% speed
 	SlowdownFramesLeft int
 	PlayerDied         bool // Tracks if player died this wave
 }
+
+func (s *GameState) GetWave() int  { return s.Wave }
+func (s *GameState) GetScore() int { return s.Score }
 
 func NewGameState() *GameState {
 	return &GameState{
@@ -350,6 +354,11 @@ func (g *Game) handleDeath(mortal def.Mortal) {
 	// Track if it was the player that died
 	if mortal.Type() == def.EntityTypePlayer {
 		g.State.PlayerDied = true
+	}
+
+	// Award points if the entity has a score value
+	if scorer, ok := mortal.(def.Scorer); ok {
+		g.State.Score += scorer.ScoreValue()
 	}
 
 	// Get death effect specification
