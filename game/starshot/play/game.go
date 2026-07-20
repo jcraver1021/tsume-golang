@@ -7,15 +7,26 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/background"
-	"tsumegolang/game/starshot/entity/effects"
 	"tsumegolang/game/starshot/entity/player"
 	"tsumegolang/game/starshot/entity/projectile"
 )
 
 const (
 	GameTitle = "Starshot"
+)
+
+// KillMode controls which death effects fire when handleDeath is called.
+// Use KillNormal for standard gameplay deaths.
+// Use KillSilent when the killing mechanic should suppress all secondary effects
+// (e.g. an ion beam that disables a mine without detonating it, or a black hole
+// that consumes entities without triggering their explosions).
+type KillMode int
+
+const (
+	KillNormal KillMode = iota // blast + visual effects fire as declared
+	KillSilent                 // entity dies; no blast damage, no visual effect
+	KillDisarm                 // entity dies; blast suppressed, visual effect fires
 )
 
 var (
@@ -139,7 +150,7 @@ func (g *Game) checkCollisions() {
 					g.applyDamage(p, d.MaxHP())
 				}
 				if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
-					g.handleDeath(mortal)
+					g.handleDeath(mortal, KillNormal)
 					return
 				}
 			}
@@ -156,18 +167,17 @@ func (g *Game) checkCollisions() {
 				continue
 			}
 			if def.Collides(p, enemy) {
-				// Detonate explosive enemies (mines) on player contact
+				// Explosive enemies (e.g. mines) detonate on player contact
 				if mortalEnemy, ok := enemy.(def.Mortal); ok && !mortalEnemy.IsDead() {
-					if expEnemy, ok := enemy.(def.Explosive); ok {
-						g.applyBombBlast(expEnemy)
-						g.handleDeath(mortalEnemy)
+					if _, ok := enemy.(def.Explosive); ok {
+						g.handleDeath(mortalEnemy, KillNormal)
 					}
 				}
 				if d, ok := p.(def.Damageable); ok {
 					g.applyDamage(p, d.MaxHP())
 				}
 				if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
-					g.handleDeath(mortal)
+					g.handleDeath(mortal, KillNormal)
 					return
 				}
 			}
@@ -187,11 +197,10 @@ func (g *Game) checkCollisions() {
 			if !def.Collides(enemy, obs) {
 				continue
 			}
-			// Explosive enemies (mines) detonate on asteroid contact
-			if expEnemy, ok := enemy.(def.Explosive); ok {
+			// Explosive enemies (e.g. mines) detonate on obstacle contact
+			if _, ok := enemy.(def.Explosive); ok {
 				if isMortal && !mortalEnemy.IsDead() {
-					g.applyBombBlast(expEnemy)
-					g.handleDeath(mortalEnemy)
+					g.handleDeath(mortalEnemy, KillNormal)
 				}
 				break
 			}
@@ -199,7 +208,7 @@ func (g *Game) checkCollisions() {
 			if d, ok := enemy.(def.Damageable); ok {
 				d.TakeDamage(1)
 				if isMortal && mortalEnemy.IsDead() {
-					g.handleDeath(mortalEnemy)
+					g.handleDeath(mortalEnemy, KillNormal)
 				}
 			}
 			break
@@ -263,8 +272,7 @@ func (g *Game) checkCollisions() {
 			if !def.Collides(b, obs) {
 				continue
 			}
-			g.applyBombBlast(bomb)
-			g.handleDeath(bomb)
+			g.handleDeath(bomb, KillNormal)
 			detonated = true
 			break
 		}
@@ -280,8 +288,7 @@ func (g *Game) checkCollisions() {
 			if !def.Collides(b, enemy) {
 				continue
 			}
-			g.applyBombBlast(bomb)
-			g.handleDeath(bomb)
+			g.handleDeath(bomb, KillNormal)
 			break
 		}
 	}
@@ -306,10 +313,7 @@ func (g *Game) applyBulletHit(target def.Entity, impactX float64) {
 
 	mortal, isMortal := target.(def.Mortal)
 	if isMortal && mortal.IsDead() {
-		if exp, ok := target.(def.Explosive); ok {
-			g.applyBombBlast(exp)
-		}
-		g.handleDeath(mortal)
+		g.handleDeath(mortal, KillNormal)
 		return
 	}
 
@@ -358,70 +362,49 @@ func (g *Game) applyBombBlast(exp def.Explosive) {
 		}
 		if d, ok := target.(def.Damageable); ok {
 			d.TakeDamage(exp.BlastDamage())
+			// Chain reaction: if target is also Explosive, handleDeath fires its blast too
 			if mortal, ok := target.(def.Mortal); ok && mortal.IsDead() {
-				// Chain reaction: explosive targets (e.g. mines) also blast
-				if chainExp, ok := target.(def.Explosive); ok {
-					g.applyBombBlast(chainExp)
-				}
-				g.handleDeath(mortal)
+				g.handleDeath(mortal, KillNormal)
 			}
 		}
 	}
 }
 
-// handleDeath spawns explosion and activates slowdown for mortal entities
-func (g *Game) handleDeath(mortal def.Mortal) {
-	// Mark entity as dead
+// handleDeath marks an entity dead, awards points, and — unless mode is
+// KillSilent — fires blast damage and visual effects. Entities that implement
+// def.Explosive have their blast applied automatically, so new explosive types
+// require no changes to checkCollisions; just implement the interface.
+func (g *Game) handleDeath(mortal def.Mortal, mode KillMode) {
 	mortal.MarkAsDead(g.Scene)
 
-	// Track if it was the player that died
 	if mortal.Type() == def.EntityTypePlayer {
 		g.State.PlayerDied = true
 	}
 
-	// Award points if the entity has a score value
 	if scorer, ok := mortal.(def.Scorer); ok {
 		g.State.Score += scorer.ScoreValue()
 	}
 
-	// Get death effect specification
-	deathEffect := mortal.GetDeathEffect()
-
-	// Player handles its own explosion via sprite composition
-	if mortal.Type() == def.EntityTypePlayer {
-		// Load explosion sprite from effects package
-		explosionSprite, err := effects.LoadExplosionSprite(deathEffect.ExplosionSize)
-		if err == nil {
-			// Compose explosion onto player sprite
-			if playerEntity, ok := mortal.(interface{ ComposeExplosion(*draw.ColorMatrix) error }); ok {
-				playerEntity.ComposeExplosion(explosionSprite)
-			}
-		}
-	} else {
-		// For other entities, spawn a separate explosion entity
-		ex, ey := mortal.Location()
-		ew, eh := mortal.Dimensions()
-
-		explosion, err := effects.NewExplosion(
-			ex+ew/2, // Center on entity
-			ey+eh/2,
-			g.Scene,
-			deathEffect.ExplosionSize,
-		)
-		if err != nil {
-			// Log error but don't crash the game
-			return
-		}
-
-		g.Scene.Entities().Add(explosion)
+	if mode == KillSilent {
+		return
 	}
 
-	// Activate slowdown if specified
+	if mode != KillDisarm {
+		if exp, ok := mortal.(def.Explosive); ok {
+			g.applyBombBlast(exp)
+		}
+	}
+
+	deathEffect := mortal.GetDeathEffect()
+	ex, ey := mortal.Location()
+	ew, eh := mortal.Dimensions()
+
+	if deathEffect.SpawnVisualEffect != nil {
+		deathEffect.SpawnVisualEffect(ex+ew/2, ey+eh/2, g.Scene)
+	}
+
 	if deathEffect.SlowdownDuration > 0 {
-		g.State.ActivateSlowdown(
-			deathEffect.SlowdownMultiplier,
-			deathEffect.SlowdownDuration,
-		)
+		g.State.ActivateSlowdown(deathEffect.SlowdownMultiplier, deathEffect.SlowdownDuration)
 	}
 }
 

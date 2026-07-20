@@ -6,6 +6,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/entity/effects"
 )
 
 // PlayerAction represents player input state
@@ -270,21 +271,23 @@ func (p *Player) AddComponent(componentPath string) error {
 
 func (p *Player) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
-		ExplosionSize:      def.ExplosionLarge,
-		SlowdownMultiplier: 0.3, // 30% speed
-		SlowdownDuration:   90,  // ~1.5 seconds at 60 TPS
+		SpawnVisualEffect: func(_, _ int, _ def.Scene) {
+			sprite, err := effects.LoadExplosionSprite(effects.ExplosionLarge)
+			if err == nil {
+				p.composeExplosion(sprite)
+			}
+		},
+		SlowdownMultiplier: 0.3,
+		SlowdownDuration:   90,
 	}
 }
 
-func (p *Player) MarkAsDead(scene def.Scene) {
+func (p *Player) MarkAsDead(_ def.Scene) {
 	p.dead = true
 	p.explosionFrameCount = 0
-	// Note: explosion composition happens via ComposeExplosion() called externally
 }
 
-// ComposeExplosion overlays an explosion sprite on the player
-// Called by the game logic after loading the sprite from the effects package
-func (p *Player) ComposeExplosion(explosionSprite *draw.ColorMatrix) error {
+func (p *Player) composeExplosion(explosionSprite *draw.ColorMatrix) error {
 	// Store original dimensions before composing
 	oldWidth := p.width
 	oldHeight := p.height

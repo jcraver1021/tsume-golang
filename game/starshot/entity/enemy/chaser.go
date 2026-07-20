@@ -6,6 +6,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/entity/effects"
 )
 
 func loadChaserSprite() (*draw.ColorMatrix, error) {
@@ -182,7 +183,11 @@ func (c *Chaser) CanBeRemoved() bool {
 
 func (c *Chaser) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
-		ExplosionSize:      def.ExplosionMedium,
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosion(cx, cy, effects.ExplosionMedium); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
 		SlowdownMultiplier: 0,
 		SlowdownDuration:   0,
 	}
