@@ -69,11 +69,17 @@ func generateBombSprite() *draw.ColorMatrix {
 	return cm
 }
 
-func (b *Bomb) Type() def.EntityType { return def.EntityTypeTeam }
+func (b *Bomb) Type() def.EntityType {
+	return def.EntityTypeTeam
+}
 
-func (b *Bomb) Location() (int, int) { return b.x, b.y }
+func (b *Bomb) Location() (int, int) {
+	return b.x, b.y
+}
 
-func (b *Bomb) Dimensions() (int, int) { return bombWidth, bombHeight }
+func (b *Bomb) Dimensions() (int, int) {
+	return bombWidth, bombHeight
+}
 
 func (b *Bomb) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -111,14 +117,18 @@ func (b *Bomb) MarkDestroyed() { b.dead = true }
 func (b *Bomb) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
 		ExplosionSize:      def.ExplosionLarge,
-		SlowdownMultiplier: 0.5,
-		SlowdownDuration:   30,
+		SlowdownMultiplier: 0,
+		SlowdownDuration:   0,
 	}
 }
 
-func (b *Bomb) MarkAsDead(_ def.Scene) { b.dead = true }
+func (b *Bomb) MarkAsDead(_ def.Scene) {
+	b.dead = true
+}
 
-func (b *Bomb) IsDead() bool { return b.dead }
+func (b *Bomb) IsDead() bool {
+	return b.dead
+}
 
 // Explosive
 

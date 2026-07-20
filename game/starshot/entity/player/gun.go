@@ -26,10 +26,12 @@ func NewBasicGun() (*Gun, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	sprite, err := draw.ColorMatrixFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Gun{
 		sprite:         sprite,
 		cooldownFrames: basicGunCooldownFrames,

@@ -187,6 +187,7 @@ func NewSpace(starDensity float64, b def.Scene) *Space {
 		starDensity: starDensity,
 	}
 	s.seedInitialStars(b)
+
 	return s
 }
 

@@ -156,6 +156,13 @@ func (g *Game) checkCollisions() {
 				continue
 			}
 			if def.Collides(p, enemy) {
+				// Detonate explosive enemies (mines) on player contact
+				if mortalEnemy, ok := enemy.(def.Mortal); ok && !mortalEnemy.IsDead() {
+					if expEnemy, ok := enemy.(def.Explosive); ok {
+						g.applyBombBlast(expEnemy)
+						g.handleDeath(mortalEnemy)
+					}
+				}
 				if d, ok := p.(def.Damageable); ok {
 					g.applyDamage(p, d.MaxHP())
 				}
@@ -180,7 +187,15 @@ func (g *Game) checkCollisions() {
 			if !def.Collides(enemy, obs) {
 				continue
 			}
-			// Chaser takes 1 damage per frame it overlaps an asteroid
+			// Explosive enemies (mines) detonate on asteroid contact
+			if expEnemy, ok := enemy.(def.Explosive); ok {
+				if isMortal && !mortalEnemy.IsDead() {
+					g.applyBombBlast(expEnemy)
+					g.handleDeath(mortalEnemy)
+				}
+				break
+			}
+			// Non-explosive enemies (chasers) take 1 damage per frame of overlap
 			if d, ok := enemy.(def.Damageable); ok {
 				d.TakeDamage(1)
 				if isMortal && mortalEnemy.IsDead() {
@@ -291,6 +306,9 @@ func (g *Game) applyBulletHit(target def.Entity, impactX float64) {
 
 	mortal, isMortal := target.(def.Mortal)
 	if isMortal && mortal.IsDead() {
+		if exp, ok := target.(def.Explosive); ok {
+			g.applyBombBlast(exp)
+		}
 		g.handleDeath(mortal)
 		return
 	}
@@ -323,6 +341,7 @@ func (g *Game) applyBombBlast(exp def.Explosive) {
 		g.Scene.Entities().Get(def.EntityTypeObstacle),
 		g.Scene.Entities().Get(def.EntityTypeEnemy)...,
 	)
+	targets = append(targets, g.Scene.Entities().Get(def.EntityTypePlayer)...)
 
 	for _, target := range targets {
 		if m, ok := target.(def.Mortal); ok && m.IsDead() {
@@ -340,6 +359,10 @@ func (g *Game) applyBombBlast(exp def.Explosive) {
 		if d, ok := target.(def.Damageable); ok {
 			d.TakeDamage(exp.BlastDamage())
 			if mortal, ok := target.(def.Mortal); ok && mortal.IsDead() {
+				// Chain reaction: explosive targets (e.g. mines) also blast
+				if chainExp, ok := target.(def.Explosive); ok {
+					g.applyBombBlast(chainExp)
+				}
 				g.handleDeath(mortal)
 			}
 		}

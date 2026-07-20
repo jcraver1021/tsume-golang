@@ -77,6 +77,18 @@ type ColorMatrix struct {
 	animationSequences map[ColorKey]*AnimationSequence
 }
 
+// BlankColorMatrix returns an all-transparent ColorMatrix of the given dimensions.
+// Use it as a composition canvas when you need to control layer order explicitly.
+func BlankColorMatrix(width, height int) *ColorMatrix {
+	transparent := ColorMap{"0": {0, 0, 0, 0}}
+	matrix := make([][]ColorKey, height)
+	for r := range matrix {
+		matrix[r] = make([]ColorKey, width)
+	}
+	cm, _ := NewColorMatrix(matrix, &transparent, nil)
+	return cm
+}
+
 func NewColorMatrix(matrix [][]ColorKey, colorCodes *ColorMap, animationSequences map[ColorKey]*AnimationSequence) (*ColorMatrix, error) {
 	if len(matrix) == 0 || len(matrix[0]) == 0 {
 		return nil, ErrInvalidMatrix

@@ -45,7 +45,9 @@ func NewChaser(x, y int) (*Chaser, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	w, h := sprite.Dimensions()
+
 	return &Chaser{
 		x:      x,
 		y:      y,
@@ -218,4 +220,3 @@ func (c *Chaser) MaxHP() int {
 func (c *Chaser) ScoreValue() int {
 	return chaserValue
 }
-

@@ -271,6 +271,31 @@ func (a *Asteroid) TakeDamage(amount int) {
 func (a *Asteroid) CurrentHP() int { return a.hp }
 func (a *Asteroid) MaxHP() int     { return a.maxHP }
 
+// --- Scorer ---
+
+func (a *Asteroid) ScoreValue() int {
+	switch a.size {
+	case AsteroidTiny:
+		return 2
+	case AsteroidSmall:
+		return 5
+	case AsteroidMedium:
+		return 10
+	case AsteroidLarge:
+		return 15
+	case AsteroidHuge:
+		return 20
+	case AsteroidMassive:
+		return 30
+	case AsteroidGigantic:
+		return 40
+	case AsteroidColossal:
+		return 50
+	default:
+		return 0
+	}
+}
+
 // --- Impulsable ---
 
 func (a *Asteroid) ApplyImpulse(dvx, dvy float64) {

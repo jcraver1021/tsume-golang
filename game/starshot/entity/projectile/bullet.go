@@ -71,11 +71,17 @@ func generateBulletSprite() *draw.ColorMatrix {
 	return cm
 }
 
-func (b *Bullet) Type() def.EntityType { return def.EntityTypeTeam }
+func (b *Bullet) Type() def.EntityType {
+	return def.EntityTypeTeam
+}
 
-func (b *Bullet) Location() (int, int) { return b.x, b.y }
+func (b *Bullet) Location() (int, int) {
+	return b.x, b.y
+}
 
-func (b *Bullet) Dimensions() (int, int) { return bulletWidth, bulletHeight }
+func (b *Bullet) Dimensions() (int, int) {
+	return bulletWidth, bulletHeight
+}
 
 func (b *Bullet) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -104,7 +110,9 @@ func (b *Bullet) CanBeRemoved() bool {
 }
 
 // MarkDestroyed removes the bullet (called on collision).
-func (b *Bullet) MarkDestroyed() { b.dead = true }
+func (b *Bullet) MarkDestroyed() {
+	b.dead = true
+}
 
 // ImpactColor returns a color for a small flash effect (unused for now).
 func (b *Bullet) ImpactColor() color.RGBA {

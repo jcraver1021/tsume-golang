@@ -32,10 +32,12 @@ func NewBombLauncher() (*Launcher, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	sprite, err := draw.ColorMatrixFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
+
 	return &Launcher{
 		sprite:         sprite,
 		cooldownFrames: bombLauncherCooldownFrames,
@@ -77,15 +79,23 @@ func (l *Launcher) Reload(count int) {
 }
 
 // Ammo returns the current ammo count (for HUD display).
-func (l *Launcher) Ammo() int { return l.ammo }
+func (l *Launcher) Ammo() int {
+	return l.ammo
+}
 
 // MaxAmmo returns the maximum ammo capacity.
-func (l *Launcher) MaxAmmo() int { return l.maxAmmo }
+func (l *Launcher) MaxAmmo() int {
+	return l.maxAmmo
+}
 
-func (l *Launcher) Sprite() *draw.ColorMatrix { return l.sprite }
+func (l *Launcher) Sprite() *draw.ColorMatrix {
+	return l.sprite
+}
 
 func (l *Launcher) MountOffsetX(hullWidth int) int {
 	return (hullWidth - l.sprite.Width()) / 2
 }
 
-func (l *Launcher) MountOffsetY() int { return l.mountY }
+func (l *Launcher) MountOffsetY() int {
+	return l.mountY
+}

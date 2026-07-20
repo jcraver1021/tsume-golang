@@ -110,31 +110,34 @@ func loadDefaultEngine() (*Engine, error) {
 }
 
 func (p *Player) composePlayerSprites() error {
-	// Load hull
 	if p.hull == nil {
 		return nil
 	}
 	hull := p.hull.sprite
 
-	// Compose hull + engine (engine overlays hull)
-	if p.engine != nil {
-		offsetX, offsetY := p.computeEngineMountOffset()
-		if err := hull.Compose(p.engine.sprite, offsetX, offsetY); err != nil {
-			return err
-		}
-	}
+	// Build on a blank canvas at hull dimensions so we control layer order.
+	// Layers from bottom to top: weapons → engine → hull.
+	// This ensures the hull body occludes weapon mount bases while
+	// protruding parts (gun barrel at the bow, launcher tube) remain visible
+	// through transparent regions of the hull.
+	canvas := draw.BlankColorMatrix(hull.Width(), hull.Height())
 
-	// Compose each weapon's sprite onto the hull at its declared mount position.
 	for _, w := range []def.Weapon{p.primaryWeapon, p.secondaryWeapon} {
 		if ws, ok := w.(weaponSprite); ok {
-			gunSprite := ws.Sprite()
-			if gunSprite != nil {
-				_ = hull.Compose(gunSprite, ws.MountOffsetX(hull.Width()), ws.MountOffsetY())
+			if s := ws.Sprite(); s != nil {
+				_ = canvas.Compose(s, ws.MountOffsetX(hull.Width()), ws.MountOffsetY())
 			}
 		}
 	}
 
-	p.sprite = hull
+	if p.engine != nil {
+		offsetX, offsetY := p.computeEngineMountOffset()
+		_ = canvas.Compose(p.engine.sprite, offsetX, offsetY)
+	}
+
+	_ = canvas.Compose(hull, 0, 0)
+
+	p.sprite = canvas
 	return nil
 }
 
@@ -142,16 +145,13 @@ func (p *Player) computeEngineMountOffset() (offsetX, offsetY int) {
 	if p.engine == nil {
 		return 0, 0
 	}
-
+	hullW := p.hull.sprite.Width()
+	hullH := p.hull.sprite.Height()
 	switch p.engine.EngineMount {
 	case EngineMountCenter:
-		offsetX = (p.width - p.engine.sprite.Width()) / 2
-		offsetY = p.height - p.engine.sprite.Height()
-	default:
-		offsetX = 0
-		offsetY = 0
+		offsetX = (hullW - p.engine.sprite.Width()) / 2
+		offsetY = hullH - p.engine.sprite.Height()
 	}
-
 	return offsetX, offsetY
 }
 
@@ -326,8 +326,13 @@ func (p *Player) TakeDamage(amount int) {
 	}
 }
 
-func (p *Player) CurrentHP() int { return p.hp }
-func (p *Player) MaxHP() int     { return p.maxHP }
+func (p *Player) CurrentHP() int {
+	return p.hp
+}
+
+func (p *Player) MaxHP() int {
+	return p.maxHP
+}
 
 // SecondaryAmmo returns the current and max ammo of the secondary weapon.
 // hasWeapon is false when no ammo-based secondary is equipped.

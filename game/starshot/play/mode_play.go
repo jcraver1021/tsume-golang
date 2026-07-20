@@ -18,6 +18,7 @@ var (
 )
 
 func initPlayMode(b def.Scene, state *GameState) {
+	state.Score = 0
 	switch state.Wave {
 	case 1:
 		initWave1(b, state)
@@ -56,6 +57,15 @@ func initWave1(b def.Scene, state *GameState) {
 		panic(err)
 	}
 	b.Entities().Add(chaser)
+
+	// Proximity mines - scattered near the top
+	for _, mx := range []int{100, 280, 420} {
+		mine, err := enemy.NewMine(mx, rand.Intn(60)+30)
+		if err != nil {
+			panic(err)
+		}
+		b.Entities().Add(mine)
+	}
 
 	b.Entities().Add(ui.NewHUD(state))
 }
