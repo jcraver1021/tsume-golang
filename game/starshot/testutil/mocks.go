@@ -1,82 +1,92 @@
 package testutil
 
 import (
+	"sync"
+
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 )
 
-// MockScene is a test implementation of def.Scene
+// --- MockScene ---
+
+// MockScene is a test implementation of def.Scene.
+// Safe for concurrent use; all entity access is guarded by an RWMutex.
 type MockScene struct {
+	mu       sync.RWMutex
 	entities []def.Entity
 	width    int
 	height   int
 	tick     int
 }
 
-// NewMockScene creates a new mock scene with default screen dimensions
 func NewMockScene() *MockScene {
 	return &MockScene{
-		entities: []def.Entity{},
-		width:    def.ScreenWidth,
-		height:   def.ScreenHeight,
-		tick:     0,
+		width:  def.ScreenWidth,
+		height: def.ScreenHeight,
 	}
 }
 
-// NewMockSceneWithSize creates a mock scene with custom dimensions
 func NewMockSceneWithSize(width, height int) *MockScene {
-	return &MockScene{
-		entities: []def.Entity{},
-		width:    width,
-		height:   height,
-		tick:     0,
-	}
+	return &MockScene{width: width, height: height}
 }
 
-// Width returns the scene width
-func (m *MockScene) Width() int { return m.width }
-
-// Height returns the scene height
+func (m *MockScene) Width() int  { return m.width }
 func (m *MockScene) Height() int { return m.height }
+func (m *MockScene) Tick() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.tick
+}
 
-// Tick returns the current tick counter
-func (m *MockScene) Tick() int { return m.tick }
+func (m *MockScene) IncrementTick() {
+	m.mu.Lock()
+	m.tick++
+	m.mu.Unlock()
+}
 
-// IncrementTick advances the tick counter (for testing)
-func (m *MockScene) IncrementTick() { m.tick++ }
-
-// Entities returns the mock entity collection
 func (m *MockScene) Entities() def.EntityCollection {
 	return &MockEntityCollection{scene: m}
 }
 
-// GetEntities returns the underlying entity slice for test assertions
+// GetEntities returns a snapshot of the entity slice for test assertions.
 func (m *MockScene) GetEntities() []def.Entity {
-	return m.entities
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]def.Entity, len(m.entities))
+	copy(out, m.entities)
+	return out
 }
 
-// EntityCount returns the number of entities in the scene
 func (m *MockScene) EntityCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return len(m.entities)
 }
 
-// Clear removes all entities from the scene
 func (m *MockScene) Clear() {
-	m.entities = []def.Entity{}
+	m.mu.Lock()
+	m.entities = nil
+	m.mu.Unlock()
 }
 
-// MockEntityCollection is a test implementation of def.EntityCollection
+// --- MockEntityCollection ---
+
+// MockEntityCollection is a test implementation of def.EntityCollection.
+// NOTE: Get is O(n) — it scans all entities to filter by type. Fine for
+// small test fixtures; don't use MockScene with hundreds of entities.
 type MockEntityCollection struct {
 	scene *MockScene
 }
 
-// Add adds an entity to the collection
 func (m *MockEntityCollection) Add(e def.Entity) {
+	m.scene.mu.Lock()
 	m.scene.entities = append(m.scene.entities, e)
+	m.scene.mu.Unlock()
 }
 
-// Get returns entities of the specified type
 func (m *MockEntityCollection) Get(entityType def.EntityType) []def.Entity {
+	m.scene.mu.RLock()
+	defer m.scene.mu.RUnlock()
 	var result []def.Entity
 	for _, e := range m.scene.entities {
 		if e.Type() == entityType {
@@ -86,70 +96,139 @@ func (m *MockEntityCollection) Get(entityType def.EntityType) []def.Entity {
 	return result
 }
 
-// IterateForUpdate iterates entities in forward order
 func (m *MockEntityCollection) IterateForUpdate() <-chan def.Entity {
-	ch := make(chan def.Entity)
-	go func() {
-		for _, e := range m.scene.entities {
-			ch <- e
-		}
-		close(ch)
-	}()
+	snapshot := m.scene.GetEntities()
+	ch := make(chan def.Entity, len(snapshot))
+	for _, e := range snapshot {
+		ch <- e
+	}
+	close(ch)
 	return ch
 }
 
-// IterateForDraw iterates entities in reverse order
 func (m *MockEntityCollection) IterateForDraw() <-chan def.Entity {
-	ch := make(chan def.Entity)
-	go func() {
-		for i := len(m.scene.entities) - 1; i >= 0; i-- {
-			ch <- m.scene.entities[i]
-		}
-		close(ch)
-	}()
+	snapshot := m.scene.GetEntities()
+	ch := make(chan def.Entity, len(snapshot))
+	for i := len(snapshot) - 1; i >= 0; i-- {
+		ch <- snapshot[i]
+	}
+	close(ch)
 	return ch
 }
 
-// MockEntity is a simple test implementation of def.Entity
+// --- MockEntity ---
+
+// MockEntity is a minimal implementation of def.Entity for use in tests.
 type MockEntity struct {
 	EntityType          def.EntityType
 	X, Y, Width, Height int
 	Removed             bool
 }
 
-// NewMockEntity creates a basic mock entity
 func NewMockEntity(entityType def.EntityType) *MockEntity {
-	return &MockEntity{
-		EntityType: entityType,
-		X:          0,
-		Y:          0,
-		Width:      10,
-		Height:     10,
-		Removed:    false,
-	}
+	return &MockEntity{EntityType: entityType, Width: 10, Height: 10}
 }
 
-// Type returns the entity type
-func (m *MockEntity) Type() def.EntityType { return m.EntityType }
-
-// Location returns the entity position
-func (m *MockEntity) Location() (x, y int) { return m.X, m.Y }
-
-// Dimensions returns the entity size
-func (m *MockEntity) Dimensions() (width, height int) { return m.Width, m.Height }
-
-// BoundingBoxOverlaps implements basic AABB collision
+func (m *MockEntity) Type() def.EntityType   { return m.EntityType }
+func (m *MockEntity) Location() (int, int)   { return m.X, m.Y }
+func (m *MockEntity) Dimensions() (int, int) { return m.Width, m.Height }
+func (m *MockEntity) Act(_ def.Scene)        {}
+func (m *MockEntity) Draw(_ *ebit.Image)     {}
+func (m *MockEntity) CanBeRemoved() bool     { return m.Removed }
 func (m *MockEntity) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
 	ow, oh := other.Dimensions()
-	return !(m.X+m.Width < ox || m.X > ox+ow || m.Y+m.Height < oy || m.Y > oy+oh)
+	return !(m.X+m.Width <= ox || m.X >= ox+ow || m.Y+m.Height <= oy || m.Y >= oy+oh)
 }
 
-// Act does nothing in the mock
-func (m *MockEntity) Act(scene def.Scene) {}
+// --- MockMortalEntity ---
 
-// Draw does nothing in the mock
-func (m *MockEntity) Draw(img *ebit.Image) {}
+// MockMortalEntity extends MockEntity with def.Mortal. IsDead becomes true
+// after MarkAsDead is called; entities added in MarkAsDead are recorded in
+// the provided scene.
+type MockMortalEntity struct {
+	*MockEntity
+	dead        bool
+	DeathEffect def.DeathEffect
+}
 
-// CanBeRemoved returns the Removed flag
-func (m *MockEntity) CanBeRemoved() bool { return m.Removed }
+func NewMockMortalEntity(entityType def.EntityType) *MockMortalEntity {
+	return &MockMortalEntity{MockEntity: NewMockEntity(entityType)}
+}
+
+func (m *MockMortalEntity) IsDead() bool                    { return m.dead }
+func (m *MockMortalEntity) GetDeathEffect() def.DeathEffect { return m.DeathEffect }
+func (m *MockMortalEntity) MarkAsDead(_ def.Scene)          { m.dead = true }
+
+// --- MockDamageableEntity ---
+
+// MockDamageableEntity extends MockEntity with def.Damageable. HP floors at 0.
+type MockDamageableEntity struct {
+	*MockEntity
+	hp    int
+	maxHP int
+}
+
+func NewMockDamageableEntity(entityType def.EntityType, maxHP int) *MockDamageableEntity {
+	return &MockDamageableEntity{MockEntity: NewMockEntity(entityType), hp: maxHP, maxHP: maxHP}
+}
+
+func (m *MockDamageableEntity) CurrentHP() int { return m.hp }
+func (m *MockDamageableEntity) MaxHP() int     { return m.maxHP }
+func (m *MockDamageableEntity) TakeDamage(amount int) {
+	m.hp -= amount
+	if m.hp < 0 {
+		m.hp = 0
+	}
+}
+
+// --- MockImpulsableEntity ---
+
+// MockImpulsableEntity extends MockEntity with def.Impulsable. It records
+// the most recent impulse applied for assertion in tests.
+type MockImpulsableEntity struct {
+	*MockEntity
+	LastDVX, LastDVY float64
+	ImpulseCount     int
+}
+
+func NewMockImpulsableEntity(entityType def.EntityType) *MockImpulsableEntity {
+	return &MockImpulsableEntity{MockEntity: NewMockEntity(entityType)}
+}
+
+func (m *MockImpulsableEntity) ApplyImpulse(dvx, dvy float64) {
+	m.LastDVX = dvx
+	m.LastDVY = dvy
+	m.ImpulseCount++
+}
+
+// --- MockGameStateReader ---
+
+// MockGameStateReader is a test implementation of def.GameStateReader with
+// settable Wave and Score fields.
+type MockGameStateReader struct {
+	Wave  int
+	Score int
+}
+
+func (m *MockGameStateReader) GetWave() int  { return m.Wave }
+func (m *MockGameStateReader) GetScore() int { return m.Score }
+
+// --- MockAmmoPlayer ---
+
+// MockAmmoPlayer is a player entity that satisfies the HUD's internal ammoReader
+// interface (SecondaryAmmo() (current, max int, hasWeapon bool)).
+type MockAmmoPlayer struct {
+	*MockEntity
+	CurrentAmmo int
+	MaxAmmo     int
+	HasWeapon   bool
+}
+
+func NewMockAmmoPlayer() *MockAmmoPlayer {
+	return &MockAmmoPlayer{MockEntity: NewMockEntity(def.EntityTypePlayer)}
+}
+
+func (m *MockAmmoPlayer) SecondaryAmmo() (int, int, bool) {
+	return m.CurrentAmmo, m.MaxAmmo, m.HasWeapon
+}
