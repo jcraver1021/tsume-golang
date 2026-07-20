@@ -8,6 +8,14 @@ import (
 	"tsumegolang/game/starshot/draw"
 )
 
+func loadChaserSprite() (*draw.ColorMatrix, error) {
+	data, err := spriteFiles.ReadFile("sprites/chaser.yaml")
+	if err != nil {
+		return nil, err
+	}
+	return draw.ColorMatrixFromBytes(data)
+}
+
 const (
 	chaserSpeed      = 2
 	chaserLookahead  = 60 // px ahead to scan for obstacles
@@ -33,7 +41,10 @@ type Chaser struct {
 }
 
 func NewChaser(x, y int) (*Chaser, error) {
-	sprite := generateChaserSprite()
+	sprite, err := loadChaserSprite()
+	if err != nil {
+		return nil, err
+	}
 	w, h := sprite.Dimensions()
 	return &Chaser{
 		x:      x,
@@ -208,56 +219,3 @@ func (c *Chaser) ScoreValue() int {
 	return chaserValue
 }
 
-// generateChaserSprite builds a 14×14 hostile arrowhead ship pointing downward.
-func generateChaserSprite() *draw.ColorMatrix {
-	// Design (14 wide, 16 tall): downward-pointing angular craft
-	// X = hull body, E = engine glow, C = cockpit, 0 = transparent
-	rows := []string{
-		"00000XX00000XX", // 0  wing tips
-		"00000XXXX00XX0", // 1
-		"00000XXXXXX000", // 2  upper wings
-		"0000XXXXXXX000", // 3
-		"000XXXXXXXXX00", // 4  mid hull
-		"00XXXXXXXXXXX0", // 5
-		"0XXXXXXXXXXXXX", // 6  full width
-		"0XCCCXXXXXXXXX", // 7  cockpit
-		"0XCCCXXXXXXXXX", // 8
-		"0XXXXXXXXXXXXX", // 9
-		"00XXXXXXXXXXX0", // 10
-		"000XXXXXXXXX00", // 11 narrowing
-		"0000XXXXXXX000", // 12
-		"00000EEEEE0000", // 13 engine glow
-		"000000EEE00000", // 14
-		"0000000E000000", // 15 engine core
-	}
-
-	colors := draw.ColorMap{
-		"0": {0, 0, 0, 0},
-		"X": {180, 30, 30, 255},  // dark red hull
-		"C": {255, 100, 50, 255}, // orange cockpit
-		"E": {255, 200, 50, 255}, // yellow engine glow
-	}
-
-	matrix := make([][]draw.ColorKey, len(rows))
-	for r, row := range rows {
-		matrix[r] = make([]draw.ColorKey, len(row))
-		for col, ch := range row {
-			matrix[r][col] = draw.ColorKey(string(ch))
-		}
-	}
-
-	cm, err := draw.NewColorMatrix(matrix, &colors, nil)
-	if err != nil {
-		// Fallback: solid red rectangle
-		fb := make([][]draw.ColorKey, 16)
-		fbc := draw.ColorMap{"X": {180, 30, 30, 255}}
-		for r := range fb {
-			fb[r] = make([]draw.ColorKey, 14)
-			for col := range fb[r] {
-				fb[r][col] = "X"
-			}
-		}
-		cm, _ = draw.NewColorMatrix(fb, &fbc, nil)
-	}
-	return cm
-}
