@@ -4,6 +4,7 @@ import (
 	"math/rand"
 
 	"tsumegolang/game/starshot/def"
+	"tsumegolang/game/starshot/entity/enemy"
 	"tsumegolang/game/starshot/entity/environment"
 	"tsumegolang/game/starshot/entity/obstacle"
 	"tsumegolang/game/starshot/entity/player"
@@ -36,8 +37,14 @@ func initWave1(b def.Scene) {
 	// Player entity - centered at bottom
 	player, err := player.NewPlayer(def.ScreenWidth/2, def.ScreenHeight-50)
 	if err != nil {
-		// If player creation fails, panic (this should not happen in normal operation)
 		panic(err)
 	}
 	b.Entities().Add(player)
+
+	// Enemy chaser - starts near the top center
+	chaser, err := enemy.NewChaser(def.ScreenWidth/2-7, 40)
+	if err != nil {
+		panic(err)
+	}
+	b.Entities().Add(chaser)
 }

@@ -114,6 +114,22 @@ type EntityCollection interface {
 	IterateForDraw() <-chan Entity
 }
 
+// Damageable is an optional interface for entities with hit points.
+// TakeDamage reduces HP; callers should then check IsDead() via Mortal.
+type Damageable interface {
+	Entity
+	TakeDamage(amount int)
+	CurrentHP() int
+	MaxHP() int
+}
+
+// Impulsable is an optional interface for entities that can receive
+// a velocity impulse from projectile hits.
+type Impulsable interface {
+	Entity
+	ApplyImpulse(dvx, dvy float64)
+}
+
 // Collides performs two-phase collision detection between entities
 // Phase 1: Fast bounding box check via BoundingBoxOverlaps()
 // Phase 2: Precise check via CollidesWith() if at least one implements PreciseCollider

@@ -6,6 +6,10 @@ import (
 
 type Hull struct {
 	sprite *draw.ColorMatrix
+	// HP contributed by this hull to the ship's max HP pool.
+	// Multiple hulls or upgrade components are summed by the player
+	// when computing its starting maxHP.
+	HP int
 }
 
 // Basic
@@ -24,6 +28,7 @@ func BasicHull() (*Hull, error) {
 
 	return &Hull{
 		sprite: sprite,
+		HP:     3,
 	}, nil
 }
 

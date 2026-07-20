@@ -68,19 +68,71 @@ func (s AsteroidSize) Speed() int {
 	}
 }
 
+func (s AsteroidSize) HP() int {
+	switch s {
+	case AsteroidTiny:
+		return 1
+	case AsteroidSmall:
+		return 2
+	case AsteroidMedium:
+		return 3
+	case AsteroidLarge:
+		return 5
+	case AsteroidHuge:
+		return 8
+	case AsteroidMassive:
+		return 12
+	case AsteroidGigantic:
+		return 18
+	case AsteroidColossal:
+		return 25
+	default:
+		return 1
+	}
+}
+
+// Mass scales inversely with impulse sensitivity; larger rocks barely move.
+func (s AsteroidSize) Mass() float64 {
+	switch s {
+	case AsteroidTiny:
+		return 1
+	case AsteroidSmall:
+		return 2
+	case AsteroidMedium:
+		return 4
+	case AsteroidLarge:
+		return 8
+	case AsteroidHuge:
+		return 16
+	case AsteroidMassive:
+		return 32
+	case AsteroidGigantic:
+		return 48
+	case AsteroidColossal:
+		return 64
+	default:
+		return 1
+	}
+}
+
 // Asteroid is a ColorMatrix-based asteroid with procedural multi-color generation
 type Asteroid struct {
 	x, y          int
+	fx, fy        float64 // sub-pixel position
 	width, height int
-	speed         int
+	vx, vy        float64 // velocity in pixels/frame
 	size          AsteroidSize
 	sprite        *draw.ColorMatrix
+
+	hp    int
+	maxHP int
+	dead  bool
 }
 
 // NewAsteroid creates a new procedurally-generated multi-colored asteroid
 func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
 	width, height := size.Dimensions()
-	speed := size.Speed()
+	hp := size.HP()
 
 	// Generate procedural asteroid sprite
 	sprite := generateAsteroidSprite(width, height, size)
@@ -88,12 +140,25 @@ func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
 	return &Asteroid{
 		x:      x,
 		y:      y,
+		fx:     float64(x),
+		fy:     float64(y),
 		width:  width,
 		height: height,
-		speed:  speed,
+		vx:     0,
+		vy:     float64(size.Speed()),
 		size:   size,
 		sprite: sprite,
+		hp:     hp,
+		maxHP:  hp,
 	}
+}
+
+// newSplitAsteroid creates a child asteroid with an initial velocity offset, used when splitting.
+func newSplitAsteroid(x, y int, size AsteroidSize, vx, vy float64) *Asteroid {
+	a := NewAsteroid(x, y, size)
+	a.vx = vx
+	a.vy = vy
+	return a
 }
 
 // NewRandomAsteroid creates an asteroid with random size from a given range
@@ -129,7 +194,15 @@ func (a *Asteroid) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (a *Asteroid) Act(b def.Scene) {
-	a.y += a.speed
+	if a.dead {
+		return
+	}
+	a.fx += a.vx
+	a.fy += a.vy
+	// Dampen horizontal drift so asteroids don't fly off forever
+	a.vx *= 0.98
+	a.x = int(a.fx)
+	a.y = int(a.fy)
 }
 
 func (a *Asteroid) Draw(img *ebit.Image) {
@@ -146,7 +219,71 @@ func (a *Asteroid) Draw(img *ebit.Image) {
 }
 
 func (a *Asteroid) CanBeRemoved() bool {
-	return a.y > def.ScreenHeight
+	return a.dead || a.y > def.ScreenHeight
+}
+
+// --- Mortal ---
+
+func (a *Asteroid) GetDeathEffect() def.DeathEffect {
+	size := def.ExplosionSmall
+	if a.size >= AsteroidMedium {
+		size = def.ExplosionMedium
+	}
+	return def.DeathEffect{
+		ExplosionSize:    size,
+		SlowdownDuration: 0,
+	}
+}
+
+func (a *Asteroid) MarkAsDead(scene def.Scene) {
+	a.dead = true
+	// Spawn two smaller asteroids if there is a next size down
+	if a.size <= AsteroidTiny {
+		return
+	}
+	childSize := a.size - 1
+	cw, _ := childSize.Dimensions()
+	cx := a.x + a.width/2
+	cy := a.y + a.height/4
+	spread := 1.5
+
+	child1 := newSplitAsteroid(cx-cw-2, cy, childSize, a.vx-spread, a.vy)
+	child2 := newSplitAsteroid(cx+2, cy, childSize, a.vx+spread, a.vy)
+	scene.Entities().Add(child1)
+	scene.Entities().Add(child2)
+}
+
+func (a *Asteroid) IsDead() bool { return a.dead }
+
+// --- Damageable ---
+
+func (a *Asteroid) TakeDamage(amount int) {
+	if a.dead {
+		return
+	}
+	a.hp -= amount
+	if a.hp <= 0 {
+		a.hp = 0
+		a.dead = true
+	}
+}
+
+func (a *Asteroid) CurrentHP() int { return a.hp }
+func (a *Asteroid) MaxHP() int     { return a.maxHP }
+
+// --- Impulsable ---
+
+func (a *Asteroid) ApplyImpulse(dvx, dvy float64) {
+	mass := a.size.Mass()
+	a.vx += dvx / mass
+	a.vy += dvy / mass
+	// Cap lateral speed to prevent infinite drift
+	const maxVX = 8.0
+	if a.vx > maxVX {
+		a.vx = maxVX
+	} else if a.vx < -maxVX {
+		a.vx = -maxVX
+	}
 }
 
 // CollidesWith implements precise collision for irregular asteroid shape

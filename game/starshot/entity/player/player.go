@@ -6,6 +6,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/entity/projectile"
 )
 
 // PlayerAction represents player input state
@@ -33,7 +34,11 @@ type Player struct {
 	engine *Engine
 	sprite *draw.ColorMatrix
 
-	playerAction PlayerAction
+	playerAction  PlayerAction
+	shootCooldown int // frames remaining before player can shoot again
+
+	hp    int
+	maxHP int
 
 	dead                 bool
 	explosionFrameCount  int // Frames since death
@@ -66,7 +71,18 @@ func NewPlayer(x, y int) (*Player, error) {
 	p.width = p.sprite.Width()
 	p.height = p.sprite.Height()
 
+	// Derive starting HP from hull. Future upgrades call AddMaxHP.
+	p.maxHP = p.hull.HP
+	p.hp = p.maxHP
+
 	return p, nil
+}
+
+// AddMaxHP increases the player's maximum (and current) HP by the given amount.
+// Call this when equipping a new hull component or upgrade.
+func (p *Player) AddMaxHP(bonus int) {
+	p.maxHP += bonus
+	p.hp += bonus
 }
 
 func loadDefaultHull() (*Hull, error) {
@@ -169,6 +185,17 @@ func (p *Player) Act(b def.Scene) {
 		p.y = b.Height() - p.height
 	}
 
+	// Handle shooting
+	if p.shootCooldown > 0 {
+		p.shootCooldown--
+	}
+	if p.playerAction.Shoot && p.shootCooldown == 0 {
+		bulletX := p.x + p.width/2 - 1 // center bullet on ship
+		bulletY := p.y - 8
+		b.Entities().Add(projectile.NewBullet(bulletX, bulletY))
+		p.shootCooldown = 12 // ~5 shots/second at 60 FPS
+	}
+
 	p.playerAction = PlayerAction{} // Reset actions after processing
 }
 
@@ -255,6 +282,20 @@ func (p *Player) ComposeExplosion(explosionSprite *draw.ColorMatrix) error {
 	return nil
 }
 
-func (p *Player) IsDead() bool {
-	return p.dead
+func (p *Player) IsDead() bool { return p.dead }
+
+// --- Damageable ---
+
+func (p *Player) TakeDamage(amount int) {
+	if p.dead {
+		return
+	}
+	p.hp -= amount
+	if p.hp <= 0 {
+		p.hp = 0
+		p.dead = true
+	}
 }
+
+func (p *Player) CurrentHP() int { return p.hp }
+func (p *Player) MaxHP() int     { return p.maxHP }
