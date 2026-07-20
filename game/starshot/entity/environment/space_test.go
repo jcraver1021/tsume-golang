@@ -264,7 +264,7 @@ func TestStarColorsAreValid(t *testing.T) {
 	space := environment.NewSpace(0.5, scene)
 
 	// Generate many stars
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		space.Act(scene)
 	}
 

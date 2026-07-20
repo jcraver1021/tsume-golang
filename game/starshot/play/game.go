@@ -2,6 +2,7 @@ package play
 
 import (
 	"image/color"
+	"math"
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -10,6 +11,7 @@ import (
 	"tsumegolang/game/starshot/entity/background"
 	"tsumegolang/game/starshot/entity/effects"
 	"tsumegolang/game/starshot/entity/player"
+	"tsumegolang/game/starshot/entity/projectile"
 )
 
 const (
@@ -39,11 +41,15 @@ func DefaultGameControlSettings() *GameControlSettings {
 type GameState struct {
 	Mode               GameMode
 	Wave               int
+	Score              int
 	SlowdownActive     bool
 	SlowdownMultiplier float64 // 1.0 = normal, 0.3 = 30% speed
 	SlowdownFramesLeft int
 	PlayerDied         bool // Tracks if player died this wave
 }
+
+func (s *GameState) GetWave() int  { return s.Wave }
+func (s *GameState) GetScore() int { return s.Score }
 
 func NewGameState() *GameState {
 	return &GameState{
@@ -110,24 +116,254 @@ func (g *Game) Update() error {
 	return nil
 }
 
-// checkCollisions checks for player-obstacle collisions
+const bulletDamage = 1
+
+// checkCollisions checks for all relevant entity collisions
 func (g *Game) checkCollisions() {
 	players := g.Scene.Entities().Get(def.EntityTypePlayer)
 	obstacles := g.Scene.Entities().Get(def.EntityTypeObstacle)
+	bullets := g.Scene.Entities().Get(def.EntityTypeTeam)
+	enemies := g.Scene.Entities().Get(def.EntityTypeEnemy)
 
+	// Player vs obstacles
 	for _, p := range players {
-		// Skip if already dead
 		if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
 			continue
 		}
-
-		for _, obstacle := range obstacles {
-			if def.Collides(p, obstacle) {
-				// Trigger death effect if entity is mortal
-				if mortal, ok := p.(def.Mortal); ok {
-					g.handleDeath(mortal)
+		for _, obs := range obstacles {
+			if mortal, ok := obs.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if def.Collides(p, obs) {
+				if d, ok := p.(def.Damageable); ok {
+					g.applyDamage(p, d.MaxHP())
 				}
-				return
+				if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
+					g.handleDeath(mortal)
+					return
+				}
+			}
+		}
+	}
+
+	// Player vs enemies
+	for _, p := range players {
+		if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
+			continue
+		}
+		for _, enemy := range enemies {
+			if mortal, ok := enemy.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if def.Collides(p, enemy) {
+				// Detonate explosive enemies (mines) on player contact
+				if mortalEnemy, ok := enemy.(def.Mortal); ok && !mortalEnemy.IsDead() {
+					if expEnemy, ok := enemy.(def.Explosive); ok {
+						g.applyBombBlast(expEnemy)
+						g.handleDeath(mortalEnemy)
+					}
+				}
+				if d, ok := p.(def.Damageable); ok {
+					g.applyDamage(p, d.MaxHP())
+				}
+				if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
+					g.handleDeath(mortal)
+					return
+				}
+			}
+		}
+	}
+
+	// Enemies vs obstacles
+	for _, enemy := range enemies {
+		mortalEnemy, isMortal := enemy.(def.Mortal)
+		if isMortal && mortalEnemy.IsDead() {
+			continue
+		}
+		for _, obs := range obstacles {
+			if mortal, ok := obs.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(enemy, obs) {
+				continue
+			}
+			// Explosive enemies (mines) detonate on asteroid contact
+			if expEnemy, ok := enemy.(def.Explosive); ok {
+				if isMortal && !mortalEnemy.IsDead() {
+					g.applyBombBlast(expEnemy)
+					g.handleDeath(mortalEnemy)
+				}
+				break
+			}
+			// Non-explosive enemies (chasers) take 1 damage per frame of overlap
+			if d, ok := enemy.(def.Damageable); ok {
+				d.TakeDamage(1)
+				if isMortal && mortalEnemy.IsDead() {
+					g.handleDeath(mortalEnemy)
+				}
+			}
+			break
+		}
+	}
+
+	// Bullets vs obstacles and enemies
+	for _, b := range bullets {
+		bullet, ok := b.(*projectile.Bullet)
+		if !ok || bullet.CanBeRemoved() {
+			continue
+		}
+
+		bx, by := bullet.Location()
+		bw, bh := bullet.Dimensions()
+		impactX := float64(bx + bw/2)
+		_ = by
+		_ = bh
+
+		for _, obs := range obstacles {
+			if mortal, ok := obs.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(b, obs) {
+				continue
+			}
+			bullet.MarkDestroyed()
+			g.applyBulletHit(obs, impactX)
+			break
+		}
+
+		if bullet.CanBeRemoved() {
+			continue
+		}
+
+		for _, enemy := range enemies {
+			if mortal, ok := enemy.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(b, enemy) {
+				continue
+			}
+			bullet.MarkDestroyed()
+			g.applyBulletHit(enemy, impactX)
+			break
+		}
+	}
+
+	// Bombs vs obstacles and enemies
+	for _, b := range bullets {
+		bomb, ok := b.(*projectile.Bomb)
+		if !ok || bomb.CanBeRemoved() {
+			continue
+		}
+
+		detonated := false
+		for _, obs := range obstacles {
+			if m, ok := obs.(def.Mortal); ok && m.IsDead() {
+				continue
+			}
+			if !def.Collides(b, obs) {
+				continue
+			}
+			g.applyBombBlast(bomb)
+			g.handleDeath(bomb)
+			detonated = true
+			break
+		}
+
+		if detonated {
+			continue
+		}
+
+		for _, enemy := range enemies {
+			if m, ok := enemy.(def.Mortal); ok && m.IsDead() {
+				continue
+			}
+			if !def.Collides(b, enemy) {
+				continue
+			}
+			g.applyBombBlast(bomb)
+			g.handleDeath(bomb)
+			break
+		}
+	}
+}
+
+// applyDamage deals damage to an entity via the Damageable interface.
+func (g *Game) applyDamage(e def.Entity, amount int) {
+	if d, ok := e.(def.Damageable); ok {
+		d.TakeDamage(amount)
+	}
+}
+
+// applyBulletHit deals bullet damage to a target, applies impulse if it survives,
+// and triggers death handling if HP reaches zero.
+func (g *Game) applyBulletHit(target def.Entity, impactX float64) {
+	damageable, isDamageable := target.(def.Damageable)
+	if !isDamageable {
+		return
+	}
+
+	damageable.TakeDamage(bulletDamage)
+
+	mortal, isMortal := target.(def.Mortal)
+	if isMortal && mortal.IsDead() {
+		if exp, ok := target.(def.Explosive); ok {
+			g.applyBombBlast(exp)
+		}
+		g.handleDeath(mortal)
+		return
+	}
+
+	// Target survived — apply impulse proportional to hit offset from center
+	if imp, ok := target.(def.Impulsable); ok {
+		tx, _ := target.Location()
+		tw, _ := target.Dimensions()
+		centerX := float64(tx + tw/2)
+		halfW := float64(tw) / 2
+		if halfW < 1 {
+			halfW = 1
+		}
+		offsetX := impactX - centerX
+		// Small upward push plus lateral component based on where bullet hit
+		imp.ApplyImpulse(-offsetX/halfW*12.0, -2.0)
+	}
+}
+
+// applyBombBlast damages every Damageable entity whose center lies within the
+// bomb's blast radius, triggering handleDeath on any that are killed.
+func (g *Game) applyBombBlast(exp def.Explosive) {
+	bx, by := exp.Location()
+	bw, bh := exp.Dimensions()
+	cx := float64(bx + bw/2)
+	cy := float64(by + bh/2)
+	radius := exp.BlastRadius()
+
+	targets := append(
+		g.Scene.Entities().Get(def.EntityTypeObstacle),
+		g.Scene.Entities().Get(def.EntityTypeEnemy)...,
+	)
+	targets = append(targets, g.Scene.Entities().Get(def.EntityTypePlayer)...)
+
+	for _, target := range targets {
+		if m, ok := target.(def.Mortal); ok && m.IsDead() {
+			continue
+		}
+		tx, ty := target.Location()
+		tw, th := target.Dimensions()
+		tcx := float64(tx + tw/2)
+		tcy := float64(ty + th/2)
+		dx := tcx - cx
+		dy := tcy - cy
+		if math.Sqrt(dx*dx+dy*dy) > radius {
+			continue
+		}
+		if d, ok := target.(def.Damageable); ok {
+			d.TakeDamage(exp.BlastDamage())
+			if mortal, ok := target.(def.Mortal); ok && mortal.IsDead() {
+				// Chain reaction: explosive targets (e.g. mines) also blast
+				if chainExp, ok := target.(def.Explosive); ok {
+					g.applyBombBlast(chainExp)
+				}
+				g.handleDeath(mortal)
 			}
 		}
 	}
@@ -141,6 +377,11 @@ func (g *Game) handleDeath(mortal def.Mortal) {
 	// Track if it was the player that died
 	if mortal.Type() == def.EntityTypePlayer {
 		g.State.PlayerDied = true
+	}
+
+	// Award points if the entity has a score value
+	if scorer, ok := mortal.(def.Scorer); ok {
+		g.State.Score += scorer.ScoreValue()
 	}
 
 	// Get death effect specification
@@ -226,11 +467,12 @@ func (g *Game) handleInput() {
 		}
 	case GameModePlay:
 		playerAction := player.PlayerAction{
-			MoveUp:    ebit.IsKeyPressed(ebit.KeyArrowUp),
-			MoveDown:  ebit.IsKeyPressed(ebit.KeyArrowDown),
-			MoveLeft:  ebit.IsKeyPressed(ebit.KeyArrowLeft),
-			MoveRight: ebit.IsKeyPressed(ebit.KeyArrowRight),
-			Shoot:     ebit.IsKeyPressed(ebit.KeySpace),
+			MoveUp:         ebit.IsKeyPressed(ebit.KeyArrowUp),
+			MoveDown:       ebit.IsKeyPressed(ebit.KeyArrowDown),
+			MoveLeft:       ebit.IsKeyPressed(ebit.KeyArrowLeft),
+			MoveRight:      ebit.IsKeyPressed(ebit.KeyArrowRight),
+			ShootPrimary:   ebit.IsKeyPressed(ebit.KeySpace),
+			ShootSecondary: ebit.IsKeyPressed(ebit.KeyZ),
 		}
 
 		// Apply player action to all player entities (even zero or more than one)
