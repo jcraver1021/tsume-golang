@@ -96,24 +96,17 @@ func (m *MockEntityCollection) Get(entityType def.EntityType) []def.Entity {
 	return result
 }
 
-func (m *MockEntityCollection) IterateForUpdate() <-chan def.Entity {
-	snapshot := m.scene.GetEntities()
-	ch := make(chan def.Entity, len(snapshot))
-	for _, e := range snapshot {
-		ch <- e
-	}
-	close(ch)
-	return ch
+func (m *MockEntityCollection) IterateForUpdate() []def.Entity {
+	return m.scene.GetEntities()
 }
 
-func (m *MockEntityCollection) IterateForDraw() <-chan def.Entity {
+func (m *MockEntityCollection) IterateForDraw() []def.Entity {
 	snapshot := m.scene.GetEntities()
-	ch := make(chan def.Entity, len(snapshot))
-	for i := len(snapshot) - 1; i >= 0; i-- {
-		ch <- snapshot[i]
+	reversed := make([]def.Entity, len(snapshot))
+	for i, e := range snapshot {
+		reversed[len(snapshot)-1-i] = e
 	}
-	close(ch)
-	return ch
+	return reversed
 }
 
 // --- MockEntity ---

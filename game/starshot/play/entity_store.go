@@ -39,53 +39,41 @@ func (s *EntityStore) Get(entityType def.EntityType) []def.Entity {
 	return s.entityMap[entityType].ToSlice()
 }
 
-// IterateForUpdate iterates entities in their natural order of types for game logic updates
-// (player first, background last).
-func (s *EntityStore) IterateForUpdate() <-chan def.Entity {
-	ch := make(chan def.Entity)
-	go func() {
-		for _, entityType := range def.EntityTypes {
-			deque := s.entityMap[entityType]
-
-			for range deque.Len() {
-				e, ok := deque.PopFront()
-				if ok && !e.CanBeRemoved() {
-					ch <- e
-					deque.PushBack(e)
-				}
+// IterateForUpdate returns entities to update, pruning removable ones first.
+// Removal is a separate pass before any Act calls, so Act can safely call
+// scene.Entities().Get without racing against deque mutation.
+func (s *EntityStore) IterateForUpdate() []def.Entity {
+	result := make([]def.Entity, 0, 64)
+	for _, entityType := range def.EntityTypes {
+		deque := s.entityMap[entityType]
+		for range deque.Len() {
+			e, ok := deque.PopFront()
+			if ok && !e.CanBeRemoved() {
+				deque.PushBack(e)
+				result = append(result, e)
 			}
 		}
-
-		close(ch)
-	}()
-
-	return ch
+	}
+	return result
 }
 
-// IterateForDraw iterates entities in reverse order of their types to ensure correct rendering order
-// (background first, player last).
-func (s *EntityStore) IterateForDraw() <-chan def.Entity {
-	ch := make(chan def.Entity)
+// IterateForDraw returns entities to draw in back-to-front order (background
+// drawn first so it renders behind everything).
+func (s *EntityStore) IterateForDraw() []def.Entity {
+	reversedTypes := make([]def.EntityType, len(def.EntityTypes))
+	copy(reversedTypes, def.EntityTypes)
+	slices.Reverse(reversedTypes)
 
-	go func() {
-		reversedTypes := make([]def.EntityType, len(def.EntityTypes))
-		copy(reversedTypes, def.EntityTypes)
-		slices.Reverse(reversedTypes)
-
-		for _, entityType := range reversedTypes {
-			deque := s.entityMap[entityType]
-
-			for range deque.Len() {
-				e, ok := deque.PopBack()
-				if ok && !e.CanBeRemoved() {
-					ch <- e
-					deque.PushFront(e)
-				}
+	result := make([]def.Entity, 0, 64)
+	for _, entityType := range reversedTypes {
+		deque := s.entityMap[entityType]
+		for range deque.Len() {
+			e, ok := deque.PopBack()
+			if ok && !e.CanBeRemoved() {
+				deque.PushFront(e)
+				result = append(result, e)
 			}
 		}
-
-		close(ch)
-	}()
-
-	return ch
+	}
+	return result
 }

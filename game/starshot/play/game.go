@@ -114,6 +114,12 @@ func (g *Game) Update() error {
 	if g.State.Mode == GameModePlay {
 		g.checkCollisions()
 
+		// Advance to next wave when all enemies are cleared
+		if !g.State.PlayerDied && g.isWaveCleared() {
+			g.State.Wave++
+			spawnWaveEnemies(g.Scene, g.State)
+		}
+
 		// Check if player death animation is complete
 		if g.State.PlayerDied && !g.State.SlowdownActive {
 			// Player is dead and slowdown expired → transition to game over
@@ -257,6 +263,72 @@ func (g *Game) checkCollisions() {
 		}
 	}
 
+	// Enemy bullets vs player, obstacles, and enemies
+	for _, eb := range g.Scene.Entities().Get(def.EntityTypeEnemyTeam) {
+		bullet, ok := eb.(*projectile.EnemyBullet)
+		if !ok || bullet.CanBeRemoved() {
+			continue
+		}
+
+		for _, p := range players {
+			if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(eb, p) {
+				continue
+			}
+			bullet.MarkDestroyed()
+			g.applyDamage(p, projectile.EnemyBulletDamage)
+			if mortal, ok := p.(def.Mortal); ok && mortal.IsDead() {
+				g.handleDeath(mortal, KillNormal)
+				return
+			}
+			break
+		}
+
+		if bullet.CanBeRemoved() {
+			continue
+		}
+
+		for _, obs := range obstacles {
+			if mortal, ok := obs.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(eb, obs) {
+				continue
+			}
+			bullet.MarkDestroyed()
+			g.applyBulletHit(obs, 0)
+			break
+		}
+
+		if bullet.CanBeRemoved() {
+			continue
+		}
+
+		for _, enemy := range enemies {
+			if mortal, ok := enemy.(def.Mortal); ok && mortal.IsDead() {
+				continue
+			}
+			if !def.Collides(eb, enemy) {
+				continue
+			}
+			bullet.MarkDestroyed()
+			g.applyBulletHit(enemy, 0)
+			break
+		}
+	}
+
+	// Self-detonating enemies (e.g. proximity range mines)
+	for _, e := range enemies {
+		if mortal, ok := e.(def.Mortal); !ok || mortal.IsDead() {
+			continue
+		}
+		if sd, ok := e.(def.SelfDetonating); ok && sd.ReadyToDetonate() {
+			g.handleDeath(e.(def.Mortal), KillNormal)
+		}
+	}
+
 	// Bombs vs obstacles and enemies
 	for _, b := range bullets {
 		bomb, ok := b.(*projectile.Bomb)
@@ -292,6 +364,21 @@ func (g *Game) checkCollisions() {
 			break
 		}
 	}
+}
+
+// isWaveCleared returns true when every enemy entity is dead.
+// Returns false when there are no enemies (wave not yet started or already removed).
+func (g *Game) isWaveCleared() bool {
+	enemies := g.Scene.Entities().Get(def.EntityTypeEnemy)
+	if len(enemies) == 0 {
+		return false
+	}
+	for _, e := range enemies {
+		if mortal, ok := e.(def.Mortal); !ok || !mortal.IsDead() {
+			return false
+		}
+	}
+	return true
 }
 
 // applyDamage deals damage to an entity via the Damageable interface.
