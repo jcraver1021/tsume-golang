@@ -16,10 +16,10 @@ color_codes:
   '1': '#545454FF'
   '2': '#909090FF'
   '3': '#BCBCBCFF'
-  '4': '#745454FF'
-  a: '#CC2222FF'
-  b: '#FF6644FF'
+  '4': '#405470FF'
+  a: '#1133AAFF'
+  b: '#88BBFFFF'
 animation_sequences:
   s:
-    frames: abab
-    frame_duration: 4
+    frames: aab
+    frame_duration: 18

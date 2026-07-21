@@ -12,21 +12,23 @@ const (
 	EntityTypeUI EntityType = iota
 	EntityTypeEnvironment
 	EntityTypePlayer
-	EntityTypeTeam
+	EntityTypeTeam // player projectiles
 	EntityTypeEnemy
+	EntityTypeEnemyTeam // enemy projectiles
 	EntityTypeObstacle
 	EntityTypeBackground
 )
 
 // EntityTypes defines update order (index 0 first) and, reversed, draw order
 // (index 0 on top). UI runs first in update and renders last (above everything).
-// Background runs last in update and renders first (below everything).
+// Background runs last in update and renders first (behind everything).
 var EntityTypes = []EntityType{
 	EntityTypeUI,
 	EntityTypeEnvironment,
 	EntityTypePlayer,
 	EntityTypeTeam,
 	EntityTypeEnemy,
+	EntityTypeEnemyTeam,
 	EntityTypeObstacle,
 	EntityTypeBackground,
 }
@@ -37,6 +39,7 @@ var EntityTypeNames = map[EntityType]string{
 	EntityTypePlayer:      "Player",
 	EntityTypeTeam:        "Team",
 	EntityTypeEnemy:       "Enemy",
+	EntityTypeEnemyTeam:   "EnemyTeam",
 	EntityTypeObstacle:    "Obstacle",
 	EntityTypeBackground:  "Background",
 }

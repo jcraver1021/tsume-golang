@@ -3,10 +3,30 @@ package play_test
 import (
 	"testing"
 
+	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/play"
 	"tsumegolang/game/starshot/testutil"
 )
+
+// spyEntity records every def.Entity it sees when Act queries a given type.
+// This reproduces the Chaser/Hunter pattern: one entity type reads another
+// type's entities during Act (e.g. Enemy reads Obstacle to build Perception).
+type spyEntity struct {
+	*testutil.MockEntity
+	queryType def.EntityType
+	seen      []def.Entity
+}
+
+func newSpyEntity(t def.EntityType, queryType def.EntityType) *spyEntity {
+	return &spyEntity{MockEntity: testutil.NewMockEntity(t), queryType: queryType}
+}
+
+func (s *spyEntity) Act(scene def.Scene) {
+	s.seen = append(s.seen, scene.Entities().Get(s.queryType)...)
+}
+
+func (s *spyEntity) Draw(_ *ebit.Image) {}
 
 func TestEntityStoreImplementsInterface(t *testing.T) {
 	store := play.NewEntityStore()
@@ -44,7 +64,7 @@ func TestEntityStoreIterateForUpdateOrder(t *testing.T) {
 
 	// Collect iteration order
 	var order []def.EntityType
-	for entity := range store.IterateForUpdate() {
+	for _, entity := range store.IterateForUpdate() {
 		order = append(order, entity.Type())
 	}
 
@@ -81,7 +101,7 @@ func TestEntityStoreIterateForDrawOrder(t *testing.T) {
 
 	// Collect iteration order
 	var order []def.EntityType
-	for entity := range store.IterateForDraw() {
+	for _, entity := range store.IterateForDraw() {
 		order = append(order, entity.Type())
 	}
 
@@ -155,7 +175,7 @@ func TestEntityStoreSameTypeOrderPreserved(t *testing.T) {
 
 	// Collect iteration order
 	var collected []*testutil.MockEntity
-	for entity := range store.IterateForUpdate() {
+	for _, entity := range store.IterateForUpdate() {
 		collected = append(collected, entity.(*testutil.MockEntity))
 	}
 
@@ -198,5 +218,45 @@ func TestEntityStoreTypeGet(t *testing.T) {
 
 	if len(gotBackgrounds) != 1 || gotBackgrounds[0] != background {
 		t.Errorf("Get(EntityTypeBackground) = %v, want [%v]", gotBackgrounds, background)
+	}
+}
+
+// TestGetDuringActSeesObstacles reproduces the Chaser segfault: an Enemy
+// entity calls scene.Entities().Get(Obstacle) inside its Act, while several
+// Obstacle entities are present. With the old goroutine-based IterateForUpdate
+// the goroutine raced against the Get call and could corrupt the returned
+// slice. The fix (synchronous collection before Act) makes this deterministic.
+func TestGetDuringActSeesObstacles(t *testing.T) {
+	store := play.NewEntityStore()
+
+	obs1 := testutil.NewMockEntity(def.EntityTypeObstacle)
+	obs2 := testutil.NewMockEntity(def.EntityTypeObstacle)
+	obs3 := testutil.NewMockEntity(def.EntityTypeObstacle)
+	store.Add(obs1)
+	store.Add(obs2)
+	store.Add(obs3)
+
+	spy := newSpyEntity(def.EntityTypeEnemy, def.EntityTypeObstacle)
+	store.Add(spy)
+
+	// Use MockScene so Act receives a valid def.Scene with the obstacles.
+	mockScene := testutil.NewMockScene()
+	mockScene.Entities().Add(obs1)
+	mockScene.Entities().Add(obs2)
+	mockScene.Entities().Add(obs3)
+
+	// Manually drive Act the same way scene.Update does after IterateForUpdate.
+	for _, e := range store.IterateForUpdate() {
+		e.Act(mockScene)
+	}
+
+	// The spy should have seen all three obstacles and none should be nil.
+	if len(spy.seen) != 3 {
+		t.Fatalf("spy saw %d obstacle(s), want 3", len(spy.seen))
+	}
+	for i, e := range spy.seen {
+		if e == nil {
+			t.Errorf("spy.seen[%d] is nil — Get returned a nil entity during Act", i)
+		}
 	}
 }

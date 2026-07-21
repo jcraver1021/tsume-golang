@@ -25,3 +25,10 @@ type Explosive interface {
 	BlastRadius() float64
 	BlastDamage() int
 }
+
+// SelfDetonating is implemented by entities that trigger their own detonation
+// based on internal state (e.g. a proximity timer). game.go checks ReadyToDetonate
+// each frame and calls handleDeath when it returns true.
+type SelfDetonating interface {
+	ReadyToDetonate() bool
+}

@@ -60,14 +60,14 @@ func (s *Scene) Update() {
 	}
 
 	if shouldUpdate {
-		for e := range s.entities.IterateForUpdate() {
+		for _, e := range s.entities.IterateForUpdate() {
 			e.Act(s)
 		}
 	}
 }
 
 func (s *Scene) Draw(screen *ebit.Image) {
-	for e := range s.entities.IterateForDraw() {
+	for _, e := range s.entities.IterateForDraw() {
 		e.Draw(screen)
 	}
 }

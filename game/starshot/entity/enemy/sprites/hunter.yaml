@@ -21,17 +21,17 @@ matrix:
 - '000000t11t000000'
 color_codes:
   '0': '#00000000'
-  '1': '#343454FF'
-  '2': '#5050A0FF'
-  '3': '#6464C8FF'
-  '4': '#7055C0FF'
-  '5': '#C078FFFF'
-  '6': '#FF44AAFF'
-  '7': '#FFB8E8FF'
-  a: '#4466AAFF'
-  b: '#88FFFFFF'
-  c: '#FF9900FF'
-  d: '#FFFF44FF'
+  '1': '#3A1A1AFF'
+  '2': '#6A2828FF'
+  '3': '#8A3838FF'
+  '4': '#AA4828FF'
+  '5': '#FF6622FF'
+  '6': '#FFAA22FF'
+  '7': '#FFEE88FF'
+  a: '#AA3300FF'
+  b: '#FFFF88FF'
+  c: '#FF5500FF'
+  d: '#FFBB00FF'
 animation_sequences:
   s:
     frames: aab

@@ -123,6 +123,7 @@ type Asteroid struct {
 	width, height int
 	vx, vy        float64 // velocity in pixels/frame
 	size          AsteroidSize
+	seed          int64 // passed to children on split so fragments look like the parent
 	sprite        *draw.ColorMatrix
 
 	hp    int
@@ -132,12 +133,13 @@ type Asteroid struct {
 
 // NewAsteroid creates a new procedurally-generated multi-colored asteroid
 func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
+	return newAsteroidWithSeed(x, y, size, rand.Int63())
+}
+
+func newAsteroidWithSeed(x, y int, size AsteroidSize, seed int64) *Asteroid {
 	width, height := size.Dimensions()
 	hp := size.HP()
-
-	// Generate procedural asteroid sprite
-	sprite := generateAsteroidSprite(width, height, size)
-
+	sprite := generateAsteroidSprite(width, height, size, rand.New(rand.NewSource(seed)))
 	return &Asteroid{
 		x:      x,
 		y:      y,
@@ -148,15 +150,16 @@ func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
 		vx:     0,
 		vy:     float64(size.Speed()),
 		size:   size,
+		seed:   seed,
 		sprite: sprite,
 		hp:     hp,
 		maxHP:  hp,
 	}
 }
 
-// newSplitAsteroid creates a child asteroid with an initial velocity offset, used when splitting.
-func newSplitAsteroid(x, y int, size AsteroidSize, vx, vy float64) *Asteroid {
-	a := NewAsteroid(x, y, size)
+// newSplitAsteroid creates a child asteroid inheriting the parent's visual seed.
+func newSplitAsteroid(x, y int, size AsteroidSize, seed int64, vx, vy float64) *Asteroid {
+	a := newAsteroidWithSeed(x, y, size, seed)
 	a.vx = vx
 	a.vy = vy
 	return a
@@ -251,8 +254,8 @@ func (a *Asteroid) MarkAsDead(scene def.Scene) {
 	cy := a.y + a.height/4
 	spread := 1.5
 
-	child1 := newSplitAsteroid(cx-cw-2, cy, childSize, a.vx-spread, a.vy)
-	child2 := newSplitAsteroid(cx+2, cy, childSize, a.vx+spread, a.vy)
+	child1 := newSplitAsteroid(cx-cw-2, cy, childSize, a.seed, a.vx-spread, a.vy)
+	child2 := newSplitAsteroid(cx+2, cy, childSize, a.seed, a.vx+spread, a.vy)
 	scene.Entities().Add(child1)
 	scene.Entities().Add(child2)
 }
@@ -345,16 +348,18 @@ type craterInfo struct {
 	radius int
 }
 
-// generateAsteroidSprite creates a procedural multi-colored asteroid
-func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMatrix {
-	shape, craters := generateProceduralShape(width, height, size)
+// generateAsteroidSprite creates a procedural multi-colored asteroid.
+// rng is a seeded source; passing the same seed across sizes produces
+// visually related fragments when an asteroid splits.
+func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand) *draw.ColorMatrix {
+	shape, craters := generateProceduralShape(width, height, size, rng)
 
 	matrix := make([][]draw.ColorKey, height)
 	for i := range matrix {
 		matrix[i] = make([]draw.ColorKey, width)
 	}
 
-	basePalette := generateRockPalette()
+	basePalette := generateRockPalette(rng)
 
 	colorCodes := draw.ColorMap{
 		"0": {0, 0, 0, 0}, // Transparent
@@ -375,7 +380,7 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 				continue
 			}
 
-			colorIndex := selectRockColor(row, col, width, height)
+			colorIndex := selectRockColor(row, col, width, height, rng)
 
 			for _, crater := range craters {
 				dx := col - crater.cx
@@ -427,7 +432,7 @@ func generateAsteroidSprite(width, height int, size AsteroidSize) *draw.ColorMat
 }
 
 // generateProceduralShape creates an irregular asteroid shape and crater positions
-func generateProceduralShape(width, height int, size AsteroidSize) ([][]bool, []craterInfo) {
+func generateProceduralShape(width, height int, size AsteroidSize, rng *rand.Rand) ([][]bool, []craterInfo) {
 	shape := make([][]bool, height)
 	for i := range shape {
 		shape[i] = make([]bool, width)
@@ -459,16 +464,16 @@ func generateProceduralShape(width, height int, size AsteroidSize) ([][]bool, []
 	var craters []craterInfo
 	if size >= AsteroidMedium {
 		// More craters for larger asteroids
-		numCraters := 1 + rand.Intn(3) // 1-3 craters
+		numCraters := 1 + rng.Intn(3) // 1-3 craters
 		if size >= AsteroidHuge {
-			numCraters = 2 + rand.Intn(4) // 2-5 craters for huge+
+			numCraters = 2 + rng.Intn(4) // 2-5 craters for huge+
 		}
 
 		for range numCraters {
 			// Position craters away from edges for better visibility
 			margin := width / 4
-			cx := margin + rand.Intn(width-2*margin)
-			cy := margin + rand.Intn(height-2*margin)
+			cx := margin + rng.Intn(width-2*margin)
+			cy := margin + rng.Intn(height-2*margin)
 
 			// Scale crater size with asteroid size
 			minRadius := 2
@@ -482,7 +487,7 @@ func generateProceduralShape(width, height int, size AsteroidSize) ([][]bool, []
 				maxRadius = 8
 			}
 
-			craterRadius := minRadius + rand.Intn(maxRadius-minRadius+1)
+			craterRadius := minRadius + rng.Intn(maxRadius-minRadius+1)
 
 			// Only add crater if it's within the asteroid shape
 			if cx >= 0 && cx < width && cy >= 0 && cy < height && shape[cy][cx] {
@@ -499,13 +504,13 @@ func generateProceduralShape(width, height int, size AsteroidSize) ([][]bool, []
 }
 
 // generateRockPalette creates a palette of rock colors
-func generateRockPalette() []color.RGBA {
+func generateRockPalette(rng *rand.Rand) []color.RGBA {
 	// Choose asteroid type: rocky (brown/orange) or metallic (gray/blue tint)
-	asteroidType := rand.Float64()
+	asteroidType := rng.Float64()
 
 	if asteroidType < 0.7 {
 		// Rocky asteroid - warm brownish-orange tones (70% chance)
-		baseOrange := 140 + rand.Intn(60) // 140-200
+		baseOrange := 140 + rng.Intn(60) // 140-200
 
 		return []color.RGBA{
 			// Darkest (deep shadows)
@@ -546,7 +551,7 @@ func generateRockPalette() []color.RGBA {
 		}
 	} else {
 		// Metallic asteroid - cooler gray/blue tones (30% chance)
-		baseGray := 120 + rand.Intn(60) // 120-180
+		baseGray := 120 + rng.Intn(60) // 120-180
 
 		return []color.RGBA{
 			// Darkest (shadows)
@@ -589,7 +594,7 @@ func generateRockPalette() []color.RGBA {
 }
 
 // selectRockColor chooses a color based on position (creates gradient effect)
-func selectRockColor(row, col, width, height int) int {
+func selectRockColor(row, col, width, height int, rng *rand.Rand) int {
 	centerX := float64(width) / 2
 	centerY := float64(height) / 2
 
@@ -602,7 +607,7 @@ func selectRockColor(row, col, width, height int) int {
 	lightScore := float64(width+height-row-col) / float64(width+height)
 
 	// Add some randomness
-	lightScore += (rand.Float64() - 0.5) * 0.3
+	lightScore += (rng.Float64() - 0.5) * 0.3
 
 	// Edge highlighting - outer edge gets bright color
 	if distFromCenter > 0.85 {

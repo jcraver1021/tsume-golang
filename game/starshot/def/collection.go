@@ -4,6 +4,6 @@ package def
 type EntityCollection interface {
 	Add(Entity)
 	Get(EntityType) []Entity
-	IterateForUpdate() <-chan Entity
-	IterateForDraw() <-chan Entity
+	IterateForUpdate() []Entity
+	IterateForDraw() []Entity
 }

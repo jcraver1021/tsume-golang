@@ -47,12 +47,21 @@ type Explosion struct {
 	x, y          int
 	width, height int
 	sprite        *draw.ColorMatrix
+	cachedImg     *ebit.Image
+	pixelBuf      []byte
+	drawScale     float64
 	frameCount    int
 	maxFrames     int
 }
 
 // NewExplosion creates an explosion entity at the given center coordinates.
 func NewExplosion(cx, cy int, size ExplosionSize) (*Explosion, error) {
+	return NewExplosionScaled(cx, cy, size, 1.0)
+}
+
+// NewExplosionScaled creates an explosion drawn at scale times its natural sprite size.
+// Use this to match the visual footprint to a blast radius: scale = blastDiameter / spriteWidth.
+func NewExplosionScaled(cx, cy int, size ExplosionSize, scale float64) (*Explosion, error) {
 	sprite, err := LoadExplosionSprite(size)
 	if err != nil {
 		return nil, err
@@ -70,16 +79,20 @@ func NewExplosion(cx, cy int, size ExplosionSize) (*Explosion, error) {
 		return nil, fmt.Errorf("unknown explosion size: %d", size)
 	}
 
-	width, height := sprite.Dimensions()
+	naturalW, naturalH := sprite.Dimensions()
+	drawnW := int(float64(naturalW) * scale)
+	drawnH := int(float64(naturalH) * scale)
 
 	return &Explosion{
-		x:          cx - width/2,
-		y:          cy - height/2,
-		width:      width,
-		height:     height,
-		sprite:     sprite,
-		frameCount: 0,
-		maxFrames:  maxFrames,
+		x:         cx - drawnW/2,
+		y:         cy - drawnH/2,
+		width:     drawnW,
+		height:    drawnH,
+		sprite:    sprite,
+		cachedImg: ebit.NewImage(naturalW, naturalH),
+		pixelBuf:  make([]byte, naturalW*naturalH*4),
+		drawScale: scale,
+		maxFrames: maxFrames,
 	}, nil
 }
 
@@ -104,16 +117,7 @@ func (e *Explosion) Act(scene def.Scene) {
 }
 
 func (e *Explosion) Draw(img *ebit.Image) {
-	pixels := e.sprite.Render()
-
-	for row := range pixels {
-		for col := range pixels[row] {
-			color := pixels[row][col]
-			if color.A > 0 {
-				img.Set(e.x+col, e.y+row, color)
-			}
-		}
-	}
+	draw.DrawScaled(img, e.cachedImg, e.pixelBuf, e.sprite, float64(e.x), float64(e.y), e.drawScale)
 }
 
 func (e *Explosion) CanBeRemoved() bool {
