@@ -31,11 +31,16 @@ func NewScene(state *GameState) *Scene {
 	switch state.Mode {
 	case GameModeIntro:
 		initIntroMode(scene)
+		scene.state.Reset() // Ensure game state is reset when entering intro mode
 	case GameModePlay:
 		initPlayMode(scene, state)
 	case GameModeGameOver:
 		// Game over mode reuses the play scene with overlay banners
 		// No initialization needed
+	case GameModeTransition:
+		// Transition mode initialization if needed
+	case GameModeComplete:
+		// Complete mode initialization if needed
 	}
 
 	return scene

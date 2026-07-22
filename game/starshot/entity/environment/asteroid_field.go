@@ -9,15 +9,16 @@ import (
 )
 
 type AsteroidField struct {
-	// parameters for procedural generation
 	asteroidDensity float64
 	sizeFn          func() obstacle.AsteroidSize
+	canBeRemoved    bool
 }
 
 func NewAsteroidField(density float64, sizeFn func() obstacle.AsteroidSize) *AsteroidField {
 	return &AsteroidField{
 		asteroidDensity: density,
 		sizeFn:          sizeFn,
+		canBeRemoved:    false,
 	}
 }
 
@@ -62,5 +63,9 @@ func (af *AsteroidField) Act(b def.Scene) {
 func (af *AsteroidField) Draw(img *ebit.Image) {}
 
 func (af *AsteroidField) CanBeRemoved() bool {
-	return false
+	return af.canBeRemoved
+}
+
+func (af *AsteroidField) MarkAsRemovable() {
+	af.canBeRemoved = true
 }

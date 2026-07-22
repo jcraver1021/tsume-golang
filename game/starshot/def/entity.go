@@ -10,6 +10,7 @@ type EntityType int
 
 const (
 	EntityTypeUI EntityType = iota
+	EntityTypeWave
 	EntityTypeEnvironment
 	EntityTypePlayer
 	EntityTypeTeam // player projectiles
@@ -24,6 +25,7 @@ const (
 // Background runs last in update and renders first (behind everything).
 var EntityTypes = []EntityType{
 	EntityTypeUI,
+	EntityTypeWave,
 	EntityTypeEnvironment,
 	EntityTypePlayer,
 	EntityTypeTeam,
@@ -35,6 +37,7 @@ var EntityTypes = []EntityType{
 
 var EntityTypeNames = map[EntityType]string{
 	EntityTypeUI:          "UI",
+	EntityTypeWave:        "Wave",
 	EntityTypeEnvironment: "Environment",
 	EntityTypePlayer:      "Player",
 	EntityTypeTeam:        "Team",

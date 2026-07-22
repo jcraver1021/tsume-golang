@@ -73,6 +73,17 @@ func NewGameState() *GameState {
 	}
 }
 
+// Reset reinitializes the game state to start a new game.
+func (gs *GameState) Reset() {
+	gs.Mode = GameModeIntro
+	gs.Wave = 1
+	gs.Score = 0
+	gs.SlowdownActive = false
+	gs.SlowdownMultiplier = 1.0
+	gs.SlowdownFramesLeft = 0
+	gs.PlayerDied = false
+}
+
 // ActivateSlowdown initiates game slowdown for dramatic effect
 func (gs *GameState) ActivateSlowdown(multiplier float64, frames int) {
 	if multiplier <= 0 || multiplier > 1.0 || frames <= 0 {
@@ -113,12 +124,6 @@ func (g *Game) Update() error {
 	// Check collisions in play mode
 	if g.State.Mode == GameModePlay {
 		g.checkCollisions()
-
-		// Advance to next wave when all enemies are cleared
-		if !g.State.PlayerDied && g.isWaveCleared() {
-			g.State.Wave++
-			spawnWaveEnemies(g.Scene, g.State)
-		}
 
 		// Check if player death animation is complete
 		if g.State.PlayerDied && !g.State.SlowdownActive {
