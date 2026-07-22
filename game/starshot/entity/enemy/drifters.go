@@ -129,7 +129,7 @@ const (
 	weaverMaxVX        = 3.0
 	weaverPushStrength = 0.5  // lateral force per obstacle per frame (scaled by proximity)
 	weaverDecay        = 0.92 // vx multiplier per frame; returns to center after clearing obstacles
-	weaverMaxHP        = 2
+	weaverMaxHP        = 1
 	weaverValue        = 15
 )
 

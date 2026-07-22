@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	enemyDrawScale = 1.5 // all enemies render at this scale via DrawImage
+	enemyDrawScale = 2 // all enemies render at this scale via DrawImage
 )
 
 // ─── Chaser ───────────────────────────────────────────────────────────────────

@@ -6,10 +6,11 @@ package enemy
 import (
 	"math"
 
-	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
 	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+
+	ebit "github.com/hajimehoshi/ebiten/v2"
 )
 
 // loadMineSprite reads a mine sprite YAML from the embedded sprites directory.
@@ -63,6 +64,7 @@ const (
 type Mine struct {
 	x, y          int
 	fx, fy        float64
+	drift         float64
 	width, height int
 	idleSprite    *draw.ColorMatrix
 	chaseSprite   *draw.ColorMatrix
@@ -94,6 +96,7 @@ func NewMine(x, y int) (*Mine, error) {
 		y:           y,
 		fx:          float64(startX),
 		fy:          float64(y),
+		drift:       mineDefaultDriftSpeed,
 		width:       scaledW,
 		height:      scaledH,
 		idleSprite:  idle,
@@ -184,6 +187,17 @@ func (m *Mine) Draw(img *ebit.Image) {
 	draw.DrawScaled(img, m.cachedImg, m.pixelBuf, sprite, float64(m.x), float64(m.y), enemyDrawScale)
 }
 
+func (m *Mine) SetDrift(drift float64) {
+	m.drift = drift
+	if brain, ok := m.brain.(*MineBrain); ok {
+		brain.DriftSpeed = drift
+	}
+}
+
+func (m *Mine) GetDrift() float64 { return m.drift }
+
+func (m *Mine) ResetDrift() { m.SetDrift(mineDefaultDriftSpeed) }
+
 func (m *Mine) CanBeRemoved() bool {
 	if m.dead {
 		return m.frameCount >= m.maxFrames
@@ -241,6 +255,7 @@ const (
 type RangeMine struct {
 	x, y            int
 	fx, fy          float64
+	drift           float64
 	width, height   int
 	idleSprite      *draw.ColorMatrix
 	activeSprite    *draw.ColorMatrix
@@ -272,6 +287,7 @@ func NewRangeMine(x, y int) (*RangeMine, error) {
 		y:            y,
 		fx:           float64(startX),
 		fy:           float64(y),
+		drift:        rangeMineDrift,
 		width:        scaledW,
 		height:       scaledH,
 		idleSprite:   idle,
@@ -298,7 +314,7 @@ func (r *RangeMine) Act(scene def.Scene) {
 		r.frameCount++
 		return
 	}
-	r.fy += rangeMineDrift
+	r.fy += r.drift
 	r.x = int(r.fx)
 	r.y = int(r.fy)
 	players := scene.Entities().Get(def.EntityTypePlayer)
@@ -324,6 +340,12 @@ func (r *RangeMine) Act(scene def.Scene) {
 }
 
 func (r *RangeMine) ReadyToDetonate() bool { return r.proximityFrames >= rangeMineDetonateFrames }
+
+func (r *RangeMine) SetDrift(drift float64) { r.drift = drift }
+
+func (r *RangeMine) GetDrift() float64 { return r.drift }
+
+func (r *RangeMine) ResetDrift() { r.drift = rangeMineDrift }
 
 func (r *RangeMine) Draw(img *ebit.Image) {
 	sprite := r.idleSprite
@@ -385,6 +407,7 @@ const (
 type PathMine struct {
 	x, y          int
 	fx, fy        float64
+	drift         float64
 	width, height int
 	sprite        *draw.ColorMatrix
 	cachedImg     *ebit.Image
@@ -416,6 +439,7 @@ func NewPathMine(x, y int, path []PathSegment) (*PathMine, error) {
 		y:         y,
 		fx:        float64(startX),
 		fy:        float64(y),
+		drift:     pathMineDrift,
 		width:     scaledW,
 		height:    scaledH,
 		sprite:    sprite,
@@ -442,7 +466,7 @@ func (p *PathMine) Act(scene def.Scene) {
 		p.frameCount++
 		return
 	}
-	p.fy += pathMineDrift
+	p.fy += p.drift
 	if len(p.path) > 0 {
 		seg := p.path[p.pathFrame]
 		p.fx += seg.VX
@@ -466,6 +490,12 @@ func (p *PathMine) Act(scene def.Scene) {
 func (p *PathMine) Draw(img *ebit.Image) {
 	draw.DrawScaled(img, p.cachedImg, p.pixelBuf, p.sprite, float64(p.x), float64(p.y), enemyDrawScale)
 }
+
+func (p *PathMine) SetDrift(drift float64) { p.drift = drift }
+
+func (p *PathMine) GetDrift() float64 { return p.drift }
+
+func (p *PathMine) ResetDrift() { p.drift = pathMineDrift }
 
 func (p *PathMine) CanBeRemoved() bool {
 	if p.dead {
@@ -523,6 +553,7 @@ const (
 type PathRangeMine struct {
 	x, y            int
 	fx, fy          float64
+	drift           float64
 	width, height   int
 	idleSprite      *draw.ColorMatrix
 	activeSprite    *draw.ColorMatrix
@@ -557,6 +588,7 @@ func NewPathRangeMine(x, y int, path []PathSegment) (*PathRangeMine, error) {
 		y:            y,
 		fx:           float64(startX),
 		fy:           float64(y),
+		drift:        pathRangeMineDrift,
 		width:        scaledW,
 		height:       scaledH,
 		idleSprite:   idle,
@@ -584,7 +616,7 @@ func (p *PathRangeMine) Act(scene def.Scene) {
 		p.frameCount++
 		return
 	}
-	p.fy += pathRangeMineDrift
+	p.fy += p.drift
 	if len(p.path) > 0 {
 		seg := p.path[p.pathFrame]
 		p.fx += seg.VX
@@ -628,6 +660,12 @@ func (p *PathRangeMine) Act(scene def.Scene) {
 func (p *PathRangeMine) ReadyToDetonate() bool {
 	return p.proximityFrames >= pathRangeMineDetonateFrames
 }
+
+func (p *PathRangeMine) SetDrift(drift float64) { p.drift = drift }
+
+func (p *PathRangeMine) GetDrift() float64 { return p.drift }
+
+func (p *PathRangeMine) ResetDrift() { p.drift = pathRangeMineDrift }
 
 func (p *PathRangeMine) Draw(img *ebit.Image) {
 	sprite := p.idleSprite
