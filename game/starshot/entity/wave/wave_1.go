@@ -151,6 +151,11 @@ func (w *Wave1) Act(b def.Scene) {
 				}
 			}
 		}
+		// Transition to next phase when the minefield has been cleared
+		if len(b.Entities().Get(def.EntityTypeEnemy)) == 0 {
+			w.phase = 4
+			w.resetTicks()
+		}
 	}
 
 	w.ticksInPhase++
