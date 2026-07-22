@@ -35,14 +35,12 @@ func isValidURL(url string) bool {
 func ParseURLsFromTextFile(filename string) ([]string, error) {
 	urls := []string{}
 
-	// Open the text file
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCantOpenFile, err)
 	}
 	defer file.Close()
 
-	// Read all lines from the text file
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()

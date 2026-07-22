@@ -1,14 +1,14 @@
 package def
 
-// SignalKind identifies what an entity's sensor detected.
-type SignalKind int
+// SignalCategory identifies the categorization of a detected signal.
+type SignalCategory int
 
 const (
-	SignalSelf     SignalKind = iota // the perceiving entity itself
-	SignalPlayer                     // the player ship
-	SignalAlly                       // a friendly entity
-	SignalObstacle                   // a physical hazard in the flight path
-	SignalDanger                     // area-of-effect threat (blast radius, etc.)
+	SignalSelf     SignalCategory = iota // the perceiving entity itself
+	SignalPlayer                         // the player ship
+	SignalAlly                           // a friendly entity
+	SignalObstacle                       // a physical hazard in the flight path
+	SignalDanger                         // area-of-effect threat (blast radius, etc.)
 )
 
 // Condition is the perceived health state of an entity.
@@ -37,38 +37,27 @@ func ConditionFor(current, max int) Condition {
 	}
 }
 
-// Signal is a single thing an entity's sensor detected.
-// Direction is a normalized vector from the perceiver toward the source;
-// zero for SignalSelf (you are not in a direction relative to yourself).
-// Distance is pixels to the source center; zero for SignalSelf.
-// Condition is meaningful for living sources (Self, Player, Ally);
-// zero for non-living signals (Obstacle, Danger).
+// Signal represents a single detection.
 type Signal struct {
-	Kind      SignalKind
-	Direction [2]float64
-	Distance  float64
-	Condition Condition
+	Kind      SignalCategory
+	Direction [2]float64 // normalized vector from the perceiver toward the source (zero for self)
+	Distance  float64    // distance to the source center (zero for self)
+	Condition Condition  // meaningful for living sources (Self, Player, Ally); zero for non-living signals (Obstacle, Danger)
 }
 
-// Perception is the complete set of signals an entity's sensor produced this frame.
-// The brain receives this and decides what to do — it never sees the raw scene.
+// Perception represents the complete set of signals detected by an entity in a signal frame.
+// The "brain" does not see the raw state, only what their perception provides.
 type Perception []Signal
 
-// Intent is what an entity wants to do this frame.
-// Direction is a normalized heading vector; Speed is the magnitude in pixels/frame.
-// A zero Direction means no movement.
-// Fire signals that the entity wants to shoot; FireAim is the normalized direction
-// to fire in. The entity applies its own rate-limiting before spawning a projectile.
+// Intent represents the desired actions of an entity for the current frame.
 type Intent struct {
-	Direction [2]float64
-	Speed     float64
-	Fire      bool
-	FireAim   [2]float64
+	Direction [2]float64 // normalized heading vector; zero means no movement
+	Speed     float64    // magnitude in pixels/frame
+	Fire      bool       // signals that the entity wants to shoot
+	FireAim   [2]float64 // normalized direction to fire in
 }
 
-// Brain decides what an entity should do given its current Perception.
-// Implementations range from hardcoded state machines to external ML models.
-// The entity calls Decide each frame after building its Perception from the scene.
+// Brain decides the actions of an entity based on its Perception (called once per frame).
 type Brain interface {
 	Decide(Perception) Intent
 }

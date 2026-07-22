@@ -5,16 +5,14 @@ import (
 	"tsumegolang/game/starshot/def"
 )
 
-// Scene is the concrete implementation of def.Scene
 type Scene struct {
 	entities *EntityStore
 	width    int
 	height   int
-	tick     int // Global animation tick counter
+	tick     int
 	state    *GameState
 }
 
-// Interface implementation methods
 func (s *Scene) Width() int                     { return s.width }
 func (s *Scene) Height() int                    { return s.height }
 func (s *Scene) Entities() def.EntityCollection { return s.entities }

@@ -9,10 +9,6 @@ import (
 	"tsumegolang/game/starshot/testutil"
 )
 
-// ============================================================================
-// Star Entity Tests
-// ============================================================================
-
 func TestStarLocation(t *testing.T) {
 	star := NewStar(10, 20, 1, 2, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 
@@ -86,9 +82,7 @@ func TestStarAct(t *testing.T) {
 	}
 }
 
-// ============================================================================
-// Variation Tests
-// ============================================================================
+// --- Variation types ---
 
 func TestNoVariation(t *testing.T) {
 	v := &NoVariation{}

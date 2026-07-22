@@ -17,61 +17,61 @@ func TestRectangle(t *testing.T) {
 			name:   "small square",
 			width:  2,
 			height: 2,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "large square",
 			width:  10,
 			height: 10,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "tall rectangle",
 			width:  3,
 			height: 15,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "wide rectangle",
 			width:  15,
 			height: 3,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "tall line",
 			width:  1,
 			height: 100,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "wide line",
 			width:  100,
 			height: 1,
-			init:   CONNECT_CONST,
+			init:   ConnectConst,
 		},
 		{
 			name:   "randomized small square",
 			width:  2,
 			height: 2,
-			init:   CONNECT_RANDOM,
+			init:   ConnectRandom,
 		},
 		{
 			name:   "randomized large square",
 			width:  10,
 			height: 10,
-			init:   CONNECT_RANDOM,
+			init:   ConnectRandom,
 		},
 		{
 			name:   "disconnected small square",
 			width:  2,
 			height: 2,
-			init:   NO_CONNECT,
+			init:   NoConnect,
 		},
 		{
 			name:   "disconnected large square",
 			width:  10,
 			height: 10,
-			init:   NO_CONNECT,
+			init:   NoConnect,
 		},
 	}
 
@@ -96,18 +96,18 @@ func TestRectangle(t *testing.T) {
 								(y1 == y2 && (x1 == x2-1 || x1 == x2+1)) { // East or West neighbor
 								w := e.Weight
 								switch tc.init {
-								case NO_CONNECT:
+								case NoConnect:
 									if ok {
 										t.Errorf("expected no edge between %d and %d", i, j)
 									}
-								case CONNECT_CONST:
+								case ConnectConst:
 									if !ok {
 										t.Errorf("expected edge between %d and %d to exist", i, j)
 									}
 									if w != DefaultWeight {
 										t.Errorf("expected weight of edge between %d and %d to be %f, got %f", i, j, DefaultWeight, w)
 									}
-								case CONNECT_RANDOM:
+								case ConnectRandom:
 									if !ok {
 										t.Errorf("expected edge between %d and %d to exist", i, j)
 									}
@@ -157,7 +157,7 @@ func TestRectToGraph(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			r, err := NewRectangle(10, 5, NO_CONNECT)
+			r, err := NewRectangle(10, 5, NoConnect)
 			if err != nil {
 				t.Fatalf("(RectToGraph) unexpected error: %v", err)
 			}

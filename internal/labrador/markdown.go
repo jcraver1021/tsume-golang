@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -84,5 +85,6 @@ func getSortedSections(sectionMap map[string][]DownloadRecord) []string {
 	for section := range sectionMap {
 		sections = append(sections, section)
 	}
+	sort.Strings(sections)
 	return sections
 }

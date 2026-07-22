@@ -13,27 +13,24 @@ const (
 )
 
 type DisjointSet struct {
-	c       int         // Initial capacity.
-	s       int         // Scale factor for capacity expansion.
-	parents []int       // Each element's value represents the index of its parent.
-	ranks   map[int]int // Rank of each root element, used for union by rank.
+	c       int
+	s       int
+	parents []int       // each element's value is the index of its parent
+	ranks   map[int]int // rank of each root, used for union by rank
 }
 
-// WithCapacity sets the initial capacity of the DisjointSet.
 func WithCapacity(c int) func(*DisjointSet) {
 	return func(ds *DisjointSet) {
 		ds.c = c
 	}
 }
 
-// WithScaleFactor sets the scale factor of the DisjointSet.
 func WithScaleFactor(s int) func(*DisjointSet) {
 	return func(ds *DisjointSet) {
 		ds.s = s
 	}
 }
 
-// NewDisjointSet creates a new DisjointSet with the given options.
 func NewDisjointSet(opts ...func(*DisjointSet)) (*DisjointSet, error) {
 	ds := &DisjointSet{
 		c: DefaultCapacity,
@@ -52,18 +49,15 @@ func NewDisjointSet(opts ...func(*DisjointSet)) (*DisjointSet, error) {
 	return ds, nil
 }
 
-// isValid checks if the DisjointSet is configured correctly.
 func (s *DisjointSet) isValid() bool {
 	return s.c > 0 && s.s > 1
 }
 
-// init initializes the set's internal arrays.
 func (s *DisjointSet) init() {
 	s.parents = make([]int, 0, s.c)
 	s.ranks = make(map[int]int, s.c)
 }
 
-// ensureIdx returns the next available index, expanding the capacity by the scale factor if the array is full.
 func (s *DisjointSet) ensureIdx() int {
 	n := len(s.parents)
 	if n >= cap(s.parents) {
@@ -75,7 +69,6 @@ func (s *DisjointSet) ensureIdx() int {
 	return int(n)
 }
 
-// Add adds a new element to the DisjointSet and returns its index.
 func (s *DisjointSet) Add() int {
 	i := s.ensureIdx()
 	s.parents = append(s.parents, i)
@@ -84,7 +77,6 @@ func (s *DisjointSet) Add() int {
 	return i
 }
 
-// AddMany adds multiple new elements to the DisjointSet and returns the last index added.
 func (s *DisjointSet) AddMany(n int) (int, error) {
 	if n <= 0 {
 		return NotFound, ErrInvalidRequest
@@ -97,17 +89,14 @@ func (s *DisjointSet) AddMany(n int) (int, error) {
 	return s.Size() - 1, nil
 }
 
-// Size returns the number of elements in the DisjointSet.
 func (s *DisjointSet) Size() int {
 	return len(s.parents)
 }
 
-// Capacity returns the current capacity of the DisjointSet.
 func (s *DisjointSet) Capacity() int {
 	return cap(s.parents)
 }
 
-// checkIdx checks if the given index is valid, returning an error if it is not.
 func (s *DisjointSet) checkIdx(i int) error {
 	if i >= len(s.parents) {
 		return ErrMissingElement
@@ -122,7 +111,6 @@ func (s *DisjointSet) Find(i int) (int, error) {
 		return NotFound, err
 	}
 
-	// Find the root of the tree from the given index.
 	p := s.parents[i]
 	for p != s.parents[p] {
 		p = s.parents[p]
@@ -143,7 +131,6 @@ func (s *DisjointSet) Find(i int) (int, error) {
 
 // Union merges the trees containing the given indices.
 func (s *DisjointSet) Union(i, j int) error {
-	// No need to check index here; Find will cover it.
 	root1, err := s.Find(i)
 	if err != nil {
 		return err

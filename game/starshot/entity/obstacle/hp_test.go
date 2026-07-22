@@ -10,7 +10,7 @@ import (
 // --- HP values ---
 
 func TestAsteroidSizeHPValues(t *testing.T) {
-	cases := []struct {
+	testCases := []struct {
 		size obstacle.AsteroidSize
 		want int
 	}{
@@ -23,7 +23,7 @@ func TestAsteroidSizeHPValues(t *testing.T) {
 		{obstacle.AsteroidGigantic, 18},
 		{obstacle.AsteroidColossal, 25},
 	}
-	for _, tc := range cases {
+	for _, tc := range testCases {
 		if got := tc.size.HP(); got != tc.want {
 			t.Errorf("size %d HP() = %d, want %d", tc.size, got, tc.want)
 		}

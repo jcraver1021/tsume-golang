@@ -8,11 +8,7 @@ import (
 	"tsumegolang/game/starshot/testutil"
 )
 
-func TestSceneImplementsInterface(t *testing.T) {
-	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
-	scene := play.NewScene(state)
-	var _ def.Scene = scene
-}
+var _ def.Scene = (*play.Scene)(nil)
 
 func TestSceneDimensions(t *testing.T) {
 	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
@@ -34,21 +30,15 @@ func TestSceneEntities(t *testing.T) {
 	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
 	scene := play.NewScene(state)
 
-	entities := scene.Entities()
-
-	if entities == nil {
+	if scene.Entities() == nil {
 		t.Fatal("Entities() = nil, want non-nil EntityCollection")
 	}
-
-	// Verify it's a working collection
-	var _ def.EntityCollection = entities
 }
 
 func TestSceneUpdate(t *testing.T) {
 	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
 	scene := play.NewScene(state)
 
-	// Add trackable entities
 	actCount := 0
 	trackingEntity := &actTrackingEntity{
 		MockEntity: testutil.NewMockEntity(def.EntityTypePlayer),
@@ -58,25 +48,16 @@ func TestSceneUpdate(t *testing.T) {
 	}
 
 	scene.Entities().Add(trackingEntity)
-
-	// Call Update
 	scene.Update()
 
-	got := actCount
-	want := 1
-
-	if got != want {
-		t.Errorf("Act() called %d times, want %d", got, want)
+	if actCount != 1 {
+		t.Errorf("Act() called %d times after first Update, want 1", actCount)
 	}
 
-	// Update again to verify multiple calls work
 	scene.Update()
 
-	got = actCount
-	want = 2
-
-	if got != want {
-		t.Errorf("after second Update, Act() called %d times total, want %d", got, want)
+	if actCount != 2 {
+		t.Errorf("Act() called %d times after second Update, want 2", actCount)
 	}
 }
 
@@ -84,7 +65,6 @@ func TestSceneIntroModeHasEntities(t *testing.T) {
 	state := &play.GameState{Mode: play.GameModeIntro, Wave: 1}
 	scene := play.NewScene(state)
 
-	// Intro mode should seed initial entities
 	count := 0
 	for range scene.Entities().IterateForUpdate() {
 		count++
@@ -93,11 +73,9 @@ func TestSceneIntroModeHasEntities(t *testing.T) {
 	if count == 0 {
 		t.Error("intro mode entity count = 0, want > 0 (should seed initial entities)")
 	}
-
-	t.Logf("Intro mode initialized with %d entities", count)
 }
 
-// actTrackingEntity wraps an entity and tracks Act calls
+// actTrackingEntity wraps an entity and tracks Act calls.
 type actTrackingEntity struct {
 	*testutil.MockEntity
 	onAct func()

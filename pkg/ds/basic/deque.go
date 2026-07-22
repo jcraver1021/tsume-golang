@@ -47,12 +47,10 @@ func WithDequeCapacity[T any](capacity int) DequeOption[T] {
 
 // Len returns the number of elements in the deque
 func (d *Deque[T]) Len() int {
-	// Contiguous case: tail is ahead of head, so length is tail - head
 	if d.tail >= d.head {
 		return d.tail - d.head
 	}
 
-	// Wrapped case: elements from head to end, plus elements from start to tail
 	return d.capacity - d.head + d.tail
 }
 
@@ -91,13 +89,10 @@ func (d *Deque[T]) resize() {
 	newCapacity := d.capacity * 2
 	newData := make([]T, newCapacity)
 
-	// Copy elements from head to tail in order
 	size := d.Len()
 	if d.tail > d.head {
-		// No wrap: elements are contiguous from head to tail
 		copy(newData, d.data[d.head:d.tail])
 	} else if size > 0 {
-		// Wrapped: elements from head to end, then from start to tail
 		n := copy(newData, d.data[d.head:])
 		copy(newData[n:], d.data[:d.tail])
 	}
@@ -179,10 +174,8 @@ func (d *Deque[T]) ToSlice() []T {
 	result := make([]T, size)
 
 	if d.tail > d.head {
-		// No wrap: elements are contiguous from head to tail
 		copy(result, d.data[d.head:d.tail])
 	} else if size > 0 {
-		// Wrapped: elements from head to end, then from start to tail
 		n := copy(result, d.data[d.head:])
 		copy(result[n:], d.data[:d.tail])
 	}

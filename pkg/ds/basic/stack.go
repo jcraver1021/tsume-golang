@@ -19,7 +19,6 @@ func (s *Stack[T]) IsEmpty() bool {
 }
 
 func (s *Stack[T]) Push(element T) {
-	// Note: we do not need to check for capacity here, as the underlying slice will automatically resize as needed
 	s.elements = append(s.elements, element)
 }
 

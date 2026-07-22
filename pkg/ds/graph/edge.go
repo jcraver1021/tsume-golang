@@ -5,9 +5,9 @@ import (
 )
 
 type Edge struct {
-	From   any     // The starting node of the edge.
-	To     any     // The ending node of the edge.
-	Weight float64 // The weight of the edge.
+	From   any
+	To     any
+	Weight float64
 }
 
 func (e Edge) Equals(other Edge) bool {
