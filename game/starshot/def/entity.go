@@ -4,6 +4,7 @@ import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 )
 
+// EntityType categorizes entities for update and draw order.
 // Iota values are arbitrary — draw/update order is defined by EntityTypes below.
 type EntityType int
 
@@ -19,6 +20,7 @@ const (
 	EntityTypeBackground
 )
 
+// EntityTypes imposes ordering up on the entity types for update and draw purposes.
 // Top to bottom for update order
 // Bottom to top for draw order
 // (note that some entity types opt out of being drawn)

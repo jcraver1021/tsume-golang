@@ -8,10 +8,13 @@ import (
 	"tsumegolang/game/starshot/def"
 )
 
+// StarVariation defines how a star changes over time
 type StarVariation interface {
+	// Calculate returns (size, brightness multiplier) based on global tick
 	Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64)
 }
 
+// NoVariation is a static star with no changes over time
 type NoVariation struct{}
 
 func (n *NoVariation) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float64) {
