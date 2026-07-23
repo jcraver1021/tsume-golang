@@ -9,28 +9,21 @@ import (
 	"tsumegolang/game/starshot/util"
 )
 
-// Banner displays static text on the screen
 type Banner struct {
-	// Content
 	text      string
 	fontFace  *text.GoTextFace
 	textColor color.RGBA
 
-	// Layout
 	x, y int // Position (top-left corner)
 
-	// Optional background
 	bgColor *color.RGBA // nil = no background box
 	padding int
 
-	// Lifetime
 	frameCount int
 	maxFrames  int // 0 = permanent, >0 = auto-remove after duration
 
-	// Cached dimensions
 	width, height float64
 
-	// Rendering layer
 	entityType def.EntityType
 }
 
@@ -81,10 +74,8 @@ func NewBannerWithOptions(opts BannerOptions) (*Banner, error) {
 
 	face := fm.GetFace(opts.FontSize)
 
-	// Measure text dimensions for caching
 	width, height := text.Measure(opts.Text, face, 0)
 
-	// Default to Background if not specified
 	entityType := opts.EntityType
 	if entityType == 0 && opts.EntityType != def.EntityTypeUI {
 		entityType = def.EntityTypeBackground
@@ -105,8 +96,6 @@ func NewBannerWithOptions(opts BannerOptions) (*Banner, error) {
 		entityType: entityType,
 	}, nil
 }
-
-// Entity interface implementation
 
 func (b *Banner) Type() def.EntityType {
 	return b.entityType

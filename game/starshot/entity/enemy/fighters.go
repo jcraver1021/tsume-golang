@@ -17,7 +17,6 @@ const (
 	enemyDrawScale = 2 // all enemies render at this scale via DrawImage
 )
 
-// ─── Chaser ───────────────────────────────────────────────────────────────────
 // Chaser pursues the player and rams into them. It steers around asteroids but
 // does not fire. See Hunter for a shooting variant.
 
@@ -95,8 +94,6 @@ func (c *Chaser) Act(scene def.Scene) {
 	c.applyIntent(c.brain.Decide(c.Perceive(scene)), scene)
 }
 
-// Perceive emits SignalSelf, SignalPlayer, and SignalObstacle for hazards within
-// chaserLookahead pixels along the current heading.
 func (c *Chaser) Perceive(scene def.Scene) def.Perception {
 	p := def.Perception{
 		{Kind: def.SignalSelf, Condition: def.ConditionFor(c.hp, c.maxHP)},
@@ -220,7 +217,6 @@ func (c *Chaser) ScoreValue() int {
 	return chaserValue
 }
 
-// ─── ChaserBrain ──────────────────────────────────────────────────────────────
 // ChaserBrain steers toward the player at constant speed, turning to avoid
 // obstacles. Three steering choices per frame: left, right, or aim-at-player.
 
@@ -266,7 +262,6 @@ func (b *ChaserBrain) Decide(p def.Perception) def.Intent {
 	return def.Intent{Direction: b.heading, Speed: b.Speed}
 }
 
-// ─── Hunter ───────────────────────────────────────────────────────────────────
 // Hunter pursues the player and fires when aligned. Steers around asteroids.
 // See Chaser for a non-firing ramming variant.
 
@@ -480,7 +475,6 @@ func (h *Hunter) ScoreValue() int {
 	return hunterValue
 }
 
-// ─── HunterBrain ──────────────────────────────────────────────────────────────
 // HunterBrain steers like ChaserBrain and fires when the heading is closely
 // aligned with the player (within ~18°, dot > 0.95).
 
@@ -531,8 +525,6 @@ func (b *HunterBrain) Decide(p def.Perception) def.Intent {
 	}
 	return intent
 }
-
-// ─── Steering utilities ───────────────────────────────────────────────────────
 
 // rotate2D rotates a 2D vector by angle radians (positive = clockwise in screen space).
 func rotate2D(v [2]float64, angle float64) [2]float64 {

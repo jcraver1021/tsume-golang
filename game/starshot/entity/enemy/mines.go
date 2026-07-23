@@ -29,7 +29,6 @@ type PathSegment struct {
 	VX, VY float64
 }
 
-// ─── MineBrain ────────────────────────────────────────────────────────────────
 // MineBrain drifts until a player signal is perceived, then chases directly.
 // Detection and tracking are handled by Mine.Perceive; this brain only decides speed.
 
@@ -47,7 +46,6 @@ func (b *MineBrain) Decide(p def.Perception) def.Intent {
 	return def.Intent{Direction: [2]float64{0, 1}, Speed: b.DriftSpeed}
 }
 
-// ─── Mine (contact mine) ──────────────────────────────────────────────────────
 // Mine drifts slowly downward until the player enters its detection radius,
 // then chases and detonates on direct contact with the player.
 
@@ -268,7 +266,6 @@ func (m *Mine) ScoreValue() int {
 	return mineValue
 }
 
-// ─── RangeMine (proximity countdown) ─────────────────────────────────────────
 // RangeMine drifts slowly downward. When the player lingers within
 // rangeMineDetectionRadius for rangeMineDetonateFrames consecutive frames, it
 // detonates. Its orange lights flash rapidly once active. Also detonates on contact.
@@ -462,7 +459,6 @@ func (r *RangeMine) ScoreValue() int {
 	return rangeMineValue
 }
 
-// ─── PathMine (path-following, contact detonation) ────────────────────────────
 // PathMine follows a repeating sequence of PathSegments while drifting downward.
 // It has a slow blue pulsing light and detonates only on direct contact.
 
@@ -639,7 +635,6 @@ func (p *PathMine) ScoreValue() int {
 	return pathMineValue
 }
 
-// ─── PathRangeMine (path-following + proximity countdown) ─────────────────────
 // PathRangeMine combines PathMine path-following with RangeMine proximity
 // detonation. Its violet lights flash rapidly once the countdown is active.
 // It detonates after the player stays within its detection radius for 10

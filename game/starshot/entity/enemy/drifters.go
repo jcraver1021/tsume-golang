@@ -10,7 +10,6 @@ import (
 	"tsumegolang/game/starshot/entity/effects"
 )
 
-// ─── Drifter (fast straight descent) ─────────────────────────────────────────
 // Drifter falls straight down at high speed with no lateral movement or
 // targeting. It is the simplest threat: dodge or shoot it before it passes.
 
@@ -141,7 +140,6 @@ func (d *Drifter) ScoreValue() int {
 	return drifterValue
 }
 
-// ─── Weaver (descends while steering around obstacles) ────────────────────────
 // Weaver drifts downward and actively pushes sideways when an obstacle is
 // directly ahead. The result is a weaving path through the asteroid field.
 // It does not target the player but is hard to ignore in a dense field.

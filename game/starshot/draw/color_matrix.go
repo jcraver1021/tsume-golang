@@ -15,7 +15,7 @@ var (
 type ColorKey string
 
 func (ck ColorKey) valid() bool {
-	return len(ck) == 1 // ColorKey should be a single character
+	return len(ck) == 1
 }
 
 func fromString(s string) (ColorKey, error) {
@@ -39,7 +39,7 @@ type AnimationSequence struct {
 
 func NewAnimationSequence(colorMap *ColorMap, frames []ColorKey, frameDuration int) *AnimationSequence {
 	if frameDuration <= 0 {
-		frameDuration = 1 // Default to 1 if invalid
+		frameDuration = 1
 	}
 
 	return &AnimationSequence{
@@ -53,7 +53,7 @@ func NewAnimationSequence(colorMap *ColorMap, frames []ColorKey, frameDuration i
 
 func (a *AnimationSequence) GetColor() color.RGBA {
 	if len(a.Frames) == 0 {
-		return color.RGBA{0, 0, 0, 0} // Return transparent if no frames
+		return color.RGBA{0, 0, 0, 0}
 	}
 
 	return (*a.ColorMap)[a.Frames[a.CurrentFrame]]

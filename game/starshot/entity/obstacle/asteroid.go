@@ -116,7 +116,6 @@ func (s AsteroidSize) Mass() float64 {
 	}
 }
 
-// Asteroid is a ColorMatrix-based asteroid with procedural multi-color generation
 type Asteroid struct {
 	x, y          int
 	fx, fy        float64 // sub-pixel position
@@ -131,7 +130,6 @@ type Asteroid struct {
 	dead  bool
 }
 
-// NewAsteroid creates a new procedurally-generated multi-colored asteroid
 func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
 	return newAsteroidWithSeed(x, y, size, rand.Int63())
 }
@@ -157,7 +155,6 @@ func newAsteroidWithSeed(x, y int, size AsteroidSize, seed int64) *Asteroid {
 	}
 }
 
-// newSplitAsteroid creates a child asteroid inheriting the parent's visual seed.
 func newSplitAsteroid(x, y int, size AsteroidSize, seed int64, vx, vy float64) *Asteroid {
 	a := newAsteroidWithSeed(x, y, size, seed)
 	a.vx = vx
@@ -165,15 +162,12 @@ func newSplitAsteroid(x, y int, size AsteroidSize, seed int64, vx, vy float64) *
 	return a
 }
 
-// NewRandomAsteroid creates an asteroid with random size from a given range
 func NewRandomAsteroid(x, y int) *Asteroid {
 	// Default distribution (for backwards compatibility)
 	return NewRandomAsteroidInRange(x, y, AsteroidSmall, AsteroidLarge)
 }
 
-// NewRandomAsteroidInRange creates a random asteroid within a size range
 func NewRandomAsteroidInRange(x, y int, minSize, maxSize AsteroidSize) *Asteroid {
-	// Random size within the inclusive range
 	sizeRange := int(maxSize - minSize + 1)
 	size := AsteroidSize(int(minSize) + rand.Intn(sizeRange))
 	return NewAsteroid(x, y, size)
@@ -456,7 +450,6 @@ func generateProceduralShape(width, height int, size AsteroidSize, rng *rand.Ran
 			dy := float64(row - centerY)
 			distance := (dx*dx + dy*dy)
 
-			// Add noise to radius based on angle
 			angle := float64(col+row*3) * 0.5
 			radiusVariation := 0.7 + 0.3*noiseValue(angle)
 

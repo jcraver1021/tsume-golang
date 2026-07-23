@@ -1,6 +1,6 @@
 package def
 
-// GameStateReader provides read access to game-wide state for UI entities.
+// GameStateReader provides read-only access to game-wide state for UI entities.
 type GameStateReader interface {
 	GetWave() int
 	GetScore() int

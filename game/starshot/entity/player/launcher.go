@@ -26,7 +26,6 @@ type Launcher struct {
 }
 
 // NewBombLauncher returns a slow heavy-bomb launcher that starts with one ammo.
-// Call Reload to replenish ammo (e.g. from a pickup entity).
 func NewBombLauncher() (*Launcher, error) {
 	data, err := spriteFiles.ReadFile("sprites/launcher_bomb.yaml")
 	if err != nil {
@@ -50,16 +49,13 @@ func NewBombLauncher() (*Launcher, error) {
 	}, nil
 }
 
-// Add more launcher types here as needed
-
 func (l *Launcher) TickCooldown() {
 	if l.cooldown > 0 {
 		l.cooldown--
 	}
 }
 
-// Ready returns true only when ammo is available and the inter-shot cooldown
-// has expired. A launcher with zero ammo stays locked until Reload is called.
+// A launcher with zero ammo stays locked until Reload is called.
 func (l *Launcher) Ready() bool {
 	return l.cooldown == 0 && l.ammo > 0
 }
@@ -70,7 +66,6 @@ func (l *Launcher) Fire(originX, originY int, scene def.Scene) {
 	l.cooldown = l.cooldownFrames
 }
 
-// Reload adds up to count ammo, capped at maxAmmo.
 func (l *Launcher) Reload(count int) {
 	l.ammo += count
 	if l.ammo > l.maxAmmo {
@@ -83,7 +78,6 @@ func (l *Launcher) Ammo() int {
 	return l.ammo
 }
 
-// MaxAmmo returns the maximum ammo capacity.
 func (l *Launcher) MaxAmmo() int {
 	return l.maxAmmo
 }

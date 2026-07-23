@@ -21,7 +21,6 @@ func (n *NoVariation) Calculate(tick int) (sizeMultiplier, brightnessMultiplier 
 	return 1.0, 1.0
 }
 
-// Pulsar oscillates in size and brightness with a sine wave pattern
 type Pulsar struct {
 	frequency       float64 // How fast it pulses (radians per frame)
 	sizeAmplitude   float64 // How much size varies (0.0 = none, 1.0 = 0-2x)
@@ -51,7 +50,6 @@ func (p *Pulsar) Calculate(tick int) (sizeMultiplier, brightnessMultiplier float
 	return sizeMultiplier, brightnessMultiplier
 }
 
-// Twinkle creates random brightness variations (like atmospheric distortion)
 type Twinkle struct {
 	changeInterval int     // Frames between brightness changes
 	variation      float64 // Max variation from 1.0
@@ -77,13 +75,11 @@ func (t *Twinkle) Calculate(tick int) (sizeMultiplier, brightnessMultiplier floa
 	progress := float64(tick%t.changeInterval) / float64(t.changeInterval)
 	easing := 0.5 - 0.5*math.Cos(progress*math.Pi) // Smooth S-curve
 
-	// Interpolate from 1.0 to target and back
 	brightness := 1.0 + (targetBrightness-1.0)*easing
 
 	return 1.0, brightness
 }
 
-// Flare creates occasional bright flashes
 type Flare struct {
 	flareDuration  int
 	flareIntensity float64

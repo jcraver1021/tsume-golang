@@ -20,7 +20,7 @@ const (
 	EntityTypeBackground
 )
 
-// EntityTypes imposes ordering up on the entity types for update and draw purposes.
+// EntityTypes imposes ordering upon the entity types for update and draw purposes.
 // Top to bottom for update order
 // Bottom to top for draw order
 // (note that some entity types opt out of being drawn)
@@ -48,7 +48,6 @@ var EntityTypeNames = map[EntityType]string{
 	EntityTypeBackground:  "Background",
 }
 
-// Entity is the core interface that all game objects must implement
 type Entity interface {
 	Type() EntityType
 	Location() (x, y int)
