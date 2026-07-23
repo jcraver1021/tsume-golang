@@ -20,7 +20,7 @@ const (
 	EntityTypeBackground
 )
 
-// EntityTypes imposes ordering up on the entity types for update and draw purposes.
+// EntityTypes imposes ordering upon the entity types for update and draw purposes.
 // Top to bottom for update order
 // Bottom to top for draw order
 // (note that some entity types opt out of being drawn)
