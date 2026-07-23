@@ -59,8 +59,13 @@ type GameState struct {
 	PlayerDied         bool // Tracks if player died this wave
 }
 
-func (s *GameState) GetWave() int  { return s.Wave }
-func (s *GameState) GetScore() int { return s.Score }
+func (s *GameState) GetWave() int {
+	return s.Wave
+}
+
+func (s *GameState) GetScore() int {
+	return s.Score
+}
 
 func NewGameState() *GameState {
 	return &GameState{

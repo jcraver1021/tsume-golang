@@ -116,8 +116,7 @@ func (s AsteroidSize) Mass() float64 {
 	}
 }
 
-const asteroidLateralDamping = 0.98 // prevents indefinite horizontal drift after impulse
-
+// Asteroid is a ColorMatrix-based asteroid with procedural multi-color generation
 type Asteroid struct {
 	x, y          int
 	fx, fy        float64 // sub-pixel position
@@ -168,11 +167,13 @@ func newSplitAsteroid(x, y int, size AsteroidSize, seed int64, vx, vy float64) *
 
 // NewRandomAsteroid creates an asteroid with random size from a given range
 func NewRandomAsteroid(x, y int) *Asteroid {
+	// Default distribution (for backwards compatibility)
 	return NewRandomAsteroidInRange(x, y, AsteroidSmall, AsteroidLarge)
 }
 
 // NewRandomAsteroidInRange creates a random asteroid within a size range
 func NewRandomAsteroidInRange(x, y int, minSize, maxSize AsteroidSize) *Asteroid {
+	// Random size within the inclusive range
 	sizeRange := int(maxSize - minSize + 1)
 	size := AsteroidSize(int(minSize) + rand.Intn(sizeRange))
 	return NewAsteroid(x, y, size)
@@ -196,13 +197,14 @@ func (a *Asteroid) BoundingBoxOverlaps(other def.Entity) bool {
 	return !(a.x+a.width < ox || a.x > ox+ow || a.y+a.height < oy || a.y > oy+oh)
 }
 
-func (a *Asteroid) Act(_ def.Scene) {
+func (a *Asteroid) Act(b def.Scene) {
 	if a.dead {
 		return
 	}
 	a.fx += a.vx
 	a.fy += a.vy
-	a.vx *= asteroidLateralDamping
+	// Dampen horizontal drift so asteroids don't fly off forever
+	a.vx *= 0.98
 	a.x = int(a.fx)
 	a.y = int(a.fy)
 }
@@ -213,7 +215,7 @@ func (a *Asteroid) Draw(img *ebit.Image) {
 	for row := range pixels {
 		for col := range pixels[row] {
 			c := pixels[row][col]
-			if c.A > 0 {
+			if c.A > 0 { // Only draw non-transparent pixels
 				img.Set(a.x+col, a.y+row, c)
 			}
 		}
@@ -258,7 +260,9 @@ func (a *Asteroid) MarkAsDead(scene def.Scene) {
 	scene.Entities().Add(child2)
 }
 
-func (a *Asteroid) IsDead() bool { return a.dead }
+func (a *Asteroid) IsDead() bool {
+	return a.dead
+}
 
 // --- Damageable ---
 
@@ -273,8 +277,13 @@ func (a *Asteroid) TakeDamage(amount int) {
 	}
 }
 
-func (a *Asteroid) CurrentHP() int { return a.hp }
-func (a *Asteroid) MaxHP() int     { return a.maxHP }
+func (a *Asteroid) CurrentHP() int {
+	return a.hp
+}
+
+func (a *Asteroid) MaxHP() int {
+	return a.maxHP
+}
 
 // --- Scorer ---
 
@@ -360,18 +369,21 @@ func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand
 	basePalette := generateRockPalette(rng)
 
 	colorCodes := draw.ColorMap{
-		"0": {0, 0, 0, 0},
+		"0": {0, 0, 0, 0}, // Transparent
 	}
-	nextCode := 1
+	nextCode := 1 // Start from 1 for visible colors
 
+	// Helper to convert int to ColorKey
 	intToKey := func(n int) draw.ColorKey {
+		// Use ASCII printable characters starting from space (32)
+		// This gives us 95 different keys which should be more than enough
 		return draw.ColorKey(string(rune(32 + n)))
 	}
 
 	for row := range shape {
 		for col := range shape[row] {
 			if !shape[row][col] {
-				matrix[row][col] = "0"
+				matrix[row][col] = "0" // Transparent
 				continue
 			}
 
@@ -384,11 +396,14 @@ func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand
 				radiusSq := crater.radius * crater.radius
 
 				if distSq < radiusSq {
-					intensity := float64(distSq) / float64(radiusSq)
+					// Inside crater - shift to darker palette colors
+					// Center of crater = darkest (0), edge = dark (1)
+					intensity := float64(distSq) / float64(radiusSq) // 0 at center, 1 at edge
+
 					if intensity < 0.5 {
-						colorIndex = 0
+						colorIndex = 0 // Darkest palette color in center
 					} else {
-						colorIndex = 1
+						colorIndex = 1 // Dark palette color toward edges
 					}
 					break
 				}

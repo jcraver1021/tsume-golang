@@ -5,9 +5,9 @@ import (
 )
 
 type Edge struct {
-	From   any
-	To     any
-	Weight float64
+	From   any     // The starting node of the edge.
+	To     any     // The ending node of the edge.
+	Weight float64 // The weight of the edge.
 }
 
 func (e Edge) Equals(other Edge) bool {
@@ -16,9 +16,17 @@ func (e Edge) Equals(other Edge) bool {
 
 type EdgeHeap []Edge
 
-func (h EdgeHeap) Len() int           { return len(h) }
-func (h EdgeHeap) Less(i, j int) bool { return h[i].Weight < h[j].Weight }
-func (h EdgeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h EdgeHeap) Len() int {
+	return len(h)
+}
+
+func (h EdgeHeap) Less(i, j int) bool {
+	return h[i].Weight < h[j].Weight
+}
+
+func (h EdgeHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
 
 func (h *EdgeHeap) Push(x any) {
 	*h = append(*h, x.(Edge))

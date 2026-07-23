@@ -111,7 +111,9 @@ func (b *Bomb) CanBeRemoved() bool {
 	return b.dead || b.y+bombHeight < 0
 }
 
-func (b *Bomb) MarkDestroyed() { b.dead = true }
+func (b *Bomb) MarkDestroyed() {
+	b.dead = true
+}
 
 // Mortal — the bomb gets a visual explosion at detonation point.
 
@@ -135,5 +137,10 @@ func (b *Bomb) IsDead() bool {
 
 // Explosive
 
-func (b *Bomb) BlastRadius() float64 { return BombBlastRadius }
-func (b *Bomb) BlastDamage() int     { return BombBlastDamage }
+func (b *Bomb) BlastRadius() float64 {
+	return BombBlastRadius
+}
+
+func (b *Bomb) BlastDamage() int {
+	return BombBlastDamage
+}

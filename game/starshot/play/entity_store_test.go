@@ -26,7 +26,8 @@ func (s *spyEntity) Act(scene def.Scene) {
 	s.seen = append(s.seen, scene.Entities().Get(s.queryType)...)
 }
 
-func (s *spyEntity) Draw(_ *ebit.Image) {}
+func (s *spyEntity) Draw(_ *ebit.Image) {
+}
 
 func TestEntityStoreImplementsInterface(t *testing.T) {
 	store := play.NewEntityStore()

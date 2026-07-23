@@ -38,15 +38,25 @@ func NewHUD(state def.GameStateReader) *HUD {
 
 // --- Entity interface ---
 
-func (h *HUD) Type() def.EntityType { return def.EntityTypeUI }
+func (h *HUD) Type() def.EntityType {
+	return def.EntityTypeUI
+}
 
-func (h *HUD) Location() (int, int) { return 0, 0 }
+func (h *HUD) Location() (int, int) {
+	return 0, 0
+}
 
-func (h *HUD) Dimensions() (int, int) { return def.ScreenWidth, hudHeight }
+func (h *HUD) Dimensions() (int, int) {
+	return def.ScreenWidth, hudHeight
+}
 
-func (h *HUD) BoundingBoxOverlaps(_ def.Entity) bool { return false }
+func (h *HUD) BoundingBoxOverlaps(_ def.Entity) bool {
+	return false
+}
 
-func (h *HUD) CanBeRemoved() bool { return false }
+func (h *HUD) CanBeRemoved() bool {
+	return false
+}
 
 func (h *HUD) Act(scene def.Scene) {
 	for _, p := range scene.Entities().Get(def.EntityTypePlayer) {

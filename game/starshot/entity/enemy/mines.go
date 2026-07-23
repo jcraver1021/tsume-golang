@@ -29,7 +29,7 @@ type PathSegment struct {
 	VX, VY float64
 }
 
-// --- MineBrain ---
+// ─── MineBrain ────────────────────────────────────────────────────────────────
 // MineBrain drifts until a player signal is perceived, then chases directly.
 // Detection and tracking are handled by Mine.Perceive; this brain only decides speed.
 
@@ -47,7 +47,7 @@ func (b *MineBrain) Decide(p def.Perception) def.Intent {
 	return def.Intent{Direction: [2]float64{0, 1}, Speed: b.DriftSpeed}
 }
 
-// --- Mine ---
+// ─── Mine (contact mine) ──────────────────────────────────────────────────────
 // Mine drifts slowly downward until the player enters its detection radius,
 // then chases and detonates on direct contact with the player.
 
@@ -71,8 +71,11 @@ type Mine struct {
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	chasing       bool
-	enemyHealth
-	brain def.Brain
+	dead          bool
+	frameCount    int
+	maxFrames     int
+	hp, maxHP     int
+	brain         def.Brain
 }
 
 func NewMine(x, y int) (*Mine, error) {
@@ -100,22 +103,33 @@ func NewMine(x, y int) (*Mine, error) {
 		chaseSprite: chase,
 		cachedImg:   ebit.NewImage(w, h),
 		pixelBuf:    make([]byte, w*h*4),
-		enemyHealth: enemyHealth{hp: mineMaxHP, maxHP: mineMaxHP},
+		hp:          mineMaxHP,
+		maxHP:       mineMaxHP,
 		brain:       &MineBrain{ChaseSpeed: mineDefaultChaseSpeed, DriftSpeed: mineDefaultDriftSpeed},
 	}, nil
 }
 
-func (m *Mine) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (m *Mine) Location() (int, int)   { return m.x, m.y }
-func (m *Mine) Dimensions() (int, int) { return m.width, m.height }
+func (m *Mine) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (m *Mine) Location() (int, int) {
+	return m.x, m.y
+}
+
+func (m *Mine) Dimensions() (int, int) {
+	return m.width, m.height
+}
 
 func (m *Mine) BoundingBoxOverlaps(other def.Entity) bool {
-	return aabbOverlaps(m.x, m.y, m.width, m.height, other)
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(m.x+m.width < ox || m.x > ox+ow || m.y+m.height < oy || m.y > oy+oh)
 }
 
 func (m *Mine) Act(scene def.Scene) {
 	if m.dead {
-		m.tickDeath()
+		m.frameCount++
 		return
 	}
 	perception := m.Perceive(scene)
@@ -188,18 +202,22 @@ func (m *Mine) SetDrift(drift float64) {
 	}
 }
 
-func (m *Mine) GetDrift() float64 { return m.drift }
+func (m *Mine) GetDrift() float64 {
+	return m.drift
+}
 
-func (m *Mine) ResetDrift() { m.SetDrift(mineDefaultDriftSpeed) }
+func (m *Mine) ResetDrift() {
+	m.SetDrift(mineDefaultDriftSpeed)
+}
 
 func (m *Mine) CanBeRemoved() bool {
 	if m.dead {
-		return m.deathComplete()
+		return m.frameCount >= m.maxFrames
 	}
 	return m.y > def.ScreenHeight
 }
 
-func mineDeathEffect() def.DeathEffect {
+func (m *Mine) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
 		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
 			if exp, err := effects.NewExplosionScaled(cx, cy, effects.ExplosionLarge, 3.0); err == nil {
@@ -209,15 +227,48 @@ func mineDeathEffect() def.DeathEffect {
 	}
 }
 
-func (m *Mine) GetDeathEffect() def.DeathEffect { return mineDeathEffect() }
+func (m *Mine) MarkAsDead(_ def.Scene) {
+	m.dead = true
+	m.frameCount = 0
+	m.maxFrames = 60
+}
 
-func (m *Mine) MarkAsDead(_ def.Scene) { m.startDeath(60) }
+func (m *Mine) IsDead() bool {
+	return m.dead
+}
 
-func (m *Mine) BlastRadius() float64 { return mineBlastRadius }
-func (m *Mine) BlastDamage() int     { return mineBlastDamage }
-func (m *Mine) ScoreValue() int      { return mineValue }
+func (m *Mine) TakeDamage(amount int) {
+	if m.dead {
+		return
+	}
+	m.hp -= amount
+	if m.hp <= 0 {
+		m.hp = 0
+		m.dead = true
+	}
+}
 
-// --- RangeMine ---
+func (m *Mine) CurrentHP() int {
+	return m.hp
+}
+
+func (m *Mine) MaxHP() int {
+	return m.maxHP
+}
+
+func (m *Mine) BlastRadius() float64 {
+	return mineBlastRadius
+}
+
+func (m *Mine) BlastDamage() int {
+	return mineBlastDamage
+}
+
+func (m *Mine) ScoreValue() int {
+	return mineValue
+}
+
+// ─── RangeMine (proximity countdown) ─────────────────────────────────────────
 // RangeMine drifts slowly downward. When the player lingers within
 // rangeMineDetectionRadius for rangeMineDetonateFrames consecutive frames, it
 // detonates. Its orange lights flash rapidly once active. Also detonates on contact.
@@ -245,7 +296,10 @@ type RangeMine struct {
 	pixelBuf        []byte
 	proximityFrames int
 	active          bool
-	enemyHealth
+	dead            bool
+	frameCount      int
+	maxFrames       int
+	hp, maxHP       int
 }
 
 func NewRangeMine(x, y int) (*RangeMine, error) {
@@ -273,21 +327,32 @@ func NewRangeMine(x, y int) (*RangeMine, error) {
 		activeSprite: active,
 		cachedImg:    ebit.NewImage(w, h),
 		pixelBuf:     make([]byte, w*h*4),
-		enemyHealth:  enemyHealth{hp: rangeMineMaxHP, maxHP: rangeMineMaxHP},
+		hp:           rangeMineMaxHP,
+		maxHP:        rangeMineMaxHP,
 	}, nil
 }
 
-func (r *RangeMine) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (r *RangeMine) Location() (int, int)   { return r.x, r.y }
-func (r *RangeMine) Dimensions() (int, int) { return r.width, r.height }
+func (r *RangeMine) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (r *RangeMine) Location() (int, int) {
+	return r.x, r.y
+}
+
+func (r *RangeMine) Dimensions() (int, int) {
+	return r.width, r.height
+}
 
 func (r *RangeMine) BoundingBoxOverlaps(other def.Entity) bool {
-	return aabbOverlaps(r.x, r.y, r.width, r.height, other)
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(r.x+r.width < ox || r.x > ox+ow || r.y+r.height < oy || r.y > oy+oh)
 }
 
 func (r *RangeMine) Act(scene def.Scene) {
 	if r.dead {
-		r.tickDeath()
+		r.frameCount++
 		return
 	}
 	r.fy += r.drift
@@ -315,13 +380,21 @@ func (r *RangeMine) Act(scene def.Scene) {
 	}
 }
 
-func (r *RangeMine) ReadyToDetonate() bool { return r.proximityFrames >= rangeMineDetonateFrames }
+func (r *RangeMine) ReadyToDetonate() bool {
+	return r.proximityFrames >= rangeMineDetonateFrames
+}
 
-func (r *RangeMine) SetDrift(drift float64) { r.drift = drift }
+func (r *RangeMine) SetDrift(drift float64) {
+	r.drift = drift
+}
 
-func (r *RangeMine) GetDrift() float64 { return r.drift }
+func (r *RangeMine) GetDrift() float64 {
+	return r.drift
+}
 
-func (r *RangeMine) ResetDrift() { r.drift = rangeMineDrift }
+func (r *RangeMine) ResetDrift() {
+	r.drift = rangeMineDrift
+}
 
 func (r *RangeMine) Draw(img *ebit.Image) {
 	sprite := r.idleSprite
@@ -333,20 +406,63 @@ func (r *RangeMine) Draw(img *ebit.Image) {
 
 func (r *RangeMine) CanBeRemoved() bool {
 	if r.dead {
-		return r.deathComplete()
+		return r.frameCount >= r.maxFrames
 	}
 	return r.y > def.ScreenHeight
 }
 
-func (r *RangeMine) GetDeathEffect() def.DeathEffect { return mineDeathEffect() }
+func (r *RangeMine) GetDeathEffect() def.DeathEffect {
+	return def.DeathEffect{
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosionScaled(cx, cy, effects.ExplosionLarge, 3.0); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
+	}
+}
 
-func (r *RangeMine) MarkAsDead(_ def.Scene) { r.startDeath(60) }
+func (r *RangeMine) MarkAsDead(_ def.Scene) {
+	r.dead = true
+	r.frameCount = 0
+	r.maxFrames = 60
+}
 
-func (r *RangeMine) BlastRadius() float64 { return rangeMineBlastRadius }
-func (r *RangeMine) BlastDamage() int     { return rangeMineBlastDamage }
-func (r *RangeMine) ScoreValue() int      { return rangeMineValue }
+func (r *RangeMine) IsDead() bool {
+	return r.dead
+}
 
-// --- PathMine ---
+func (r *RangeMine) TakeDamage(amount int) {
+	if r.dead {
+		return
+	}
+	r.hp -= amount
+	if r.hp <= 0 {
+		r.hp = 0
+		r.dead = true
+	}
+}
+
+func (r *RangeMine) CurrentHP() int {
+	return r.hp
+}
+
+func (r *RangeMine) MaxHP() int {
+	return r.maxHP
+}
+
+func (r *RangeMine) BlastRadius() float64 {
+	return rangeMineBlastRadius
+}
+
+func (r *RangeMine) BlastDamage() int {
+	return rangeMineBlastDamage
+}
+
+func (r *RangeMine) ScoreValue() int {
+	return rangeMineValue
+}
+
+// ─── PathMine (path-following, contact detonation) ────────────────────────────
 // PathMine follows a repeating sequence of PathSegments while drifting downward.
 // It has a slow blue pulsing light and detonates only on direct contact.
 
@@ -369,7 +485,10 @@ type PathMine struct {
 	path          []PathSegment
 	pathFrame     int
 	segmentTick   int
-	enemyHealth
+	dead          bool
+	frameCount    int
+	maxFrames     int
+	hp, maxHP     int
 }
 
 func NewPathMine(x, y int, path []PathSegment) (*PathMine, error) {
@@ -386,32 +505,43 @@ func NewPathMine(x, y int, path []PathSegment) (*PathMine, error) {
 	scaledH := int(float64(h) * enemyDrawScale)
 	startX := x - scaledW/2
 	return &PathMine{
-		x:           startX,
-		y:           y,
-		fx:          float64(startX),
-		fy:          float64(y),
-		drift:       pathMineDrift,
-		width:       scaledW,
-		height:      scaledH,
-		sprite:      sprite,
-		cachedImg:   ebit.NewImage(w, h),
-		pixelBuf:    make([]byte, w*h*4),
-		path:        path,
-		enemyHealth: enemyHealth{hp: pathMineMaxHP, maxHP: pathMineMaxHP},
+		x:         startX,
+		y:         y,
+		fx:        float64(startX),
+		fy:        float64(y),
+		drift:     pathMineDrift,
+		width:     scaledW,
+		height:    scaledH,
+		sprite:    sprite,
+		cachedImg: ebit.NewImage(w, h),
+		pixelBuf:  make([]byte, w*h*4),
+		path:      path,
+		hp:        pathMineMaxHP,
+		maxHP:     pathMineMaxHP,
 	}, nil
 }
 
-func (p *PathMine) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (p *PathMine) Location() (int, int)   { return p.x, p.y }
-func (p *PathMine) Dimensions() (int, int) { return p.width, p.height }
+func (p *PathMine) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (p *PathMine) Location() (int, int) {
+	return p.x, p.y
+}
+
+func (p *PathMine) Dimensions() (int, int) {
+	return p.width, p.height
+}
 
 func (p *PathMine) BoundingBoxOverlaps(other def.Entity) bool {
-	return aabbOverlaps(p.x, p.y, p.width, p.height, other)
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(p.x+p.width < ox || p.x > ox+ow || p.y+p.height < oy || p.y > oy+oh)
 }
 
 func (p *PathMine) Act(scene def.Scene) {
 	if p.dead {
-		p.tickDeath()
+		p.frameCount++
 		return
 	}
 	p.fy += p.drift
@@ -439,28 +569,77 @@ func (p *PathMine) Draw(img *ebit.Image) {
 	draw.DrawScaled(img, p.cachedImg, p.pixelBuf, p.sprite, float64(p.x), float64(p.y), enemyDrawScale)
 }
 
-func (p *PathMine) SetDrift(drift float64) { p.drift = drift }
+func (p *PathMine) SetDrift(drift float64) {
+	p.drift = drift
+}
 
-func (p *PathMine) GetDrift() float64 { return p.drift }
+func (p *PathMine) GetDrift() float64 {
+	return p.drift
+}
 
-func (p *PathMine) ResetDrift() { p.drift = pathMineDrift }
+func (p *PathMine) ResetDrift() {
+	p.drift = pathMineDrift
+}
 
 func (p *PathMine) CanBeRemoved() bool {
 	if p.dead {
-		return p.deathComplete()
+		return p.frameCount >= p.maxFrames
 	}
 	return p.y > def.ScreenHeight
 }
 
-func (p *PathMine) GetDeathEffect() def.DeathEffect { return mineDeathEffect() }
+func (p *PathMine) GetDeathEffect() def.DeathEffect {
+	return def.DeathEffect{
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosionScaled(cx, cy, effects.ExplosionLarge, 3.0); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
+	}
+}
 
-func (p *PathMine) MarkAsDead(_ def.Scene) { p.startDeath(60) }
+func (p *PathMine) MarkAsDead(_ def.Scene) {
+	p.dead = true
+	p.frameCount = 0
+	p.maxFrames = 60
+}
 
-func (p *PathMine) BlastRadius() float64 { return pathMineBlastRadius }
-func (p *PathMine) BlastDamage() int     { return pathMineBlastDamage }
-func (p *PathMine) ScoreValue() int      { return pathMineValue }
+func (p *PathMine) IsDead() bool {
+	return p.dead
+}
 
-// --- PathRangeMine ---
+func (p *PathMine) TakeDamage(amount int) {
+	if p.dead {
+		return
+	}
+	p.hp -= amount
+	if p.hp <= 0 {
+		p.hp = 0
+		p.dead = true
+	}
+}
+
+func (p *PathMine) CurrentHP() int {
+	return p.hp
+}
+
+func (p *PathMine) MaxHP() int {
+	return p.maxHP
+}
+
+func (p *PathMine) BlastRadius() float64 {
+	return pathMineBlastRadius
+}
+
+func (p *PathMine) BlastDamage() int {
+	return pathMineBlastDamage
+}
+
+func (p *PathMine) ScoreValue() int {
+	return pathMineValue
+}
+
+// ─── PathRangeMine (path-following + proximity countdown) ─────────────────────
 // PathRangeMine combines PathMine path-following with RangeMine proximity
 // detonation. Its violet lights flash rapidly once the countdown is active.
 // It detonates after the player stays within its detection radius for 10
@@ -490,7 +669,10 @@ type PathRangeMine struct {
 	segmentTick     int
 	proximityFrames int
 	active          bool
-	enemyHealth
+	dead            bool
+	frameCount      int
+	maxFrames       int
+	hp, maxHP       int
 }
 
 func NewPathRangeMine(x, y int, path []PathSegment) (*PathRangeMine, error) {
@@ -519,21 +701,32 @@ func NewPathRangeMine(x, y int, path []PathSegment) (*PathRangeMine, error) {
 		cachedImg:    ebit.NewImage(w, h),
 		pixelBuf:     make([]byte, w*h*4),
 		path:         path,
-		enemyHealth:  enemyHealth{hp: pathRangeMineMaxHP, maxHP: pathRangeMineMaxHP},
+		hp:           pathRangeMineMaxHP,
+		maxHP:        pathRangeMineMaxHP,
 	}, nil
 }
 
-func (p *PathRangeMine) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (p *PathRangeMine) Location() (int, int)   { return p.x, p.y }
-func (p *PathRangeMine) Dimensions() (int, int) { return p.width, p.height }
+func (p *PathRangeMine) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (p *PathRangeMine) Location() (int, int) {
+	return p.x, p.y
+}
+
+func (p *PathRangeMine) Dimensions() (int, int) {
+	return p.width, p.height
+}
 
 func (p *PathRangeMine) BoundingBoxOverlaps(other def.Entity) bool {
-	return aabbOverlaps(p.x, p.y, p.width, p.height, other)
+	ox, oy := other.Location()
+	ow, oh := other.Dimensions()
+	return !(p.x+p.width < ox || p.x > ox+ow || p.y+p.height < oy || p.y > oy+oh)
 }
 
 func (p *PathRangeMine) Act(scene def.Scene) {
 	if p.dead {
-		p.tickDeath()
+		p.frameCount++
 		return
 	}
 	p.fy += p.drift
@@ -581,11 +774,17 @@ func (p *PathRangeMine) ReadyToDetonate() bool {
 	return p.proximityFrames >= pathRangeMineDetonateFrames
 }
 
-func (p *PathRangeMine) SetDrift(drift float64) { p.drift = drift }
+func (p *PathRangeMine) SetDrift(drift float64) {
+	p.drift = drift
+}
 
-func (p *PathRangeMine) GetDrift() float64 { return p.drift }
+func (p *PathRangeMine) GetDrift() float64 {
+	return p.drift
+}
 
-func (p *PathRangeMine) ResetDrift() { p.drift = pathRangeMineDrift }
+func (p *PathRangeMine) ResetDrift() {
+	p.drift = pathRangeMineDrift
+}
 
 func (p *PathRangeMine) Draw(img *ebit.Image) {
 	sprite := p.idleSprite
@@ -597,15 +796,58 @@ func (p *PathRangeMine) Draw(img *ebit.Image) {
 
 func (p *PathRangeMine) CanBeRemoved() bool {
 	if p.dead {
-		return p.deathComplete()
+		return p.frameCount >= p.maxFrames
 	}
 	return p.y > def.ScreenHeight
 }
 
-func (p *PathRangeMine) GetDeathEffect() def.DeathEffect { return mineDeathEffect() }
+func (p *PathRangeMine) GetDeathEffect() def.DeathEffect {
+	return def.DeathEffect{
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
+			if exp, err := effects.NewExplosionScaled(cx, cy, effects.ExplosionLarge, 3.0); err == nil {
+				scene.Entities().Add(exp)
+			}
+		},
+	}
+}
 
-func (p *PathRangeMine) MarkAsDead(_ def.Scene) { p.startDeath(60) }
+func (p *PathRangeMine) MarkAsDead(_ def.Scene) {
+	p.dead = true
+	p.frameCount = 0
+	p.maxFrames = 60
+}
 
-func (p *PathRangeMine) BlastRadius() float64 { return pathRangeMineBlastRadius }
-func (p *PathRangeMine) BlastDamage() int     { return pathRangeMineBlastDamage }
-func (p *PathRangeMine) ScoreValue() int      { return pathRangeMineValue }
+func (p *PathRangeMine) IsDead() bool {
+	return p.dead
+}
+
+func (p *PathRangeMine) TakeDamage(amount int) {
+	if p.dead {
+		return
+	}
+	p.hp -= amount
+	if p.hp <= 0 {
+		p.hp = 0
+		p.dead = true
+	}
+}
+
+func (p *PathRangeMine) CurrentHP() int {
+	return p.hp
+}
+
+func (p *PathRangeMine) MaxHP() int {
+	return p.maxHP
+}
+
+func (p *PathRangeMine) BlastRadius() float64 {
+	return pathRangeMineBlastRadius
+}
+
+func (p *PathRangeMine) BlastDamage() int {
+	return pathRangeMineBlastDamage
+}
+
+func (p *PathRangeMine) ScoreValue() int {
+	return pathRangeMineValue
+}

@@ -50,7 +50,8 @@ func (s *Spawner) Act(b def.Scene) {
 	}
 }
 
-func (s *Spawner) Draw(img *ebit.Image) {}
+func (s *Spawner) Draw(img *ebit.Image) {
+}
 
 func (s *Spawner) CanBeRemoved() bool {
 	return s.canBeRemoved

@@ -314,7 +314,9 @@ func (p *Player) composeExplosion(explosionSprite *draw.ColorMatrix) error {
 	return nil
 }
 
-func (p *Player) IsDead() bool { return p.dead }
+func (p *Player) IsDead() bool {
+	return p.dead
+}
 
 // --- Damageable ---
 

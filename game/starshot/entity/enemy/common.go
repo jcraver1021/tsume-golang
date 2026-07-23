@@ -30,11 +30,25 @@ func (e *enemyHealth) startDeath(maxFrames int) {
 	e.maxFrames = maxFrames
 }
 
-func (e *enemyHealth) tickDeath()          { e.frameCount++ }
-func (e *enemyHealth) deathComplete() bool { return e.dead && e.frameCount >= e.maxFrames }
-func (e *enemyHealth) CurrentHP() int      { return e.hp }
-func (e *enemyHealth) MaxHP() int          { return e.maxHP }
-func (e *enemyHealth) IsDead() bool        { return e.dead }
+func (e *enemyHealth) tickDeath() {
+	e.frameCount++
+}
+
+func (e *enemyHealth) deathComplete() bool {
+	return e.dead && e.frameCount >= e.maxFrames
+}
+
+func (e *enemyHealth) CurrentHP() int {
+	return e.hp
+}
+
+func (e *enemyHealth) MaxHP() int {
+	return e.maxHP
+}
+
+func (e *enemyHealth) IsDead() bool {
+	return e.dead
+}
 
 // aabbOverlaps reports whether the AABB (ax, ay, aw, ah) overlaps other's bounding box.
 func aabbOverlaps(ax, ay, aw, ah int, other def.Entity) bool {

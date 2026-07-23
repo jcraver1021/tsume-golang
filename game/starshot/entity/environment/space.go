@@ -253,7 +253,8 @@ func (s *Space) Act(b def.Scene) {
 	}
 }
 
-func (s *Space) Draw(img *ebit.Image) {}
+func (s *Space) Draw(img *ebit.Image) {
+}
 
 func (s *Space) CanBeRemoved() bool {
 	return false

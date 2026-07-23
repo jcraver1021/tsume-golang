@@ -94,11 +94,17 @@ func generatePhotonTorpedoSprite() *draw.ColorMatrix {
 	return cm
 }
 
-func (b *EnemyBullet) Type() def.EntityType { return def.EntityTypeEnemyTeam }
+func (b *EnemyBullet) Type() def.EntityType {
+	return def.EntityTypeEnemyTeam
+}
 
-func (b *EnemyBullet) Location() (int, int) { return b.x, b.y }
+func (b *EnemyBullet) Location() (int, int) {
+	return b.x, b.y
+}
 
-func (b *EnemyBullet) Dimensions() (int, int) { return torpedoSize, torpedoSize }
+func (b *EnemyBullet) Dimensions() (int, int) {
+	return torpedoSize, torpedoSize
+}
 
 func (b *EnemyBullet) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -135,4 +141,6 @@ func (b *EnemyBullet) CanBeRemoved() bool {
 		b.y > def.ScreenHeight
 }
 
-func (b *EnemyBullet) MarkDestroyed() { b.dead = true }
+func (b *EnemyBullet) MarkDestroyed() {
+	b.dead = true
+}
