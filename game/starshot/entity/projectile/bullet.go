@@ -14,7 +14,6 @@ const (
 	bulletSpeed  = 10
 )
 
-// Bullet is a projectile fired upward by the player.
 type Bullet struct {
 	x, y   int
 	sprite *draw.ColorMatrix

@@ -1,6 +1,5 @@
 package def
 
-// SignalCategory identifies the categorization of a detected signal.
 type SignalCategory int
 
 const (
@@ -11,7 +10,6 @@ const (
 	SignalDanger                         // area-of-effect threat (blast radius, etc.)
 )
 
-// Condition is the perceived health state of an entity.
 // Thresholds are set by the sensor (Perceive), not exposed as raw HP.
 type Condition int
 
@@ -21,7 +19,6 @@ const (
 	ConditionCritical                  // ≤ 25% HP
 )
 
-// ConditionFor maps current/max HP to a Condition.
 // Centralizing the thresholds keeps sensors consistent across entity types.
 func ConditionFor(current, max int) Condition {
 	if max == 0 {
@@ -37,7 +34,6 @@ func ConditionFor(current, max int) Condition {
 	}
 }
 
-// Signal represents a single detection.
 type Signal struct {
 	Kind      SignalCategory
 	Direction [2]float64 // normalized vector from the perceiver toward the source (zero for self)
@@ -45,11 +41,9 @@ type Signal struct {
 	Condition Condition  // meaningful for living sources (Self, Player, Ally); zero for non-living signals (Obstacle, Danger)
 }
 
-// Perception represents the complete set of signals detected by an entity in a signal frame.
 // The "brain" does not see the raw state, only what their perception provides.
 type Perception []Signal
 
-// Intent represents the desired actions of an entity for the current frame.
 type Intent struct {
 	Direction [2]float64 // normalized heading vector; zero means no movement
 	Speed     float64    // magnitude in pixels/frame
@@ -57,7 +51,6 @@ type Intent struct {
 	FireAim   [2]float64 // normalized direction to fire in
 }
 
-// Brain decides the actions of an entity based on its Perception (called once per frame).
 type Brain interface {
 	Decide(Perception) Intent
 }

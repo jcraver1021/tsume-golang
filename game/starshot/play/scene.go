@@ -58,7 +58,7 @@ func NewScene(state *GameState) *Scene {
 }
 
 func (s *Scene) Update() {
-	s.tick++ // Increment global tick counter (always advance)
+	s.tick++
 
 	// Check if we should skip this frame due to slowdown
 	shouldUpdate := true

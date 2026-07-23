@@ -9,7 +9,6 @@ import (
 	"tsumegolang/game/starshot/entity/effects"
 )
 
-// PlayerAction represents player input state
 type PlayerAction struct {
 	MoveUp         bool
 	MoveDown       bool
@@ -56,8 +55,8 @@ type Player struct {
 	maxHP int
 
 	dead                 bool
-	explosionFrameCount  int // Frames since death
-	explosionMaxDuration int // Total frames the explosion animation lasts
+	explosionFrameCount  int
+	explosionMaxDuration int
 }
 
 // NewPlayer creates a new ColorMatrix-based player. Either weapon may be nil.

@@ -20,7 +20,6 @@ type Gun struct {
 	fireFunc       func(x, y int, scene def.Scene)
 }
 
-// NewBasicGun returns a rapid-fire centered bullet gun.
 func NewBasicGun() (*Gun, error) {
 	data, err := spriteFiles.ReadFile("sprites/gun_basic.yaml")
 	if err != nil {
@@ -41,8 +40,6 @@ func NewBasicGun() (*Gun, error) {
 		},
 	}, nil
 }
-
-// Add more gun types here as needed
 
 func (g *Gun) TickCooldown() {
 	if g.cooldown > 0 {
