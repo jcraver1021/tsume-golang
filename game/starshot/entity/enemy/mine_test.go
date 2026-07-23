@@ -1,48 +1,24 @@
 package enemy
 
-import (
-	"testing"
-)
+import "testing"
 
-func TestNewMineLoadsSprite(t *testing.T) {
-	m, err := NewMine(100, 50)
-	if err != nil {
-		t.Fatalf("NewMine: %v", err)
-	}
-	if m == nil {
-		t.Fatal("NewMine returned nil")
-	}
-}
-
-func TestNewRangeMineLoadsSprite(t *testing.T) {
-	r, err := NewRangeMine(100, 50)
-	if err != nil {
-		t.Fatalf("NewRangeMine: %v", err)
-	}
-	if r == nil {
-		t.Fatal("NewRangeMine returned nil")
-	}
-}
-
-func TestNewPathMineLoadsSprite(t *testing.T) {
+func TestMineConstructors(t *testing.T) {
 	path := []PathSegment{{Frames: 60, VX: 1.0, VY: 0}}
-	p, err := NewPathMine(100, 50, path)
-	if err != nil {
-		t.Fatalf("NewPathMine: %v", err)
+	testCases := []struct {
+		name string
+		fn   func() error
+	}{
+		{"Mine", func() error { _, err := NewMine(100, 50); return err }},
+		{"RangeMine", func() error { _, err := NewRangeMine(100, 50); return err }},
+		{"PathMine", func() error { _, err := NewPathMine(100, 50, path); return err }},
+		{"PathRangeMine", func() error { _, err := NewPathRangeMine(100, 50, path); return err }},
 	}
-	if p == nil {
-		t.Fatal("NewPathMine returned nil")
-	}
-}
-
-func TestNewPathRangeMineLoadsSprite(t *testing.T) {
-	path := []PathSegment{{Frames: 60, VX: 1.0, VY: 0}}
-	p, err := NewPathRangeMine(100, 50, path)
-	if err != nil {
-		t.Fatalf("NewPathRangeMine: %v", err)
-	}
-	if p == nil {
-		t.Fatal("NewPathRangeMine returned nil")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := tc.fn(); err != nil {
+				t.Fatalf("%s: %v", tc.name, err)
+			}
+		})
 	}
 }
 

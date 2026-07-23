@@ -165,7 +165,8 @@ func (w *Wave1) resetTicks() {
 	w.ticksInPhase = -1
 }
 
-func (w *Wave1) Draw(img *ebit.Image) {}
+func (w *Wave1) Draw(img *ebit.Image) {
+}
 
 func (w *Wave1) CanBeRemoved() bool {
 	return false

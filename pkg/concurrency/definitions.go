@@ -1,8 +1,5 @@
 package concurrency
 
-type I any
-type O any
-
 type JobStatus int
 
 const (

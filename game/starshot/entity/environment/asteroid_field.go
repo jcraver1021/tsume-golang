@@ -60,7 +60,8 @@ func (af *AsteroidField) Act(b def.Scene) {
 	}
 }
 
-func (af *AsteroidField) Draw(img *ebit.Image) {}
+func (af *AsteroidField) Draw(img *ebit.Image) {
+}
 
 func (af *AsteroidField) CanBeRemoved() bool {
 	return af.canBeRemoved

@@ -50,17 +50,23 @@ func (g *Gun) TickCooldown() {
 	}
 }
 
-func (g *Gun) Ready() bool { return g.cooldown == 0 }
+func (g *Gun) Ready() bool {
+	return g.cooldown == 0
+}
 
 func (g *Gun) Fire(originX, originY int, scene def.Scene) {
 	g.fireFunc(originX, originY, scene)
 	g.cooldown = g.cooldownFrames
 }
 
-func (g *Gun) Sprite() *draw.ColorMatrix { return g.sprite }
+func (g *Gun) Sprite() *draw.ColorMatrix {
+	return g.sprite
+}
 
 func (g *Gun) MountOffsetX(hullWidth int) int {
 	return (hullWidth - g.sprite.Width()) / 2
 }
 
-func (g *Gun) MountOffsetY() int { return g.mountY }
+func (g *Gun) MountOffsetY() int {
+	return g.mountY
+}

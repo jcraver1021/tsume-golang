@@ -6,8 +6,6 @@ type GameMode int
 const (
 	GameModeIntro GameMode = iota
 	GameModePlay
-	GameModePaused
-	GameModeExitConfirm
 	GameModeGameOver
 	GameModeTransition
 	GameModeComplete

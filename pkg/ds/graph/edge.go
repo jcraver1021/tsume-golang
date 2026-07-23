@@ -16,9 +16,17 @@ func (e Edge) Equals(other Edge) bool {
 
 type EdgeHeap []Edge
 
-func (h EdgeHeap) Len() int           { return len(h) }
-func (h EdgeHeap) Less(i, j int) bool { return h[i].Weight < h[j].Weight }
-func (h EdgeHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+func (h EdgeHeap) Len() int {
+	return len(h)
+}
+
+func (h EdgeHeap) Less(i, j int) bool {
+	return h[i].Weight < h[j].Weight
+}
+
+func (h EdgeHeap) Swap(i, j int) {
+	h[i], h[j] = h[j], h[i]
+}
 
 func (h *EdgeHeap) Push(x any) {
 	*h = append(*h, x.(Edge))

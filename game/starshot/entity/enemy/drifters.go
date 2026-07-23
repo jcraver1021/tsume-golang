@@ -60,9 +60,17 @@ func NewDrifter(x, y int) (*Drifter, error) {
 	}, nil
 }
 
-func (d *Drifter) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (d *Drifter) Location() (int, int)   { return d.x, d.y }
-func (d *Drifter) Dimensions() (int, int) { return d.width, d.height }
+func (d *Drifter) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (d *Drifter) Location() (int, int) {
+	return d.x, d.y
+}
+
+func (d *Drifter) Dimensions() (int, int) {
+	return d.width, d.height
+}
 
 func (d *Drifter) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -100,8 +108,15 @@ func (d *Drifter) GetDeathEffect() def.DeathEffect {
 	}
 }
 
-func (d *Drifter) MarkAsDead(_ def.Scene) { d.dead = true; d.frameCount = 0; d.maxFrames = 30 }
-func (d *Drifter) IsDead() bool           { return d.dead }
+func (d *Drifter) MarkAsDead(_ def.Scene) {
+	d.dead = true
+	d.frameCount = 0
+	d.maxFrames = 30
+}
+
+func (d *Drifter) IsDead() bool {
+	return d.dead
+}
 
 func (d *Drifter) TakeDamage(amount int) {
 	if d.dead {
@@ -114,9 +129,17 @@ func (d *Drifter) TakeDamage(amount int) {
 	}
 }
 
-func (d *Drifter) CurrentHP() int  { return d.hp }
-func (d *Drifter) MaxHP() int      { return d.maxHP }
-func (d *Drifter) ScoreValue() int { return drifterValue }
+func (d *Drifter) CurrentHP() int {
+	return d.hp
+}
+
+func (d *Drifter) MaxHP() int {
+	return d.maxHP
+}
+
+func (d *Drifter) ScoreValue() int {
+	return drifterValue
+}
 
 // ─── Weaver (descends while steering around obstacles) ────────────────────────
 // Weaver drifts downward and actively pushes sideways when an obstacle is
@@ -174,9 +197,17 @@ func NewWeaver(x, y int) (*Weaver, error) {
 	}, nil
 }
 
-func (w *Weaver) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (w *Weaver) Location() (int, int)   { return w.x, w.y }
-func (w *Weaver) Dimensions() (int, int) { return w.width, w.height }
+func (w *Weaver) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (w *Weaver) Location() (int, int) {
+	return w.x, w.y
+}
+
+func (w *Weaver) Dimensions() (int, int) {
+	return w.width, w.height
+}
 
 func (w *Weaver) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -256,8 +287,15 @@ func (w *Weaver) GetDeathEffect() def.DeathEffect {
 	}
 }
 
-func (w *Weaver) MarkAsDead(_ def.Scene) { w.dead = true; w.frameCount = 0; w.maxFrames = 30 }
-func (w *Weaver) IsDead() bool           { return w.dead }
+func (w *Weaver) MarkAsDead(_ def.Scene) {
+	w.dead = true
+	w.frameCount = 0
+	w.maxFrames = 30
+}
+
+func (w *Weaver) IsDead() bool {
+	return w.dead
+}
 
 func (w *Weaver) TakeDamage(amount int) {
 	if w.dead {
@@ -270,6 +308,14 @@ func (w *Weaver) TakeDamage(amount int) {
 	}
 }
 
-func (w *Weaver) CurrentHP() int  { return w.hp }
-func (w *Weaver) MaxHP() int      { return w.maxHP }
-func (w *Weaver) ScoreValue() int { return weaverValue }
+func (w *Weaver) CurrentHP() int {
+	return w.hp
+}
+
+func (w *Weaver) MaxHP() int {
+	return w.maxHP
+}
+
+func (w *Weaver) ScoreValue() int {
+	return weaverValue
+}

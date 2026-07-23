@@ -9,10 +9,10 @@ type Mortal interface {
 }
 
 // DeathEffect specifies what happens when an entity dies.
-// SpawnVisualEffect, if non-nil, is called with the entity's center coordinates
-// and the current scene; it should only spawn visual entities (particles,
-// explosions, etc.). Damage-dealing blast behaviour is declared separately by
-// implementing def.Explosive — the game loop applies it automatically on death.
+// The game calls SpawnVisualEffect when the entity dies, if it is non-nil.
+// It should handle any visual effects associated with the entity's death.
+// Further game effects (e.g. explosion damage) are handled elsewhere
+// Slowdown is mainly for player death, but can also be used for particularly impactful entity deaths.
 type DeathEffect struct {
 	SpawnVisualEffect  func(cx, cy int, scene Scene) // nil = no visual effect
 	SlowdownMultiplier float64                       // 0.0 = no slowdown, 0.3 = 30% speed, 1.0 = normal

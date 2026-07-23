@@ -9,10 +9,6 @@ import (
 	"tsumegolang/game/starshot/testutil"
 )
 
-// ============================================================================
-// Banner Entity Tests
-// ============================================================================
-
 func TestBannerType(t *testing.T) {
 	banner, err := NewBanner("Test", 100, 100, 24.0, color.RGBA{R: 255, G: 255, B: 255, A: 255})
 	if err != nil {

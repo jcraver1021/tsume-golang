@@ -59,8 +59,13 @@ type GameState struct {
 	PlayerDied         bool // Tracks if player died this wave
 }
 
-func (s *GameState) GetWave() int  { return s.Wave }
-func (s *GameState) GetScore() int { return s.Score }
+func (s *GameState) GetWave() int {
+	return s.Wave
+}
+
+func (s *GameState) GetScore() int {
+	return s.Score
+}
 
 func NewGameState() *GameState {
 	return &GameState{
@@ -233,11 +238,9 @@ func (g *Game) checkCollisions() {
 			continue
 		}
 
-		bx, by := bullet.Location()
-		bw, bh := bullet.Dimensions()
+		bx, _ := bullet.Location()
+		bw, _ := bullet.Dimensions()
 		impactX := float64(bx + bw/2)
-		_ = by
-		_ = bh
 
 		for _, obs := range obstacles {
 			if mortal, ok := obs.(def.Mortal); ok && mortal.IsDead() {
@@ -557,10 +560,6 @@ func (g *Game) handleInput() {
 				playerEntity.SetPlayerAction(playerAction)
 			}
 		}
-	case GameModePaused:
-		// Handle paused input here
-	case GameModeExitConfirm:
-		// Handle exit confirmation input here
 	case GameModeGameOver:
 		if inpututil.IsKeyJustPressed(g.controls.StartKey) {
 			// Return to intro

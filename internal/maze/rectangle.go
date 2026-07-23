@@ -9,9 +9,9 @@ import (
 type EdgeInit int
 
 const (
-	NO_CONNECT     EdgeInit = iota // No connection, we just want use the coordinate system.
-	CONNECT_CONST                  // Connect every neighbor with weight 1.
-	CONNECT_RANDOM                 // Connect every neighbor with weight selected from the half-open interval [0.0, 1.0).
+	NoConnect     EdgeInit = iota // no edges; use the coordinate system only
+	ConnectConst                  // connect every neighbor with weight 1
+	ConnectRandom                 // connect every neighbor with weight in [0.0, 1.0)
 )
 
 const (
@@ -38,7 +38,7 @@ func NewRectangle(width, height int, init EdgeInit) (*Rectangle, error) {
 		Graph:  g,
 	}
 
-	if init == NO_CONNECT {
+	if init == NoConnect {
 		return r, nil
 	}
 
@@ -72,9 +72,9 @@ func NewRectangle(width, height int, init EdgeInit) (*Rectangle, error) {
 
 func getNewWeight(method EdgeInit) float64 {
 	switch method {
-	case CONNECT_CONST:
+	case ConnectConst:
 		return DefaultWeight
-	case CONNECT_RANDOM:
+	case ConnectRandom:
 		return rand.Float64()
 	}
 

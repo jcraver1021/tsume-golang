@@ -8,10 +8,6 @@ import (
 	"tsumegolang/game/starshot/def"
 )
 
-// ============================================================================
-// Star Variation System
-// ============================================================================
-
 // StarVariation defines how a star changes over time
 type StarVariation interface {
 	// Calculate returns (size, brightness multiplier) based on global tick

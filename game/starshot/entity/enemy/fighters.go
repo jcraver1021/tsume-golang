@@ -69,9 +69,17 @@ func NewChaser(x, y int) (*Chaser, error) {
 	}, nil
 }
 
-func (c *Chaser) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (c *Chaser) Location() (int, int)   { return c.x, c.y }
-func (c *Chaser) Dimensions() (int, int) { return c.width, c.height }
+func (c *Chaser) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (c *Chaser) Location() (int, int) {
+	return c.x, c.y
+}
+
+func (c *Chaser) Dimensions() (int, int) {
+	return c.width, c.height
+}
 
 func (c *Chaser) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -165,7 +173,9 @@ func (c *Chaser) Draw(img *ebit.Image) {
 	draw.DrawScaled(img, c.cachedImg, c.pixelBuf, c.sprite, float64(c.x), float64(c.y), enemyDrawScale)
 }
 
-func (c *Chaser) CanBeRemoved() bool { return c.dead && c.frameCount >= c.maxFrames }
+func (c *Chaser) CanBeRemoved() bool {
+	return c.dead && c.frameCount >= c.maxFrames
+}
 
 func (c *Chaser) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
@@ -177,8 +187,15 @@ func (c *Chaser) GetDeathEffect() def.DeathEffect {
 	}
 }
 
-func (c *Chaser) MarkAsDead(_ def.Scene) { c.dead = true; c.frameCount = 0; c.maxFrames = 60 }
-func (c *Chaser) IsDead() bool           { return c.dead }
+func (c *Chaser) MarkAsDead(_ def.Scene) {
+	c.dead = true
+	c.frameCount = 0
+	c.maxFrames = 60
+}
+
+func (c *Chaser) IsDead() bool {
+	return c.dead
+}
 
 func (c *Chaser) TakeDamage(amount int) {
 	if c.dead {
@@ -191,9 +208,17 @@ func (c *Chaser) TakeDamage(amount int) {
 	}
 }
 
-func (c *Chaser) CurrentHP() int  { return c.hp }
-func (c *Chaser) MaxHP() int      { return c.maxHP }
-func (c *Chaser) ScoreValue() int { return chaserValue }
+func (c *Chaser) CurrentHP() int {
+	return c.hp
+}
+
+func (c *Chaser) MaxHP() int {
+	return c.maxHP
+}
+
+func (c *Chaser) ScoreValue() int {
+	return chaserValue
+}
 
 // ─── ChaserBrain ──────────────────────────────────────────────────────────────
 // ChaserBrain steers toward the player at constant speed, turning to avoid
@@ -295,9 +320,17 @@ func NewHunter(x, y int) (*Hunter, error) {
 	}, nil
 }
 
-func (h *Hunter) Type() def.EntityType   { return def.EntityTypeEnemy }
-func (h *Hunter) Location() (int, int)   { return h.x, h.y }
-func (h *Hunter) Dimensions() (int, int) { return h.width, h.height }
+func (h *Hunter) Type() def.EntityType {
+	return def.EntityTypeEnemy
+}
+
+func (h *Hunter) Location() (int, int) {
+	return h.x, h.y
+}
+
+func (h *Hunter) Dimensions() (int, int) {
+	return h.width, h.height
+}
 
 func (h *Hunter) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
@@ -400,7 +433,9 @@ func (h *Hunter) Draw(img *ebit.Image) {
 	draw.DrawScaled(img, h.cachedImg, h.pixelBuf, h.sprite, float64(h.x), float64(h.y), enemyDrawScale)
 }
 
-func (h *Hunter) CanBeRemoved() bool { return h.dead && h.frameCount >= h.maxFrames }
+func (h *Hunter) CanBeRemoved() bool {
+	return h.dead && h.frameCount >= h.maxFrames
+}
 
 func (h *Hunter) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
@@ -412,8 +447,15 @@ func (h *Hunter) GetDeathEffect() def.DeathEffect {
 	}
 }
 
-func (h *Hunter) MarkAsDead(_ def.Scene) { h.dead = true; h.frameCount = 0; h.maxFrames = 60 }
-func (h *Hunter) IsDead() bool           { return h.dead }
+func (h *Hunter) MarkAsDead(_ def.Scene) {
+	h.dead = true
+	h.frameCount = 0
+	h.maxFrames = 60
+}
+
+func (h *Hunter) IsDead() bool {
+	return h.dead
+}
 
 func (h *Hunter) TakeDamage(amount int) {
 	if h.dead {
@@ -426,9 +468,17 @@ func (h *Hunter) TakeDamage(amount int) {
 	}
 }
 
-func (h *Hunter) CurrentHP() int  { return h.hp }
-func (h *Hunter) MaxHP() int      { return h.maxHP }
-func (h *Hunter) ScoreValue() int { return hunterValue }
+func (h *Hunter) CurrentHP() int {
+	return h.hp
+}
+
+func (h *Hunter) MaxHP() int {
+	return h.maxHP
+}
+
+func (h *Hunter) ScoreValue() int {
+	return hunterValue
+}
 
 // ─── HunterBrain ──────────────────────────────────────────────────────────────
 // HunterBrain steers like ChaserBrain and fires when the heading is closely

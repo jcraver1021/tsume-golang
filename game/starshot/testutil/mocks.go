@@ -30,8 +30,13 @@ func NewMockSceneWithSize(width, height int) *MockScene {
 	return &MockScene{width: width, height: height}
 }
 
-func (m *MockScene) Width() int  { return m.width }
-func (m *MockScene) Height() int { return m.height }
+func (m *MockScene) Width() int {
+	return m.width
+}
+
+func (m *MockScene) Height() int {
+	return m.height
+}
 func (m *MockScene) Tick() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -122,12 +127,27 @@ func NewMockEntity(entityType def.EntityType) *MockEntity {
 	return &MockEntity{EntityType: entityType, Width: 10, Height: 10}
 }
 
-func (m *MockEntity) Type() def.EntityType   { return m.EntityType }
-func (m *MockEntity) Location() (int, int)   { return m.X, m.Y }
-func (m *MockEntity) Dimensions() (int, int) { return m.Width, m.Height }
-func (m *MockEntity) Act(_ def.Scene)        {}
-func (m *MockEntity) Draw(_ *ebit.Image)     {}
-func (m *MockEntity) CanBeRemoved() bool     { return m.Removed }
+func (m *MockEntity) Type() def.EntityType {
+	return m.EntityType
+}
+
+func (m *MockEntity) Location() (int, int) {
+	return m.X, m.Y
+}
+
+func (m *MockEntity) Dimensions() (int, int) {
+	return m.Width, m.Height
+}
+
+func (m *MockEntity) Act(_ def.Scene) {
+}
+
+func (m *MockEntity) Draw(_ *ebit.Image) {
+}
+
+func (m *MockEntity) CanBeRemoved() bool {
+	return m.Removed
+}
 func (m *MockEntity) BoundingBoxOverlaps(other def.Entity) bool {
 	ox, oy := other.Location()
 	ow, oh := other.Dimensions()
@@ -149,9 +169,17 @@ func NewMockMortalEntity(entityType def.EntityType) *MockMortalEntity {
 	return &MockMortalEntity{MockEntity: NewMockEntity(entityType)}
 }
 
-func (m *MockMortalEntity) IsDead() bool                    { return m.dead }
-func (m *MockMortalEntity) GetDeathEffect() def.DeathEffect { return m.DeathEffect }
-func (m *MockMortalEntity) MarkAsDead(_ def.Scene)          { m.dead = true }
+func (m *MockMortalEntity) IsDead() bool {
+	return m.dead
+}
+
+func (m *MockMortalEntity) GetDeathEffect() def.DeathEffect {
+	return m.DeathEffect
+}
+
+func (m *MockMortalEntity) MarkAsDead(_ def.Scene) {
+	m.dead = true
+}
 
 // --- MockDamageableEntity ---
 
@@ -166,8 +194,13 @@ func NewMockDamageableEntity(entityType def.EntityType, maxHP int) *MockDamageab
 	return &MockDamageableEntity{MockEntity: NewMockEntity(entityType), hp: maxHP, maxHP: maxHP}
 }
 
-func (m *MockDamageableEntity) CurrentHP() int { return m.hp }
-func (m *MockDamageableEntity) MaxHP() int     { return m.maxHP }
+func (m *MockDamageableEntity) CurrentHP() int {
+	return m.hp
+}
+
+func (m *MockDamageableEntity) MaxHP() int {
+	return m.maxHP
+}
 func (m *MockDamageableEntity) TakeDamage(amount int) {
 	m.hp -= amount
 	if m.hp < 0 {
@@ -204,8 +237,13 @@ type MockGameStateReader struct {
 	Score int
 }
 
-func (m *MockGameStateReader) GetWave() int  { return m.Wave }
-func (m *MockGameStateReader) GetScore() int { return m.Score }
+func (m *MockGameStateReader) GetWave() int {
+	return m.Wave
+}
+
+func (m *MockGameStateReader) GetScore() int {
+	return m.Score
+}
 
 // --- MockAmmoPlayer ---
 

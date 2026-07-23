@@ -21,10 +21,9 @@ type MazeGenerator struct {
 type GeneratorOptions func(*MazeGenerator)
 
 func NewMazeGenerator(width, height int, opts ...GeneratorOptions) *MazeGenerator {
-	rect, _ := NewRectangle(width, height, NO_CONNECT)
+	rect, _ := NewRectangle(width, height, NoConnect)
 	mg := &MazeGenerator{
 		rect: rect,
-		// zero values are fine for the other parameters
 	}
 
 	for _, opt := range opts {
@@ -71,11 +70,11 @@ func (mg *MazeGenerator) generate(recursionLevel int) error {
 			}
 		}
 
-		rect, _ := NewRectangle(mg.rect.Width*submazes[0][0].rect.Width, mg.rect.Height*submazes[0][0].rect.Height, NO_CONNECT)
+		rect, _ := NewRectangle(mg.rect.Width*submazes[0][0].rect.Width, mg.rect.Height*submazes[0][0].rect.Height, NoConnect)
 		mg.rect = rect
 		mg.join(submazes)
 	} else {
-		rect, err := NewRectangle(mg.rect.Width, mg.rect.Height, CONNECT_RANDOM)
+		rect, err := NewRectangle(mg.rect.Width, mg.rect.Height, ConnectRandom)
 		if err != nil {
 			return err
 		}
@@ -83,7 +82,6 @@ func (mg *MazeGenerator) generate(recursionLevel int) error {
 		mg.rect = rect
 	}
 
-	// Filter out the MST to represent the paths)
 	baseGraph := mg.rect.Graph
 	paths, err := sparsegraph.NewGraph(baseGraph.GetSize(), true)
 	if err != nil {
@@ -125,7 +123,7 @@ func (mg *MazeGenerator) join(matrix [][]*MazeGenerator) {
 						newEast := mg.rect.RectToGraph(iBase+ri+1, jBase+rj)
 						weight := e.Weight
 						if !ok {
-							weight = getNewWeight(CONNECT_RANDOM)
+							weight = getNewWeight(ConnectRandom)
 						}
 						mg.rect.Graph.Connect(newPoint, newEast, weight)
 					}
@@ -134,7 +132,7 @@ func (mg *MazeGenerator) join(matrix [][]*MazeGenerator) {
 						newSouth := mg.rect.RectToGraph(iBase+ri, jBase+rj+1)
 						weight := e.Weight
 						if !ok {
-							weight = getNewWeight(CONNECT_RANDOM)
+							weight = getNewWeight(ConnectRandom)
 						}
 						mg.rect.Graph.Connect(newPoint, newSouth, weight)
 					}
@@ -145,17 +143,10 @@ func (mg *MazeGenerator) join(matrix [][]*MazeGenerator) {
 }
 
 func (mg *MazeGenerator) drawMaze() error {
-	// Draw the maze
 	img, err := DrawRectangleMaze(mg.rect)
 	if err != nil {
 		return err
 	}
 
-	// Save the image to a file
-	err = WriteImageToFile(&img, mg.filename)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return WriteImageToFile(&img, mg.filename)
 }

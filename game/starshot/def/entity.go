@@ -20,9 +20,10 @@ const (
 	EntityTypeBackground
 )
 
-// EntityTypes defines update order (index 0 first) and, reversed, draw order
-// (index 0 on top). UI runs first in update and renders last (above everything).
-// Background runs last in update and renders first (behind everything).
+// EntityTypes imposes ordering up on the entity types for update and draw purposes.
+// Top to bottom for update order
+// Bottom to top for draw order
+// (note that some entity types opt out of being drawn)
 var EntityTypes = []EntityType{
 	EntityTypeUI,
 	EntityTypeWave,

@@ -26,43 +26,50 @@ func separated() (*testutil.MockEntity, *testutil.MockEntity) {
 	b := testutil.NewMockEntity(def.EntityTypeEnemy)
 	b.X, b.Y, b.Width, b.Height = 100, 100, 10, 10
 
+	// you gotta keep 'em separated
 	return a, b
 }
 
-// --- Broad-phase only (no PreciseCollider) ---
+func TestCollides(t *testing.T) {
+	testCases := []struct {
+		name      string
+		generator func() (*testutil.MockEntity, *testutil.MockEntity)
+		want      bool
+	}{
+		{
+			name:      "overlapping",
+			generator: overlapping,
+			want:      true,
+		},
+		{
+			name:      "separated",
+			generator: separated,
+			want:      false,
+		},
+		{
+			name: "touching edge",
+			generator: func() (*testutil.MockEntity, *testutil.MockEntity) {
+				a := testutil.NewMockEntity(def.EntityTypePlayer)
+				a.X, a.Y, a.Width, a.Height = 0, 0, 10, 10
 
-func TestCollidesReturnsTrueWhenBoundingBoxesOverlap(t *testing.T) {
-	a, b := overlapping()
-	if !def.Collides(a, b) {
-		t.Error("Collides = false, want true for overlapping bounding boxes")
+				b := testutil.NewMockEntity(def.EntityTypeEnemy)
+				b.X, b.Y, b.Width, b.Height = 10, 0, 10, 10
+
+				return a, b
+			},
+			want: false,
+		},
 	}
-}
-
-func TestCollidesReturnsFalseWhenBoundingBoxesSeparated(t *testing.T) {
-	a, b := separated()
-	if def.Collides(a, b) {
-		t.Error("Collides = true, want false for non-overlapping bounding boxes")
-	}
-}
-
-func TestCollidesIsSymmetric(t *testing.T) {
-	a, b := overlapping()
-	if def.Collides(a, b) != def.Collides(b, a) {
-		t.Error("Collides(a,b) != Collides(b,a): collision must be symmetric")
-	}
-}
-
-func TestCollidesTouchingEdgeIsCollision(t *testing.T) {
-	// Right edge of a at x=10; left edge of b at x=10. Adjacent, not overlapping.
-	a := testutil.NewMockEntity(def.EntityTypePlayer)
-	a.X, a.Y, a.Width, a.Height = 0, 0, 10, 10
-
-	b := testutil.NewMockEntity(def.EntityTypeEnemy)
-	b.X, b.Y, b.Width, b.Height = 10, 0, 10, 10
-
-	// BoundingBoxOverlaps uses strict < so edge-touching should not collide.
-	if def.Collides(a, b) {
-		t.Error("edge-touching entities should not collide (strict < check)")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a, b := tc.generator()
+			if got := def.Collides(a, b); got != tc.want {
+				t.Errorf("Collides = %v, want %v", got, tc.want)
+			}
+			if got := def.Collides(b, a); got != tc.want {
+				t.Errorf("Collides = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -77,6 +84,8 @@ type mockPreciseEntity struct {
 }
 
 func (m *mockPreciseEntity) CollidesWith(_ def.Entity) bool {
+	// CollidesWith should not be called if the bounding boxes do not overlap
+	// We increment to track collisions between precise and non-precise colliders.
 	m.CallCount++
 	return m.CollidesResult
 }
@@ -119,26 +128,32 @@ func TestCollidesSkipsPreciseColliderWhenBoundingBoxesMiss(t *testing.T) {
 }
 
 func TestCollidesReturnsPreciseColliderResult(t *testing.T) {
-	cases := []struct {
-		name           string
-		collidesResult bool
+	testCases := []struct {
+		name string
+		want bool
 	}{
-		{"precise says yes", true},
-		{"precise says no", false},
+		{
+			name: "precise says yes",
+			want: true,
+		},
+		{
+			name: "precise says no",
+			want: false,
+		},
 	}
-	for _, tc := range cases {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := &mockPreciseEntity{
 				MockEntity:     testutil.NewMockEntity(def.EntityTypePlayer),
-				CollidesResult: tc.collidesResult,
+				CollidesResult: tc.want,
 			}
 			a.X, a.Y, a.Width, a.Height = 0, 0, 20, 20
 
 			b := testutil.NewMockEntity(def.EntityTypeEnemy)
 			b.X, b.Y, b.Width, b.Height = 10, 10, 20, 20
 
-			if got := def.Collides(a, b); got != tc.collidesResult {
-				t.Errorf("Collides = %v, want %v", got, tc.collidesResult)
+			if got := def.Collides(a, b); got != tc.want {
+				t.Errorf("Collides = %v, want %v", got, tc.want)
 			}
 		})
 	}

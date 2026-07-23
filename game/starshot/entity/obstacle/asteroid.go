@@ -260,7 +260,9 @@ func (a *Asteroid) MarkAsDead(scene def.Scene) {
 	scene.Entities().Add(child2)
 }
 
-func (a *Asteroid) IsDead() bool { return a.dead }
+func (a *Asteroid) IsDead() bool {
+	return a.dead
+}
 
 // --- Damageable ---
 
@@ -275,8 +277,13 @@ func (a *Asteroid) TakeDamage(amount int) {
 	}
 }
 
-func (a *Asteroid) CurrentHP() int { return a.hp }
-func (a *Asteroid) MaxHP() int     { return a.maxHP }
+func (a *Asteroid) CurrentHP() int {
+	return a.hp
+}
+
+func (a *Asteroid) MaxHP() int {
+	return a.maxHP
+}
 
 // --- Scorer ---
 

@@ -26,21 +26,25 @@ func TestAsteroidType(t *testing.T) {
 }
 
 func TestAsteroidSizes(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name       string
 		size       obstacle.AsteroidSize
 		wantWidth  int
 		wantHeight int
-		wantSpeed  int
 	}{
-		{"small", obstacle.AsteroidSmall, 12, 12, 3},
-		{"medium", obstacle.AsteroidMedium, 20, 20, 2},
-		{"large", obstacle.AsteroidLarge, 32, 32, 1},
+		{"tiny", obstacle.AsteroidTiny, 8, 8},
+		{"small", obstacle.AsteroidSmall, 12, 12},
+		{"medium", obstacle.AsteroidMedium, 20, 20},
+		{"large", obstacle.AsteroidLarge, 32, 32},
+		{"huge", obstacle.AsteroidHuge, 48, 48},
+		{"massive", obstacle.AsteroidMassive, 64, 64},
+		{"gigantic", obstacle.AsteroidGigantic, 80, 80},
+		{"colossal", obstacle.AsteroidColossal, 96, 96},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			asteroid := obstacle.NewAsteroid(100, 200, tt.size)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			asteroid := obstacle.NewAsteroid(100, 200, tc.size)
 
 			gotX, gotY := asteroid.Location()
 			if gotX != 100 || gotY != 200 {
@@ -48,9 +52,9 @@ func TestAsteroidSizes(t *testing.T) {
 			}
 
 			gotWidth, gotHeight := asteroid.Dimensions()
-			if gotWidth != tt.wantWidth || gotHeight != tt.wantHeight {
+			if gotWidth != tc.wantWidth || gotHeight != tc.wantHeight {
 				t.Errorf("Dimensions() = (%d, %d), want (%d, %d)",
-					gotWidth, gotHeight, tt.wantWidth, tt.wantHeight)
+					gotWidth, gotHeight, tc.wantWidth, tc.wantHeight)
 			}
 		})
 	}
@@ -63,16 +67,13 @@ func TestAsteroidMovement(t *testing.T) {
 	asteroid.Act(scene)
 
 	gotX, gotY := asteroid.Location()
-	wantX, wantY := 100, 103 // Moves down by speed (3)
-
-	if gotX != wantX || gotY != wantY {
-		t.Errorf("After Act(), Location() = (%d, %d), want (%d, %d)",
-			gotX, gotY, wantX, wantY)
+	if gotX != 100 || gotY != 103 {
+		t.Errorf("After Act(), Location() = (%d, %d), want (100, 103)", gotX, gotY)
 	}
 }
 
 func TestAsteroidRemoval(t *testing.T) {
-	tests := []struct {
+	testCases := []struct {
 		name string
 		y    int
 		want bool
@@ -83,19 +84,19 @@ func TestAsteroidRemoval(t *testing.T) {
 		{"far past bottom", def.ScreenHeight + 100, true},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			asteroid := obstacle.NewAsteroid(100, tt.y, obstacle.AsteroidSmall)
-			if got := asteroid.CanBeRemoved(); got != tt.want {
-				t.Errorf("CanBeRemoved() = %v, want %v", got, tt.want)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			asteroid := obstacle.NewAsteroid(100, tc.y, obstacle.AsteroidSmall)
+			if got := asteroid.CanBeRemoved(); got != tc.want {
+				t.Errorf("CanBeRemoved() = %v, want %v", got, tc.want)
 			}
 		})
 	}
 }
 
 func TestAsteroidBoundingBoxOverlaps(t *testing.T) {
-	asteroid := obstacle.NewAsteroid(100, 100, obstacle.AsteroidSmall) // 12x12
-	other := obstacle.NewAsteroid(105, 105, obstacle.AsteroidSmall)    // 12x12, overlapping
+	asteroid := obstacle.NewAsteroid(100, 100, obstacle.AsteroidSmall)
+	other := obstacle.NewAsteroid(105, 105, obstacle.AsteroidSmall)
 
 	if !asteroid.BoundingBoxOverlaps(other) {
 		t.Error("BoundingBoxOverlaps() = false, want true for overlapping asteroids")
@@ -108,7 +109,6 @@ func TestAsteroidBoundingBoxOverlaps(t *testing.T) {
 }
 
 func TestNewRandomAsteroid(t *testing.T) {
-	// Just verify it creates valid asteroids with varying sizes
 	sizes := make(map[int]bool)
 
 	for i := range 50 {
@@ -123,52 +123,62 @@ func TestNewRandomAsteroid(t *testing.T) {
 			t.Errorf("Iteration %d: Invalid dimensions (%d, %d)", i, width, height)
 		}
 
-		// Track sizes to ensure randomness
 		sizes[width] = true
 	}
 
-	// Should have seen at least 2 different sizes in 50 iterations
 	if len(sizes) < 2 {
 		t.Errorf("Only saw %d different sizes, expected at least 2 (random distribution)", len(sizes))
 	}
 }
 
-func TestAsteroidMultipleColors(t *testing.T) {
-	// Test that asteroids have multiple colors (not single-color like old version)
-	asteroid := obstacle.NewAsteroid(0, 0, obstacle.AsteroidMedium)
-
-	// We can't directly inspect the ColorMatrix, but we can verify it was created
-	// and has reasonable dimensions
-	width, height := asteroid.Dimensions()
-	if width != 20 || height != 20 {
-		t.Errorf("Medium asteroid dimensions = (%d, %d), want (20, 20)", width, height)
+func TestNewRandomAsteroidInRange(t *testing.T) {
+	testCases := []struct {
+		name       string
+		minSize    obstacle.AsteroidSize
+		maxSize    obstacle.AsteroidSize
+		wantMinDim int
+		wantMaxDim int
+	}{
+		{"tiny_to_small", obstacle.AsteroidTiny, obstacle.AsteroidSmall, 8, 12},
+		{"large_to_massive", obstacle.AsteroidLarge, obstacle.AsteroidMassive, 32, 64},
+		{"only_huge", obstacle.AsteroidHuge, obstacle.AsteroidHuge, 48, 48},
 	}
 
-	// The asteroid should successfully implement PreciseCollider
-	// which means it has a valid sprite with pixels
-	var _ def.PreciseCollider = asteroid
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			seenSizes := make(map[int]bool)
+
+			for range 20 {
+				asteroid := obstacle.NewRandomAsteroidInRange(0, 0, tc.minSize, tc.maxSize)
+				width, _ := asteroid.Dimensions()
+
+				if width < tc.wantMinDim || width > tc.wantMaxDim {
+					t.Errorf("Asteroid dimension %d outside range [%d, %d]",
+						width, tc.wantMinDim, tc.wantMaxDim)
+				}
+
+				seenSizes[width] = true
+			}
+
+			if tc.minSize != tc.maxSize && len(seenSizes) < 2 {
+				t.Logf("Warning: Only saw %d different sizes in 20 iterations (expected variety)", len(seenSizes))
+			}
+		})
+	}
 }
 
 func TestAsteroidProceduralVariation(t *testing.T) {
-	// Create multiple asteroids and verify they're not all identical
-	// (procedural generation should create variety)
+	a1 := obstacle.NewAsteroid(0, 0, obstacle.AsteroidSmall)
+	a2 := obstacle.NewAsteroid(0, 0, obstacle.AsteroidSmall)
 
-	asteroid1 := obstacle.NewAsteroid(0, 0, obstacle.AsteroidSmall)
-	asteroid2 := obstacle.NewAsteroid(0, 0, obstacle.AsteroidSmall)
-
-	// Both should be valid
-	if asteroid1 == nil || asteroid2 == nil {
+	if a1 == nil || a2 == nil {
 		t.Fatal("Failed to create asteroids")
 	}
 
-	// Both should have correct size
-	w1, h1 := asteroid1.Dimensions()
-	w2, h2 := asteroid2.Dimensions()
+	w1, h1 := a1.Dimensions()
+	w2, h2 := a2.Dimensions()
 
 	if w1 != 12 || h1 != 12 || w2 != 12 || h2 != 12 {
 		t.Errorf("Small asteroids should be 12x12, got (%d,%d) and (%d,%d)", w1, h1, w2, h2)
 	}
-
-	// Note: We can't easily test that they look different without rendering,
-	// but the procedural generation should create variation in colors and shapes
 }
