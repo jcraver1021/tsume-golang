@@ -36,6 +36,7 @@ func NewAnimationSequence(palette *Palette, frames []ColorKey, frameDuration int
 }
 
 func (a *AnimationSequence) getColor() color.RGBA {
+	// invariant: frames are ColorKeys added to the palette at construction time; ok is guaranteed.
 	c, _ := a.palette.Get(a.frames[a.currentFrame])
 	return c
 }
@@ -62,11 +63,11 @@ func (a *AnimationSequence) blend(other *AnimationSequence) *AnimationSequence {
 
 	for i := range newFrames {
 		frame1 := a.frames[(i % len(a.frames))]
-		color1, _ := a.palette.Get(frame1)
+		color1, _ := a.palette.Get(frame1) // invariant: frame keys are always in the palette; ok is guaranteed.
 		frame2 := other.frames[(i % len(other.frames))]
-		color2, _ := other.palette.Get(frame2)
+		color2, _ := other.palette.Get(frame2) // invariant: same.
 		newColor := alphaComposite(color1, color2)
-		newKey, _ := a.palette.Add(newColor)
+		newKey, _ := a.palette.Add(newColor) // bool (new vs existing) discarded
 		newFrames[i] = newKey
 	}
 

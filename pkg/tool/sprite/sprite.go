@@ -23,7 +23,7 @@ type Sprite struct {
 
 func BlankSprite(rows, cols int) (*Sprite, error) {
 	palette := NewPalette()
-	key, _ := palette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0})
+	key, _ := palette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // bool (new vs existing) discarded — only the key is needed
 	matrix := make([][]ColorKey, rows)
 	for i := range matrix {
 		matrix[i] = make([]ColorKey, cols)
@@ -105,7 +105,7 @@ func (s *Sprite) Advance() {
 // other that fall outside s are ignored.
 func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, error) {
 	newPalette := NewPalette()
-	blankCk, _ := newPalette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // use "0"
+	blankCk, _ := newPalette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // bool (new vs existing) discarded — first entry in a fresh palette
 
 	withinOther := func(row, col int) bool {
 		return row+rowOffset >= 0 && row+rowOffset < other.Height() && col+colOffset >= 0 && col+colOffset < other.Width()
@@ -142,8 +142,10 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 				// (we want destination indices to be lower; we will do fully source and composite later)
 				// (we also will scan for blended animations later)
 				if srcColor, ok := other.palette.Get(other.matrix[i+rowOffset][j+colOffset]); ok && srcColor.A == 0 {
+					// ok is false when dst is an animation at this pixel; the switcher loop
+					// below overwrites such cells, so the zero color here is a safe placeholder.
 					dstColor, _ := s.palette.Get(s.matrix[i][j])
-					newCk, _ := newPalette.Add(dstColor)
+					newCk, _ := newPalette.Add(dstColor) // bool (new vs existing) discarded
 					newMatrix[i][j] = newCk
 				}
 			}
@@ -155,7 +157,7 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 		for j := range other.matrix[i] {
 			if withinOther(i-rowOffset, j-colOffset) {
 				if color, ok := other.palette.Get(other.matrix[i][j]); ok && color.A == 255 {
-					newCk, _ := newPalette.Add(color)
+					newCk, _ := newPalette.Add(color) // bool (new vs existing) discarded
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 				}
 			}
@@ -165,6 +167,8 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 	// Next, we will re-add unaffected animation coordinates from the original sprite into the new matrix
 	for _, coord := range animationCoords {
 		if seq, ok := s.animationSequences[s.matrix[coord.row][coord.col]]; ok {
+			// Matrix keys originate from Add/Reserve on a well-formed palette and are always
+			// single-byte ASCII (valid ColorKeys); ErrInvalidColorKey cannot occur here.
 			newCk, _ := newPalette.Reserve(s.matrix[coord.row][coord.col])
 			newMatrix[coord.row][coord.col] = newCk
 			newAnimationSequences[newCk] = seq
@@ -205,45 +209,64 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 			if withinOther(i-rowOffset, j-colOffset) {
 				switch switcher(i, j) {
 				case bothColor:
+					// switcher confirmed both pixels are static colors in their respective palettes; ok is guaranteed.
 					srcColor, _ := other.palette.Get(other.matrix[i][j])
 					dstColor, _ := s.palette.Get(s.matrix[i-rowOffset][j-colOffset])
 					blendedColor := alphaComposite(srcColor, dstColor)
-					newCk, _ := newPalette.Add(blendedColor)
+					newCk, _ := newPalette.Add(blendedColor) // bool (new vs existing) discarded
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 				case srcAnimation:
+					// switcher confirmed srcIsColor=false; a well-formed sprite guarantees the
+					// key is in animationSequences (absent key would be nil, causing a panic below).
 					src, _ := other.animationSequences[other.matrix[i][j]]
+					// switcher confirmed dstIsColor=true; ok is guaranteed.
 					dstColor, _ := s.palette.Get(s.matrix[i-rowOffset][j-colOffset])
-					dstCk, _ := newPalette.Add(dstColor)
+					dstCk, _ := newPalette.Add(dstColor) // bool (new vs existing) discarded
+					// invariant: src.frameDuration > 0 (valid seq); single-element frames is non-empty; error impossible.
 					dst, _ := NewAnimationSequence(newPalette, []ColorKey{dstCk}, src.frameDuration)
 					newAnimation := dst.blend(src)
+					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
 				case dstAnimation:
+					// switcher confirmed dstIsColor=false; a well-formed sprite guarantees the
+					// key is in animationSequences (absent key would be nil, causing a panic below).
 					origSeq := s.animationSequences[s.matrix[i-rowOffset][j-colOffset]]
 					// Translate dst frames into the new palette without modifying the original sequence.
 					translatedFrames := make([]ColorKey, len(origSeq.frames))
 					for fi, origCk := range origSeq.frames {
+						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
 						aColor, _ := s.palette.Get(origCk)
-						translatedFrames[fi], _ = newPalette.Add(aColor)
+						translatedFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
 					}
+					// invariant: origSeq.frameDuration > 0 (valid seq); translatedFrames has len ≥ 1; error impossible.
 					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
+					// invariant: single valid frame; origSeq.frameDuration > 0; error impossible.
 					srcSeq, _ := NewAnimationSequence(other.palette, []ColorKey{other.matrix[i][j]}, origSeq.frameDuration)
 					newAnimation := dstSeq.blend(srcSeq)
+					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
 				case bothAnimation:
+					// switcher confirmed dstIsColor=false; a well-formed sprite guarantees the
+					// key is in animationSequences (absent key would be nil, causing a panic below).
 					origSeq := s.animationSequences[s.matrix[i-rowOffset][j-colOffset]]
 					// Translate dst frames into the new palette without modifying the original sequence.
 					translatedFrames := make([]ColorKey, len(origSeq.frames))
 					for fi, origCk := range origSeq.frames {
+						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
 						aColor, _ := s.palette.Get(origCk)
-						translatedFrames[fi], _ = newPalette.Add(aColor)
+						translatedFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
 					}
+					// invariant: origSeq.frameDuration > 0 (valid seq); translatedFrames has len ≥ 1; error impossible.
 					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
+					// switcher confirmed srcIsColor=false; a well-formed sprite guarantees the
+					// key is in animationSequences (absent key would be nil, causing a panic in blend below).
 					srcSeq := other.animationSequences[other.matrix[i][j]]
 					newAnimation := dstSeq.blend(srcSeq)
+					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
@@ -280,7 +303,7 @@ func (s *Sprite) ComposeExpanding(other *Sprite) (*Sprite, error) {
 
 	// Add a transparent key for border cells. If transparent is already in
 	// the palette (e.g. from BlankSprite), Add is a no-op and reuses it.
-	transparentCk, _ := expanded.palette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0})
+	transparentCk, _ := expanded.palette.Add(color.RGBA{R: 0, G: 0, B: 0, A: 0}) // bool (new vs existing) discarded — only the key is needed
 
 	// Build the expanded matrix, filling border cells with the transparent key
 	// so Compose can look them up without a nil dereference.
