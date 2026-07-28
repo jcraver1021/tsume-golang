@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	errInvalidColorKey = errors.New("invalid color key: must be a single character")
+	ErrInvalidColorKey = errors.New("invalid color key: must be a single character")
 )
 
 // ColorKey is a single-byte string that identifies a color entry in a Palette.
@@ -23,7 +23,7 @@ func (ck ColorKey) valid() bool {
 func fromString(s string) (ColorKey, error) {
 	ck := ColorKey(s)
 	if !ck.valid() {
-		return "", errInvalidColorKey
+		return "", ErrInvalidColorKey
 	}
 
 	return ck, nil
@@ -75,7 +75,7 @@ func (p *Palette) nextKey() ColorKey {
 
 func (p *Palette) Reserve(ck ColorKey) (ColorKey, error) {
 	if !ck.valid() {
-		return "", errInvalidColorKey
+		return "", ErrInvalidColorKey
 	}
 
 	needNew := false

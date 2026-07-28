@@ -35,7 +35,7 @@ func NewAnimationSequence(palette *Palette, frames []ColorKey, frameDuration int
 	}, nil
 }
 
-func (a *AnimationSequence) GetColor() color.RGBA {
+func (a *AnimationSequence) getColor() color.RGBA {
 	c, _ := a.palette.Get(a.frames[a.currentFrame])
 	return c
 }
@@ -52,7 +52,7 @@ func (a *AnimationSequence) Advance() {
 	}
 }
 
-func (a *AnimationSequence) Blend(other *AnimationSequence) *AnimationSequence {
+func (a *AnimationSequence) blend(other *AnimationSequence) *AnimationSequence {
 	if a.frameDuration != other.frameDuration {
 		// We will decide whether to implement this case later
 		panic("frame durations must match to blend animation sequences")

@@ -7,6 +7,32 @@ import (
 	. "tsumegolang/pkg/tool/sprite"
 )
 
+// animationSprite builds a 1×1 Sprite whose single pixel is driven by an
+// AnimationSequence over the given colors at the given frameDuration.
+func animationSprite(t *testing.T, colors []color.RGBA, frameDuration int) *Sprite {
+	t.Helper()
+	palette := NewPalette()
+	frames := make([]ColorKey, len(colors))
+	for i, c := range colors {
+		ck, _ := palette.Add(c)
+		frames[i] = ck
+	}
+	keyA, _ := palette.Reserve("A")
+	seq, err := NewAnimationSequence(palette, frames, frameDuration)
+	if err != nil {
+		t.Fatalf("NewAnimationSequence: %v", err)
+	}
+	sprite, err := NewSprite(
+		[][]ColorKey{{keyA}},
+		palette,
+		map[ColorKey]*AnimationSequence{keyA: seq},
+	)
+	if err != nil {
+		t.Fatalf("NewSprite: %v", err)
+	}
+	return sprite
+}
+
 func TestAnimationSequence(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -45,34 +71,22 @@ func TestAnimationSequence(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		palette := NewPalette()
-		frames := make([]ColorKey, len(tc.colors))
-		for i, c := range tc.colors {
-			ck, _ := palette.Add(c)
-			frames[i] = ck
-		}
+		t.Run(tc.name, func(t *testing.T) {
+			sprite := animationSprite(t, tc.colors, tc.frameDuration)
 
-		seq, err := NewAnimationSequence(palette, frames, tc.frameDuration)
-		if err != nil {
-			t.Fatalf("NewAnimationSequence() error = %v", err)
-		}
-
-		for i, got := range tc.want {
-			want := seq.GetColor()
-			if want != got {
-				t.Errorf("Frame %d: got %v, want %v", i, got, want)
+			check := func(label string, want []color.RGBA) {
+				for i, wantColor := range want {
+					got := sprite.Render()[0][0]
+					if got != wantColor {
+						t.Errorf("%s step %d: got %v, want %v", label, i, got, wantColor)
+					}
+					sprite.Advance()
+				}
 			}
-			seq.Advance()
-		}
 
-		// Repeat the sequence to verify it loops correctly
-		for i, got := range tc.want {
-			want := seq.GetColor()
-			if want != got {
-				t.Errorf("Loop Frame %d: got %v, want %v", i, got, want)
-			}
-			seq.Advance()
-		}
+			check("first pass", tc.want)
+			check("loop", tc.want) // verify the sequence wraps correctly
+		})
 	}
 }
 

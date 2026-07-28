@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	errInvalidSpriteMatrix = errors.New("invalid sprite matrix: must have at least one row and one column")
+	ErrInvalidSpriteMatrix = errors.New("invalid sprite matrix: must have at least one row and one column")
 )
 
 // Sprite is an immutable-after-construction 2D grid of ColorKeys with an
@@ -37,12 +37,12 @@ func BlankSprite(rows, cols int) (*Sprite, error) {
 
 func NewSprite(matrix [][]ColorKey, palette *Palette, animationSequences map[ColorKey]*AnimationSequence) (*Sprite, error) {
 	if len(matrix) == 0 || len(matrix[0]) == 0 {
-		return nil, errInvalidSpriteMatrix
+		return nil, ErrInvalidSpriteMatrix
 	}
 
 	for _, row := range matrix {
 		if len(row) != len(matrix[0]) {
-			return nil, errInvalidSpriteMatrix
+			return nil, ErrInvalidSpriteMatrix
 		}
 	}
 
@@ -71,7 +71,7 @@ func (s *Sprite) Render() [][]color.RGBA {
 		for j := range rendered[i] {
 			if ck := s.matrix[i][j]; ck != "" {
 				if seq, ok := s.animationSequences[ck]; ok {
-					rendered[i][j] = seq.GetColor()
+					rendered[i][j] = seq.getColor()
 				} else if c, ok := s.palette.Get(ck); ok {
 					rendered[i][j] = c
 				} else {
@@ -215,7 +215,7 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					dstColor, _ := s.palette.Get(s.matrix[i-rowOffset][j-colOffset])
 					dstCk, _ := newPalette.Add(dstColor)
 					dst, _ := NewAnimationSequence(newPalette, []ColorKey{dstCk}, src.frameDuration)
-					newAnimation := dst.Blend(src)
+					newAnimation := dst.blend(src)
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
@@ -229,7 +229,7 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					}
 					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
 					srcSeq, _ := NewAnimationSequence(other.palette, []ColorKey{other.matrix[i][j]}, origSeq.frameDuration)
-					newAnimation := dstSeq.Blend(srcSeq)
+					newAnimation := dstSeq.blend(srcSeq)
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
@@ -243,7 +243,7 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					}
 					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
 					srcSeq := other.animationSequences[other.matrix[i][j]]
-					newAnimation := dstSeq.Blend(srcSeq)
+					newAnimation := dstSeq.blend(srcSeq)
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
