@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrInvalidColorKey = errors.New("invalid color key: must be a single character")
+	errKeyOccupied     = errors.New("key already occupied in palette")
 )
 
 // ColorKey is a single-byte string that identifies a color entry in a Palette.
@@ -109,6 +110,27 @@ func (p *Palette) Add(c color.RGBA) (ColorKey, bool) {
 func (p *Palette) Get(ck ColorKey) (color.RGBA, bool) {
 	c, exists := p.colors[ck]
 	return c, exists
+}
+
+// setKeyed pins c to exactly ck in the palette, bypassing the auto-increment
+// mechanism. It is used by file loading to honour the key names written in the
+// sprite definition file. The key is marked as reserved so nextKey will never
+// reassign the slot. Note: setKeyed does not update the registry (the color→key
+// deduplication map used by Add), so calling Add with the same RGBA value later
+// will produce a fresh auto-assigned key rather than returning ck.
+func (p *Palette) setKeyed(ck ColorKey, c color.RGBA) error {
+	if !ck.valid() {
+		return ErrInvalidColorKey
+	}
+	if _, exists := p.colors[ck]; exists {
+		return errKeyOccupied
+	}
+	if _, exists := p.reserved[ck]; exists {
+		return errKeyOccupied
+	}
+	p.colors[ck] = c
+	p.reserved[ck] = struct{}{}
+	return nil
 }
 
 // clone returns a deep copy of the palette with the same key assignments
