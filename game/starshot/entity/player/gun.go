@@ -2,8 +2,8 @@ package player
 
 import (
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/projectile"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const basicGunCooldownFrames = 12 // ~5 shots/second at 60 FPS
@@ -13,7 +13,7 @@ const basicGunCooldownFrames = 12 // ~5 shots/second at 60 FPS
 // behavior varies via the fireFunc field so new types need only a new
 // constructor and a sprite — no new struct required.
 type Gun struct {
-	sprite         *draw.ColorMatrix
+	sprite         *sprite.Sprite
 	cooldown       int
 	cooldownFrames int
 	mountY         int
@@ -26,13 +26,13 @@ func NewBasicGun() (*Gun, error) {
 		return nil, err
 	}
 
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Gun{
-		sprite:         sprite,
+		sprite:         s,
 		cooldownFrames: basicGunCooldownFrames,
 		mountY:         0,
 		fireFunc: func(x, y int, scene def.Scene) {
@@ -56,7 +56,7 @@ func (g *Gun) Fire(originX, originY int, scene def.Scene) {
 	g.cooldown = g.cooldownFrames
 }
 
-func (g *Gun) Sprite() *draw.ColorMatrix {
+func (g *Gun) Sprite() *sprite.Sprite {
 	return g.sprite
 }
 

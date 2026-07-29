@@ -7,19 +7,20 @@ import (
 	"math"
 
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+	"tsumegolang/game/starshot/render"
+	"tsumegolang/pkg/tool/sprite"
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 )
 
 // loadMineSprite reads a mine sprite YAML from the embedded sprites directory.
-func loadMineSprite(filename string) (*draw.ColorMatrix, error) {
+func loadMineSprite(filename string) (*sprite.Sprite, error) {
 	data, err := spriteFiles.ReadFile("sprites/" + filename)
 	if err != nil {
 		return nil, err
 	}
-	return draw.ColorMatrixFromBytes(data)
+	return sprite.SpriteFromBytes(data)
 }
 
 // PathSegment defines an additional velocity applied for a given number of frames.
@@ -64,8 +65,8 @@ type Mine struct {
 	fx, fy        float64
 	drift         float64
 	width, height int
-	idleSprite    *draw.ColorMatrix
-	chaseSprite   *draw.ColorMatrix
+	idleSprite    *sprite.Sprite
+	chaseSprite   *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	chasing       bool
@@ -85,7 +86,8 @@ func NewMine(x, y int) (*Mine, error) {
 	if err != nil {
 		return nil, err
 	}
-	w, h := idle.Dimensions()
+	w := idle.Width()
+	h := idle.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	startX := x - scaledW/2
@@ -126,6 +128,8 @@ func (m *Mine) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (m *Mine) Act(scene def.Scene) {
+	m.idleSprite.Advance()
+	m.chaseSprite.Advance()
 	if m.dead {
 		m.frameCount++
 		return
@@ -186,11 +190,11 @@ func (m *Mine) applyIntent(intent def.Intent, scene def.Scene) {
 }
 
 func (m *Mine) Draw(img *ebit.Image) {
-	sprite := m.idleSprite
+	s := m.idleSprite
 	if m.chasing {
-		sprite = m.chaseSprite
+		s = m.chaseSprite
 	}
-	draw.DrawScaled(img, m.cachedImg, m.pixelBuf, sprite, float64(m.x), float64(m.y), enemyDrawScale)
+	render.DrawScaled(img, m.cachedImg, m.pixelBuf, s, float64(m.x), float64(m.y), enemyDrawScale)
 }
 
 func (m *Mine) SetDrift(drift float64) {
@@ -287,8 +291,8 @@ type RangeMine struct {
 	fx, fy          float64
 	drift           float64
 	width, height   int
-	idleSprite      *draw.ColorMatrix
-	activeSprite    *draw.ColorMatrix
+	idleSprite      *sprite.Sprite
+	activeSprite    *sprite.Sprite
 	cachedImg       *ebit.Image
 	pixelBuf        []byte
 	proximityFrames int
@@ -308,7 +312,8 @@ func NewRangeMine(x, y int) (*RangeMine, error) {
 	if err != nil {
 		return nil, err
 	}
-	w, h := idle.Dimensions()
+	w := idle.Width()
+	h := idle.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	startX := x - scaledW/2
@@ -348,6 +353,8 @@ func (r *RangeMine) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (r *RangeMine) Act(scene def.Scene) {
+	r.idleSprite.Advance()
+	r.activeSprite.Advance()
 	if r.dead {
 		r.frameCount++
 		return
@@ -394,11 +401,11 @@ func (r *RangeMine) ResetDrift() {
 }
 
 func (r *RangeMine) Draw(img *ebit.Image) {
-	sprite := r.idleSprite
+	s := r.idleSprite
 	if r.active {
-		sprite = r.activeSprite
+		s = r.activeSprite
 	}
-	draw.DrawScaled(img, r.cachedImg, r.pixelBuf, sprite, float64(r.x), float64(r.y), enemyDrawScale)
+	render.DrawScaled(img, r.cachedImg, r.pixelBuf, s, float64(r.x), float64(r.y), enemyDrawScale)
 }
 
 func (r *RangeMine) CanBeRemoved() bool {
@@ -475,7 +482,7 @@ type PathMine struct {
 	fx, fy        float64
 	drift         float64
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	path          []PathSegment
@@ -492,11 +499,12 @@ func NewPathMine(x, y int, path []PathSegment) (*PathMine, error) {
 	if err != nil {
 		return nil, err
 	}
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	w, h := sprite.Dimensions()
+	w := s.Width()
+	h := s.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	startX := x - scaledW/2
@@ -508,7 +516,7 @@ func NewPathMine(x, y int, path []PathSegment) (*PathMine, error) {
 		drift:     pathMineDrift,
 		width:     scaledW,
 		height:    scaledH,
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(w, h),
 		pixelBuf:  make([]byte, w*h*4),
 		path:      path,
@@ -536,6 +544,7 @@ func (p *PathMine) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (p *PathMine) Act(scene def.Scene) {
+	p.sprite.Advance()
 	if p.dead {
 		p.frameCount++
 		return
@@ -562,7 +571,7 @@ func (p *PathMine) Act(scene def.Scene) {
 }
 
 func (p *PathMine) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, p.cachedImg, p.pixelBuf, p.sprite, float64(p.x), float64(p.y), enemyDrawScale)
+	render.DrawScaled(img, p.cachedImg, p.pixelBuf, p.sprite, float64(p.x), float64(p.y), enemyDrawScale)
 }
 
 func (p *PathMine) SetDrift(drift float64) {
@@ -655,8 +664,8 @@ type PathRangeMine struct {
 	fx, fy          float64
 	drift           float64
 	width, height   int
-	idleSprite      *draw.ColorMatrix
-	activeSprite    *draw.ColorMatrix
+	idleSprite      *sprite.Sprite
+	activeSprite    *sprite.Sprite
 	cachedImg       *ebit.Image
 	pixelBuf        []byte
 	path            []PathSegment
@@ -679,7 +688,8 @@ func NewPathRangeMine(x, y int, path []PathSegment) (*PathRangeMine, error) {
 	if err != nil {
 		return nil, err
 	}
-	w, h := idle.Dimensions()
+	w := idle.Width()
+	h := idle.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	startX := x - scaledW/2
@@ -720,6 +730,8 @@ func (p *PathRangeMine) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (p *PathRangeMine) Act(scene def.Scene) {
+	p.idleSprite.Advance()
+	p.activeSprite.Advance()
 	if p.dead {
 		p.frameCount++
 		return
@@ -782,11 +794,11 @@ func (p *PathRangeMine) ResetDrift() {
 }
 
 func (p *PathRangeMine) Draw(img *ebit.Image) {
-	sprite := p.idleSprite
+	s := p.idleSprite
 	if p.active {
-		sprite = p.activeSprite
+		s = p.activeSprite
 	}
-	draw.DrawScaled(img, p.cachedImg, p.pixelBuf, sprite, float64(p.x), float64(p.y), enemyDrawScale)
+	render.DrawScaled(img, p.cachedImg, p.pixelBuf, s, float64(p.x), float64(p.y), enemyDrawScale)
 }
 
 func (p *PathRangeMine) CanBeRemoved() bool {

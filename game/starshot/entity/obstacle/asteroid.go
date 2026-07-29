@@ -6,8 +6,8 @@ import (
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 type AsteroidSize int
@@ -123,7 +123,7 @@ type Asteroid struct {
 	vx, vy        float64 // velocity in pixels/frame
 	size          AsteroidSize
 	seed          int64 // passed to children on split so fragments look like the parent
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 
 	hp    int
 	maxHP int
@@ -137,7 +137,7 @@ func NewAsteroid(x, y int, size AsteroidSize) *Asteroid {
 func newAsteroidWithSeed(x, y int, size AsteroidSize, seed int64) *Asteroid {
 	width, height := size.Dimensions()
 	hp := size.HP()
-	sprite := generateAsteroidSprite(width, height, size, rand.New(rand.NewSource(seed)))
+	s := generateAsteroidSprite(width, height, size, rand.New(rand.NewSource(seed)))
 	return &Asteroid{
 		x:      x,
 		y:      y,
@@ -149,7 +149,7 @@ func newAsteroidWithSeed(x, y int, size AsteroidSize, seed int64) *Asteroid {
 		vy:     float64(size.Speed()),
 		size:   size,
 		seed:   seed,
-		sprite: sprite,
+		sprite: s,
 		hp:     hp,
 		maxHP:  hp,
 	}
@@ -352,32 +352,23 @@ type craterInfo struct {
 // generateAsteroidSprite creates a procedural multi-colored asteroid.
 // rng is a seeded source; passing the same seed across sizes produces
 // visually related fragments when an asteroid splits.
-func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand) *draw.ColorMatrix {
+func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand) *sprite.Sprite {
 	shape, craters := generateProceduralShape(width, height, size, rng)
 
-	matrix := make([][]draw.ColorKey, height)
+	matrix := make([][]sprite.ColorKey, height)
 	for i := range matrix {
-		matrix[i] = make([]draw.ColorKey, width)
+		matrix[i] = make([]sprite.ColorKey, width)
 	}
 
 	basePalette := generateRockPalette(rng)
 
-	colorCodes := draw.ColorMap{
-		"0": {0, 0, 0, 0}, // Transparent
-	}
-	nextCode := 1 // Start from 1 for visible colors
-
-	// Helper to convert int to ColorKey
-	intToKey := func(n int) draw.ColorKey {
-		// Use ASCII printable characters starting from space (32)
-		// This gives us 95 different keys which should be more than enough
-		return draw.ColorKey(string(rune(32 + n)))
-	}
+	palette := sprite.NewPalette()
+	transparent, _ := palette.Add(color.RGBA{0, 0, 0, 0})
 
 	for row := range shape {
 		for col := range shape[row] {
 			if !shape[row][col] {
-				matrix[row][col] = "0" // Transparent
+				matrix[row][col] = transparent
 				continue
 			}
 
@@ -404,32 +395,17 @@ func generateAsteroidSprite(width, height int, size AsteroidSize, rng *rand.Rand
 			}
 
 			rockColor := basePalette[colorIndex]
-
-			var existingCode draw.ColorKey
-			for code, c := range colorCodes {
-				if c == rockColor {
-					existingCode = code
-					break
-				}
-			}
-
-			if existingCode != "" {
-				matrix[row][col] = existingCode
-			} else {
-				key := intToKey(nextCode)
-				colorCodes[key] = rockColor
-				matrix[row][col] = key
-				nextCode++
-			}
+			key, _ := palette.Add(rockColor) // deduplicates automatically
+			matrix[row][col] = key
 		}
 	}
 
-	cm, err := draw.NewColorMatrix(matrix, &colorCodes, nil)
+	s, err := sprite.NewSprite(matrix, palette, map[sprite.ColorKey]*sprite.AnimationSequence{})
 	if err != nil {
 		return createFallbackAsteroid(width, height)
 	}
 
-	return cm
+	return s
 }
 
 // generateProceduralShape creates an irregular asteroid shape and crater positions
@@ -636,19 +612,18 @@ func noiseValue(x float64) float64 {
 }
 
 // createFallbackAsteroid creates a simple single-color asteroid if generation fails
-func createFallbackAsteroid(width, height int) *draw.ColorMatrix {
-	matrix := make([][]draw.ColorKey, height)
+func createFallbackAsteroid(width, height int) *sprite.Sprite {
+	palette := sprite.NewPalette()
+	key, _ := palette.Add(color.RGBA{R: 100, G: 100, B: 100, A: 255})
+
+	matrix := make([][]sprite.ColorKey, height)
 	for i := range matrix {
-		matrix[i] = make([]draw.ColorKey, width)
+		matrix[i] = make([]sprite.ColorKey, width)
 		for j := range matrix[i] {
-			matrix[i][j] = "1" // All solid
+			matrix[i][j] = key
 		}
 	}
 
-	colors := draw.ColorMap{
-		"1": {R: 100, G: 100, B: 100, A: 255},
-	}
-
-	cm, _ := draw.NewColorMatrix(matrix, &colors, nil)
-	return cm
+	s, _ := sprite.NewSprite(matrix, palette, map[sprite.ColorKey]*sprite.AnimationSequence{})
+	return s
 }

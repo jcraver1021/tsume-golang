@@ -31,7 +31,7 @@ func TestExplosionSmall(t *testing.T) {
 
 	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (40 frames for small)
-	for i := 0; i < 39; i++ {
+	for i := range 39 { // 0 to 38, total 39 frames, the 40th frame is checked after the loop
 		explosion.Act(scene)
 		if explosion.CanBeRemoved() {
 			t.Errorf("Explosion became removable at frame %d, expected 40", i+1)
@@ -59,7 +59,7 @@ func TestExplosionMedium(t *testing.T) {
 
 	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (60 frames for medium)
-	for i := 0; i < 59; i++ {
+	for i := range 59 { // 0 to 58, total 59 frames, the 60th frame is checked after the loop
 		explosion.Act(scene)
 		if explosion.CanBeRemoved() {
 			t.Errorf("Explosion became removable at frame %d, expected 60", i+1)
@@ -87,7 +87,7 @@ func TestExplosionLarge(t *testing.T) {
 
 	scene := testutil.NewMockScene()
 	// Simulate frames until expiration (96 frames for large)
-	for i := 0; i < 95; i++ {
+	for i := range 95 { // 0 to 94, total 95 frames, the 96th frame is checked after the loop
 		explosion.Act(scene)
 		if explosion.CanBeRemoved() {
 			t.Errorf("Explosion became removable at frame %d, expected 96", i+1)

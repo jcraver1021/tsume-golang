@@ -1,10 +1,12 @@
 package projectile
 
 import (
+	"image/color"
+
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const (
@@ -18,7 +20,7 @@ const (
 // Bomb is a slow heavy projectile that detonates in an area on contact.
 type Bomb struct {
 	x, y   int
-	sprite *draw.ColorMatrix
+	sprite *sprite.Sprite
 	dead   bool
 }
 
@@ -30,16 +32,26 @@ func NewBomb(x, y int) *Bomb {
 	}
 }
 
-func generateBombSprite() *draw.ColorMatrix {
-	colors := draw.ColorMap{
-		"0": {0, 0, 0, 0},
-		"1": {37, 37, 37, 255},    // dark outer iron
-		"2": {66, 66, 66, 255},    // iron body
-		"3": {106, 106, 106, 255}, // iron surface
-		"4": {136, 51, 34, 255},   // warm inner ring
-		"5": {221, 85, 0, 255},    // orange inner glow
-		"6": {255, 153, 0, 255},   // hot core
-		"7": {255, 238, 0, 255},   // fuse spark
+func generateBombSprite() *sprite.Sprite {
+	palette := sprite.NewPalette()
+	key0, _ := palette.Add(color.RGBA{0, 0, 0, 0})
+	key1, _ := palette.Add(color.RGBA{37, 37, 37, 255})    // dark outer iron
+	key2, _ := palette.Add(color.RGBA{66, 66, 66, 255})    // iron body
+	key3, _ := palette.Add(color.RGBA{106, 106, 106, 255}) // iron surface
+	key4, _ := palette.Add(color.RGBA{136, 51, 34, 255})   // warm inner ring
+	key5, _ := palette.Add(color.RGBA{221, 85, 0, 255})    // orange inner glow
+	key6, _ := palette.Add(color.RGBA{255, 153, 0, 255})   // hot core
+	key7, _ := palette.Add(color.RGBA{255, 238, 0, 255})   // fuse spark
+
+	keyMap := map[rune]sprite.ColorKey{
+		'0': key0,
+		'1': key1,
+		'2': key2,
+		'3': key3,
+		'4': key4,
+		'5': key5,
+		'6': key6,
+		'7': key7,
 	}
 
 	rows := []string{
@@ -58,16 +70,16 @@ func generateBombSprite() *draw.ColorMatrix {
 		"000037300000",
 	}
 
-	matrix := make([][]draw.ColorKey, len(rows))
+	matrix := make([][]sprite.ColorKey, len(rows))
 	for r, row := range rows {
-		matrix[r] = make([]draw.ColorKey, len(row))
+		matrix[r] = make([]sprite.ColorKey, len(row))
 		for c, ch := range row {
-			matrix[r][c] = draw.ColorKey(string(ch))
+			matrix[r][c] = keyMap[ch]
 		}
 	}
 
-	cm, _ := draw.NewColorMatrix(matrix, &colors, nil)
-	return cm
+	s, _ := sprite.NewSprite(matrix, palette, map[sprite.ColorKey]*sprite.AnimationSequence{})
+	return s
 }
 
 func (b *Bomb) Type() def.EntityType {
