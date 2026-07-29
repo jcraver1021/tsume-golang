@@ -5,7 +5,7 @@ import (
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 
 type Bullet struct {
 	x, y   int
-	sprite *draw.ColorMatrix
+	sprite *sprite.Sprite
 	dead   bool
 }
 
@@ -28,13 +28,19 @@ func NewBullet(x, y int) *Bullet {
 	}
 }
 
-func generateBulletSprite() *draw.ColorMatrix {
+func generateBulletSprite() *sprite.Sprite {
 	// 3×8 vertical bolt: bright white core with cyan glow trail
-	colors := draw.ColorMap{
-		"0": {0, 0, 0, 0},         // transparent
-		"1": {255, 255, 255, 255}, // white core
-		"2": {80, 220, 255, 255},  // cyan mid
-		"3": {40, 120, 200, 120},  // blue dim trail
+	palette := sprite.NewPalette()
+	key0, _ := palette.Add(color.RGBA{0, 0, 0, 0})         // transparent
+	key1, _ := palette.Add(color.RGBA{255, 255, 255, 255}) // white core
+	key2, _ := palette.Add(color.RGBA{80, 220, 255, 255})  // cyan mid
+	key3, _ := palette.Add(color.RGBA{40, 120, 200, 120})  // blue dim trail
+
+	keyMap := map[rune]sprite.ColorKey{
+		'0': key0,
+		'1': key1,
+		'2': key2,
+		'3': key3,
 	}
 
 	// Row layout: top = bright, bottom = dim trail
@@ -49,25 +55,27 @@ func generateBulletSprite() *draw.ColorMatrix {
 		"030",
 	}
 
-	matrix := make([][]draw.ColorKey, len(rows))
+	matrix := make([][]sprite.ColorKey, len(rows))
 	for r, row := range rows {
-		matrix[r] = make([]draw.ColorKey, len(row))
+		matrix[r] = make([]sprite.ColorKey, len(row))
 		for c, ch := range row {
-			matrix[r][c] = draw.ColorKey(string(ch))
+			matrix[r][c] = keyMap[ch]
 		}
 	}
 
-	cm, err := draw.NewColorMatrix(matrix, &colors, nil)
+	s, err := sprite.NewSprite(matrix, palette, map[sprite.ColorKey]*sprite.AnimationSequence{})
 	if err != nil {
 		// Fallback: single white pixel column
-		fb := make([][]draw.ColorKey, bulletHeight)
-		fbc := draw.ColorMap{"1": {255, 255, 255, 255}, "0": {0, 0, 0, 0}}
+		fbPalette := sprite.NewPalette()
+		fbKey1, _ := fbPalette.Add(color.RGBA{255, 255, 255, 255})
+		fbKey0, _ := fbPalette.Add(color.RGBA{0, 0, 0, 0})
+		fb := make([][]sprite.ColorKey, bulletHeight)
 		for r := range fb {
-			fb[r] = []draw.ColorKey{"0", "1", "0"}
+			fb[r] = []sprite.ColorKey{fbKey0, fbKey1, fbKey0}
 		}
-		cm, _ = draw.NewColorMatrix(fb, &fbc, nil)
+		s, _ = sprite.NewSprite(fb, fbPalette, map[sprite.ColorKey]*sprite.AnimationSequence{})
 	}
-	return cm
+	return s
 }
 
 func (b *Bullet) Type() def.EntityType {

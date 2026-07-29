@@ -6,7 +6,8 @@ import (
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
+	"tsumegolang/game/starshot/render"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 //go:embed sprites/*.yaml
@@ -22,7 +23,7 @@ const (
 )
 
 // LoadExplosionSprite loads the sprite sheet for the given explosion size.
-func LoadExplosionSprite(size ExplosionSize) (*draw.ColorMatrix, error) {
+func LoadExplosionSprite(size ExplosionSize) (*sprite.Sprite, error) {
 	var spriteFile string
 	switch size {
 	case ExplosionSmall:
@@ -40,13 +41,13 @@ func LoadExplosionSprite(size ExplosionSize) (*draw.ColorMatrix, error) {
 		return nil, err
 	}
 
-	return draw.ColorMatrixFromBytes(spriteData)
+	return sprite.SpriteFromBytes(spriteData)
 }
 
 type Explosion struct {
 	x, y          int
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	drawScale     float64
@@ -62,7 +63,7 @@ func NewExplosion(cx, cy int, size ExplosionSize) (*Explosion, error) {
 // NewExplosionScaled creates an explosion drawn at scale times its natural sprite size.
 // Use this to match the visual footprint to a blast radius: scale = blastDiameter / spriteWidth.
 func NewExplosionScaled(cx, cy int, size ExplosionSize, scale float64) (*Explosion, error) {
-	sprite, err := LoadExplosionSprite(size)
+	s, err := LoadExplosionSprite(size)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,8 @@ func NewExplosionScaled(cx, cy int, size ExplosionSize, scale float64) (*Explosi
 		return nil, fmt.Errorf("unknown explosion size: %d", size)
 	}
 
-	naturalW, naturalH := sprite.Dimensions()
+	naturalW := s.Width()
+	naturalH := s.Height()
 	drawnW := int(float64(naturalW) * scale)
 	drawnH := int(float64(naturalH) * scale)
 
@@ -88,7 +90,7 @@ func NewExplosionScaled(cx, cy int, size ExplosionSize, scale float64) (*Explosi
 		y:         cy - drawnH/2,
 		width:     drawnW,
 		height:    drawnH,
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(naturalW, naturalH),
 		pixelBuf:  make([]byte, naturalW*naturalH*4),
 		drawScale: scale,
@@ -113,11 +115,12 @@ func (e *Explosion) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (e *Explosion) Act(scene def.Scene) {
+	e.sprite.Advance()
 	e.frameCount++
 }
 
 func (e *Explosion) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, e.cachedImg, e.pixelBuf, e.sprite, float64(e.x), float64(e.y), e.drawScale)
+	render.DrawScaled(img, e.cachedImg, e.pixelBuf, e.sprite, float64(e.x), float64(e.y), e.drawScale)
 }
 
 func (e *Explosion) CanBeRemoved() bool {

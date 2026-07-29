@@ -1,7 +1,7 @@
 package player
 
 import (
-	"tsumegolang/game/starshot/draw"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 type EngineMount int
@@ -16,7 +16,7 @@ type Engine struct {
 	vDown       int
 	vLeft       int
 	vRight      int
-	sprite      *draw.ColorMatrix
+	sprite      *sprite.Sprite
 }
 
 // Basic
@@ -32,7 +32,7 @@ func BasicEngine() (*Engine, error) {
 		return nil, err
 	}
 
-	sprite, err := draw.ColorMatrixFromBytes(engineData)
+	s, err := sprite.SpriteFromBytes(engineData)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +43,7 @@ func BasicEngine() (*Engine, error) {
 		vDown:       basicEngineSpeed,
 		vLeft:       basicEngineSpeed,
 		vRight:      basicEngineSpeed,
-		sprite:      sprite,
+		sprite:      s,
 	}, nil
 }
 

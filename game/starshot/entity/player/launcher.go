@@ -2,8 +2,8 @@ package player
 
 import (
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/projectile"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 // Different launcher variants are created by different constructors; the
 // projectile spawned on each shot varies via the fireFunc field.
 type Launcher struct {
-	sprite         *draw.ColorMatrix
+	sprite         *sprite.Sprite
 	cooldown       int
 	cooldownFrames int
 	ammo           int
@@ -32,13 +32,13 @@ func NewBombLauncher() (*Launcher, error) {
 		return nil, err
 	}
 
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Launcher{
-		sprite:         sprite,
+		sprite:         s,
 		cooldownFrames: bombLauncherCooldownFrames,
 		ammo:           bombLauncherStartAmmo,
 		maxAmmo:        bombLauncherMaxAmmo,
@@ -82,7 +82,7 @@ func (l *Launcher) MaxAmmo() int {
 	return l.maxAmmo
 }
 
-func (l *Launcher) Sprite() *draw.ColorMatrix {
+func (l *Launcher) Sprite() *sprite.Sprite {
 	return l.sprite
 }
 

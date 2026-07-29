@@ -1,11 +1,12 @@
 package projectile
 
 import (
+	"image/color"
 	"math"
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const (
@@ -24,7 +25,7 @@ type EnemyBullet struct {
 	x, y   int
 	vx, vy float64
 	dead   bool
-	sprite *draw.ColorMatrix
+	sprite *sprite.Sprite
 }
 
 // NewEnemyBullet spawns a torpedo centered at (cx, cy) traveling in aim direction.
@@ -41,57 +42,59 @@ func NewEnemyBullet(cx, cy int, aim [2]float64) *EnemyBullet {
 	}
 }
 
-func generatePhotonTorpedoSprite() *draw.ColorMatrix {
-	// Color codes for static zones and animation frame colors.
-	// 'p' and 'q' are the core animation frame colors, kept out of animSeqs.
-	colorCodes := draw.ColorMap{
-		"0": {0, 0, 0, 0},         // transparent
-		"o": {160, 10, 0, 180},    // outer halo: deep red, semi-transparent
-		"m": {220, 50, 0, 230},    // mid ring: orange-red
-		"i": {255, 140, 0, 255},   // inner ring: bright orange
-		"p": {255, 240, 80, 255},  // core frame A: hot yellow
-		"q": {255, 255, 220, 255}, // core frame B: near-white
-	}
+func generatePhotonTorpedoSprite() *sprite.Sprite {
+	palette := sprite.NewPalette()
+	transparent, _ := palette.Add(color.RGBA{0, 0, 0, 0})
+	outer, _ := palette.Add(color.RGBA{160, 10, 0, 180})
+	mid, _ := palette.Add(color.RGBA{220, 50, 0, 230})
+	inner, _ := palette.Add(color.RGBA{255, 140, 0, 255})
+	frameA, _ := palette.Add(color.RGBA{255, 240, 80, 255})
+	frameB, _ := palette.Add(color.RGBA{255, 255, 220, 255})
+	coreKey, _ := palette.Reserve("c") // reserve a key for the animation slot
 
-	// Core pulses between hot yellow and near-white every 6 frames.
-	coreAnim := draw.NewAnimationSequence(
-		&colorCodes,
-		[]draw.ColorKey{"p", "p", "q", "p"},
-		6,
-	)
-	animSeqs := map[draw.ColorKey]*draw.AnimationSequence{"c": coreAnim}
+	seq, err := sprite.NewAnimationSequence(palette, []sprite.ColorKey{frameA, frameA, frameB, frameA}, 6)
+	if err != nil {
+		// This should not fail with valid inputs; fall back to static sprite
+		return generatePhotonTorpedoFallback()
+	}
+	animSeqs := map[sprite.ColorKey]*sprite.AnimationSequence{coreKey: seq}
 
 	const center = float64(torpedoSize-1) / 2
-	matrix := make([][]draw.ColorKey, torpedoSize)
+	matrix := make([][]sprite.ColorKey, torpedoSize)
 	for r := range matrix {
-		matrix[r] = make([]draw.ColorKey, torpedoSize)
+		matrix[r] = make([]sprite.ColorKey, torpedoSize)
 		for c := range matrix[r] {
 			dx := float64(c) - center
 			dy := float64(r) - center
 			dist := math.Sqrt(dx*dx + dy*dy)
 			switch {
 			case dist < 1.6:
-				matrix[r][c] = "c" // animated core
+				matrix[r][c] = coreKey // animated core
 			case dist < 2.8:
-				matrix[r][c] = "i"
+				matrix[r][c] = inner
 			case dist < 4.0:
-				matrix[r][c] = "m"
+				matrix[r][c] = mid
 			case dist < torpedoRadius:
-				matrix[r][c] = "o"
+				matrix[r][c] = outer
 			default:
-				matrix[r][c] = "0"
+				matrix[r][c] = transparent
 			}
 		}
 	}
 
-	cm, err := draw.NewColorMatrix(matrix, &colorCodes, animSeqs)
+	s, err := sprite.NewSprite(matrix, palette, animSeqs)
 	if err != nil {
-		// Fallback: single red pixel
-		fb := [][]draw.ColorKey{{"r"}}
-		fbc := draw.ColorMap{"r": {255, 50, 0, 255}}
-		cm, _ = draw.NewColorMatrix(fb, &fbc, nil)
+		return generatePhotonTorpedoFallback()
 	}
-	return cm
+	return s
+}
+
+func generatePhotonTorpedoFallback() *sprite.Sprite {
+	fbPalette := sprite.NewPalette()
+	fbKey, _ := fbPalette.Add(color.RGBA{255, 50, 0, 255})
+	fb := [][]sprite.ColorKey{{fbKey}}
+	s, _ := sprite.NewSprite(fb, fbPalette, map[sprite.ColorKey]*sprite.AnimationSequence{})
+	return s
 }
 
 func (b *EnemyBullet) Type() def.EntityType {
@@ -117,6 +120,7 @@ func (b *EnemyBullet) Act(_ def.Scene) {
 	b.fy += b.vy
 	b.x = int(b.fx)
 	b.y = int(b.fy)
+	b.sprite.Advance()
 }
 
 func (b *EnemyBullet) Draw(img *ebit.Image) {

@@ -8,9 +8,10 @@ import (
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
 	"tsumegolang/game/starshot/entity/projectile"
+	"tsumegolang/game/starshot/render"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 const (
@@ -31,7 +32,7 @@ const (
 type Chaser struct {
 	x, y          int
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	dead          bool
@@ -47,11 +48,12 @@ func NewChaser(x, y int) (*Chaser, error) {
 	if err != nil {
 		return nil, err
 	}
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	w, h := sprite.Dimensions()
+	w := s.Width()
+	h := s.Height()
 	return &Chaser{
 		x:         x,
 		y:         y,
@@ -59,7 +61,7 @@ func NewChaser(x, y int) (*Chaser, error) {
 		fy:        float64(y),
 		width:     int(float64(w) * enemyDrawScale),
 		height:    int(float64(h) * enemyDrawScale),
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(w, h),
 		pixelBuf:  make([]byte, w*h*4),
 		hp:        chaserMaxHP,
@@ -87,6 +89,7 @@ func (c *Chaser) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (c *Chaser) Act(scene def.Scene) {
+	c.sprite.Advance()
 	if c.dead {
 		c.frameCount++
 		return
@@ -167,7 +170,7 @@ func (c *Chaser) applyIntent(intent def.Intent, scene def.Scene) {
 }
 
 func (c *Chaser) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, c.cachedImg, c.pixelBuf, c.sprite, float64(c.x), float64(c.y), enemyDrawScale)
+	render.DrawScaled(img, c.cachedImg, c.pixelBuf, c.sprite, float64(c.x), float64(c.y), enemyDrawScale)
 }
 
 func (c *Chaser) CanBeRemoved() bool {
@@ -277,7 +280,7 @@ const (
 type Hunter struct {
 	x, y          int
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	dead          bool
@@ -294,11 +297,12 @@ func NewHunter(x, y int) (*Hunter, error) {
 	if err != nil {
 		return nil, err
 	}
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	w, h := sprite.Dimensions()
+	w := s.Width()
+	h := s.Height()
 	return &Hunter{
 		x:         x,
 		y:         y,
@@ -306,7 +310,7 @@ func NewHunter(x, y int) (*Hunter, error) {
 		fy:        float64(y),
 		width:     int(float64(w) * enemyDrawScale),
 		height:    int(float64(h) * enemyDrawScale),
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(w, h),
 		pixelBuf:  make([]byte, w*h*4),
 		hp:        hunterMaxHP,
@@ -334,6 +338,7 @@ func (h *Hunter) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (h *Hunter) Act(scene def.Scene) {
+	h.sprite.Advance()
 	if h.dead {
 		h.frameCount++
 		return
@@ -425,7 +430,7 @@ func (h *Hunter) applyIntent(intent def.Intent, scene def.Scene) {
 }
 
 func (h *Hunter) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, h.cachedImg, h.pixelBuf, h.sprite, float64(h.x), float64(h.y), enemyDrawScale)
+	render.DrawScaled(img, h.cachedImg, h.pixelBuf, h.sprite, float64(h.x), float64(h.y), enemyDrawScale)
 }
 
 func (h *Hunter) CanBeRemoved() bool {

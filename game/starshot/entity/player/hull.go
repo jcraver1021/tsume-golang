@@ -1,11 +1,11 @@
 package player
 
 import (
-	"tsumegolang/game/starshot/draw"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 type Hull struct {
-	sprite *draw.ColorMatrix
+	sprite *sprite.Sprite
 	// HP contributed by this hull to the ship's max HP pool.
 	// Multiple hulls or upgrade components are summed by the player
 	// when computing its starting maxHP.
@@ -21,13 +21,13 @@ func BasicHull() (*Hull, error) {
 		return nil, err
 	}
 
-	sprite, err := draw.ColorMatrixFromBytes(hullData)
+	s, err := sprite.SpriteFromBytes(hullData)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Hull{
-		sprite: sprite,
+		sprite: s,
 		HP:     3,
 	}, nil
 }

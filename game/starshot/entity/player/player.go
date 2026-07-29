@@ -5,8 +5,8 @@ import (
 
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 type PlayerAction struct {
@@ -34,7 +34,7 @@ const defaultPlayerSpeed = 5
 // the weapon sprite should be composited — weapons declare their own position so
 // a center cannon and a wing-mounted gun can coexist without overlapping.
 type weaponSprite interface {
-	Sprite() *draw.ColorMatrix
+	Sprite() *sprite.Sprite
 	MountOffsetX(hullWidth int) int
 	MountOffsetY() int
 }
@@ -45,7 +45,7 @@ type Player struct {
 
 	hull   *Hull
 	engine *Engine
-	sprite *draw.ColorMatrix
+	sprite *sprite.Sprite
 
 	playerAction    PlayerAction
 	primaryWeapon   def.Weapon
@@ -59,7 +59,7 @@ type Player struct {
 	explosionMaxDuration int
 }
 
-// NewPlayer creates a new ColorMatrix-based player. Either weapon may be nil.
+// NewPlayer creates a new sprite-based player. Either weapon may be nil.
 func NewPlayer(x, y int, primaryWeapon, secondaryWeapon def.Weapon) (*Player, error) {
 	p := &Player{
 		x:               x,
@@ -81,7 +81,9 @@ func NewPlayer(x, y int, primaryWeapon, secondaryWeapon def.Weapon) (*Player, er
 	}
 
 	// Compose sprites
-	p.composePlayerSprites()
+	if err := p.composePlayerSprites(); err != nil {
+		return nil, err
+	}
 
 	// Set dimensions based on the composed sprite
 	p.width = p.sprite.Width()
@@ -120,22 +122,34 @@ func (p *Player) composePlayerSprites() error {
 	// This ensures the hull body occludes weapon mount bases while
 	// protruding parts (gun barrel at the bow, launcher tube) remain visible
 	// through transparent regions of the hull.
-	canvas := draw.BlankColorMatrix(hull.Width(), hull.Height())
+	canvas, err := sprite.BlankSprite(hull.Height(), hull.Width())
+	if err != nil {
+		return err
+	}
 
 	for _, w := range []def.Weapon{p.primaryWeapon, p.secondaryWeapon} {
 		if ws, ok := w.(weaponSprite); ok {
 			if s := ws.Sprite(); s != nil {
-				_ = canvas.Compose(s, ws.MountOffsetX(hull.Width()), ws.MountOffsetY())
+				canvas, err = canvas.Compose(s, -ws.MountOffsetY(), -ws.MountOffsetX(hull.Width()))
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
 
 	if p.engine != nil {
 		offsetX, offsetY := p.computeEngineMountOffset()
-		_ = canvas.Compose(p.engine.sprite, offsetX, offsetY)
+		canvas, err = canvas.Compose(p.engine.sprite, -offsetY, -offsetX)
+		if err != nil {
+			return err
+		}
 	}
 
-	_ = canvas.Compose(hull, 0, 0)
+	canvas, err = canvas.Compose(hull, 0, 0)
+	if err != nil {
+		return err
+	}
 
 	p.sprite = canvas
 	return nil
@@ -186,6 +200,7 @@ func (p *Player) SetSecondaryWeapon(weapon def.Weapon) {
 }
 
 func (p *Player) Act(b def.Scene) {
+	p.sprite.Advance()
 	if p.dead {
 		// Track explosion animation progress
 		p.explosionFrameCount++
@@ -229,7 +244,6 @@ func (p *Player) Act(b def.Scene) {
 }
 
 func (p *Player) Draw(img *ebit.Image) {
-	// Render sprite (advances animations automatically)
 	pixels := p.sprite.Render()
 
 	for row := range pixels {
@@ -257,13 +271,14 @@ func (p *Player) AddComponent(componentPath string) error {
 		return err
 	}
 
-	component, err := draw.ColorMatrixFromBytes(data)
+	component, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return err
 	}
 
 	// Compose the new component onto the existing sprite
-	return p.sprite.Compose(component, 0, 0)
+	p.sprite, err = p.sprite.Compose(component, 0, 0)
+	return err
 }
 
 // Mortal interface implementation
@@ -271,9 +286,9 @@ func (p *Player) AddComponent(componentPath string) error {
 func (p *Player) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
 		SpawnVisualEffect: func(_, _ int, _ def.Scene) {
-			sprite, err := effects.LoadExplosionSprite(effects.ExplosionLarge)
+			s, err := effects.LoadExplosionSprite(effects.ExplosionLarge)
 			if err == nil {
-				p.composeExplosion(sprite)
+				p.composeExplosion(s)
 			}
 		},
 		SlowdownMultiplier: 0.3,
@@ -286,13 +301,15 @@ func (p *Player) MarkAsDead(_ def.Scene) {
 	p.explosionFrameCount = 0
 }
 
-func (p *Player) composeExplosion(explosionSprite *draw.ColorMatrix) error {
+func (p *Player) composeExplosion(explosionSprite *sprite.Sprite) error {
 	// Store original dimensions before composing
 	oldWidth := p.width
 	oldHeight := p.height
 
 	// Compose explosion over player sprite (expanding if needed)
-	if err := p.sprite.ComposeExpanding(explosionSprite); err != nil {
+	var err error
+	p.sprite, err = p.sprite.ComposeExpanding(explosionSprite)
+	if err != nil {
 		return err
 	}
 

@@ -6,8 +6,9 @@ package enemy
 import (
 	ebit "github.com/hajimehoshi/ebiten/v2"
 	"tsumegolang/game/starshot/def"
-	"tsumegolang/game/starshot/draw"
 	"tsumegolang/game/starshot/entity/effects"
+	"tsumegolang/game/starshot/render"
+	"tsumegolang/pkg/tool/sprite"
 )
 
 // Drifter falls straight down at high speed with no lateral movement or
@@ -23,7 +24,7 @@ type Drifter struct {
 	x, y          int
 	fx, fy        float64
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	dead          bool
@@ -37,11 +38,12 @@ func NewDrifter(x, y int) (*Drifter, error) {
 	if err != nil {
 		return nil, err
 	}
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	w, h := sprite.Dimensions()
+	w := s.Width()
+	h := s.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	return &Drifter{
@@ -51,7 +53,7 @@ func NewDrifter(x, y int) (*Drifter, error) {
 		fy:        float64(y),
 		width:     scaledW,
 		height:    scaledH,
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(w, h),
 		pixelBuf:  make([]byte, w*h*4),
 		hp:        drifterMaxHP,
@@ -78,6 +80,7 @@ func (d *Drifter) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (d *Drifter) Act(_ def.Scene) {
+	d.sprite.Advance()
 	if d.dead {
 		d.frameCount++
 		return
@@ -87,7 +90,7 @@ func (d *Drifter) Act(_ def.Scene) {
 }
 
 func (d *Drifter) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, d.cachedImg, d.pixelBuf, d.sprite, float64(d.x), float64(d.y), enemyDrawScale)
+	render.DrawScaled(img, d.cachedImg, d.pixelBuf, d.sprite, float64(d.x), float64(d.y), enemyDrawScale)
 }
 
 func (d *Drifter) CanBeRemoved() bool {
@@ -159,7 +162,7 @@ type Weaver struct {
 	fx, fy        float64
 	vx            float64
 	width, height int
-	sprite        *draw.ColorMatrix
+	sprite        *sprite.Sprite
 	cachedImg     *ebit.Image
 	pixelBuf      []byte
 	dead          bool
@@ -173,11 +176,12 @@ func NewWeaver(x, y int) (*Weaver, error) {
 	if err != nil {
 		return nil, err
 	}
-	sprite, err := draw.ColorMatrixFromBytes(data)
+	s, err := sprite.SpriteFromBytes(data)
 	if err != nil {
 		return nil, err
 	}
-	w, h := sprite.Dimensions()
+	w := s.Width()
+	h := s.Height()
 	scaledW := int(float64(w) * enemyDrawScale)
 	scaledH := int(float64(h) * enemyDrawScale)
 	return &Weaver{
@@ -187,7 +191,7 @@ func NewWeaver(x, y int) (*Weaver, error) {
 		fy:        float64(y),
 		width:     scaledW,
 		height:    scaledH,
-		sprite:    sprite,
+		sprite:    s,
 		cachedImg: ebit.NewImage(w, h),
 		pixelBuf:  make([]byte, w*h*4),
 		hp:        weaverMaxHP,
@@ -214,6 +218,7 @@ func (w *Weaver) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (w *Weaver) Act(scene def.Scene) {
+	w.sprite.Advance()
 	if w.dead {
 		w.frameCount++
 		return
@@ -265,7 +270,7 @@ func (w *Weaver) Act(scene def.Scene) {
 }
 
 func (w *Weaver) Draw(img *ebit.Image) {
-	draw.DrawScaled(img, w.cachedImg, w.pixelBuf, w.sprite, float64(w.x), float64(w.y), enemyDrawScale)
+	render.DrawScaled(img, w.cachedImg, w.pixelBuf, w.sprite, float64(w.x), float64(w.y), enemyDrawScale)
 }
 
 func (w *Weaver) CanBeRemoved() bool {
