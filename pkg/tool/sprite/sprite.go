@@ -222,10 +222,18 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					// switcher confirmed dstIsColor=true; ok is guaranteed.
 					dstColor, _ := s.palette.Get(s.matrix[i-rowOffset][j-colOffset])
 					dstCk, _ := newPalette.Add(dstColor) // bool (new vs existing) discarded
-					// invariant: src.frameDuration > 0 (valid seq); single-element frames is non-empty; error impossible.
+					// Translate src frames into newPalette so blend result lives entirely in newPalette.
+					translatedSrcFrames := make([]ColorKey, len(src.frames))
+					for fi, srcCk := range src.frames {
+						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
+						srcFrameColor, _ := other.palette.Get(srcCk)
+						translatedSrcFrames[fi], _ = newPalette.Add(srcFrameColor) // bool (new vs existing) discarded
+					}
+					// invariant: src.frameDuration > 0 (valid seq); frames non-empty; error impossible.
+					translatedSrc, _ := NewAnimationSequence(newPalette, translatedSrcFrames, src.frameDuration)
 					dst, _ := NewAnimationSequence(newPalette, []ColorKey{dstCk}, src.frameDuration)
-					newAnimation := dst.blend(src)
-					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
+					newAnimation := translatedSrc.blend(dst) // src (other) over dst (s)
+					// frames[0] came from palette.Add() so it is always a valid narrow Unicode scalar value; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
@@ -234,18 +242,22 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					// key is in animationSequences (absent key would be nil, causing a panic below).
 					origSeq := s.animationSequences[s.matrix[i-rowOffset][j-colOffset]]
 					// Translate dst frames into the new palette without modifying the original sequence.
-					translatedFrames := make([]ColorKey, len(origSeq.frames))
+					translatedDstFrames := make([]ColorKey, len(origSeq.frames))
 					for fi, origCk := range origSeq.frames {
 						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
 						aColor, _ := s.palette.Get(origCk)
-						translatedFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
+						translatedDstFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
 					}
 					// invariant: origSeq.frameDuration > 0 (valid seq); translatedFrames has len ≥ 1; error impossible.
-					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
+					dstSeq, _ := NewAnimationSequence(newPalette, translatedDstFrames, origSeq.frameDuration)
+					// Translate src static color into newPalette for a consistent palette on the result.
+					// switcher confirmed srcIsColor=true; ok is guaranteed.
+					srcStaticColor, _ := other.palette.Get(other.matrix[i][j])
+					srcStaticCk, _ := newPalette.Add(srcStaticColor) // bool (new vs existing) discarded
 					// invariant: single valid frame; origSeq.frameDuration > 0; error impossible.
-					srcSeq, _ := NewAnimationSequence(other.palette, []ColorKey{other.matrix[i][j]}, origSeq.frameDuration)
-					newAnimation := dstSeq.blend(srcSeq)
-					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
+					srcSeq, _ := NewAnimationSequence(newPalette, []ColorKey{srcStaticCk}, origSeq.frameDuration)
+					newAnimation := srcSeq.blend(dstSeq) // src (other) over dst (s)
+					// frames[0] came from palette.Add() so it is always a valid narrow Unicode scalar value; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation
@@ -254,19 +266,28 @@ func (s *Sprite) Compose(other *Sprite, rowOffset, colOffset int) (*Sprite, erro
 					// key is in animationSequences (absent key would be nil, causing a panic below).
 					origSeq := s.animationSequences[s.matrix[i-rowOffset][j-colOffset]]
 					// Translate dst frames into the new palette without modifying the original sequence.
-					translatedFrames := make([]ColorKey, len(origSeq.frames))
+					translatedDstFrames := make([]ColorKey, len(origSeq.frames))
 					for fi, origCk := range origSeq.frames {
 						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
 						aColor, _ := s.palette.Get(origCk)
-						translatedFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
+						translatedDstFrames[fi], _ = newPalette.Add(aColor) // bool (new vs existing) discarded
 					}
 					// invariant: origSeq.frameDuration > 0 (valid seq); translatedFrames has len ≥ 1; error impossible.
-					dstSeq, _ := NewAnimationSequence(newPalette, translatedFrames, origSeq.frameDuration)
+					dstSeq, _ := NewAnimationSequence(newPalette, translatedDstFrames, origSeq.frameDuration)
 					// switcher confirmed srcIsColor=false; a well-formed sprite guarantees the
 					// key is in animationSequences (absent key would be nil, causing a panic in blend below).
 					srcSeq := other.animationSequences[other.matrix[i][j]]
-					newAnimation := dstSeq.blend(srcSeq)
-					// frames[0] came from palette.Add() so it is always valid single-byte ASCII; ErrInvalidColorKey impossible.
+					// Translate src frames into newPalette so blend result lives entirely in newPalette.
+					translatedSrcFrames := make([]ColorKey, len(srcSeq.frames))
+					for fi, srcCk := range srcSeq.frames {
+						// invariant: AnimationSequence frames are always valid palette keys; ok is guaranteed.
+						srcFrameColor, _ := other.palette.Get(srcCk)
+						translatedSrcFrames[fi], _ = newPalette.Add(srcFrameColor) // bool (new vs existing) discarded
+					}
+					// invariant: srcSeq.frameDuration > 0 (valid seq); frames non-empty; error impossible.
+					translatedSrc, _ := NewAnimationSequence(newPalette, translatedSrcFrames, srcSeq.frameDuration)
+					newAnimation := translatedSrc.blend(dstSeq) // src (other) over dst (s)
+					// frames[0] came from palette.Add() so it is always a valid narrow Unicode scalar value; ErrInvalidColorKey impossible.
 					newCk, _ := newPalette.Reserve(newAnimation.frames[0]) // arbitrary key choice; Reserve will give us a unique one
 					newMatrix[i-rowOffset][j-colOffset] = newCk
 					newAnimationSequences[newCk] = newAnimation

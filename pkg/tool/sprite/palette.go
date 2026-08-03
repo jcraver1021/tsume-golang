@@ -3,6 +3,9 @@ package sprite
 import (
 	"errors"
 	"image/color"
+	"unicode/utf8"
+
+	"golang.org/x/text/width"
 )
 
 var (
@@ -10,15 +13,32 @@ var (
 	errKeyOccupied     = errors.New("key already occupied in palette")
 )
 
-// ColorKey is a single-byte string that identifies a color entry in a Palette.
+// ColorKey is a single-rune string that identifies a color entry in a Palette.
 //
-// Validity is defined by byte length (len(ck) == 1), not rune count, so only
-// ASCII code points U+0000–U+007F produce valid keys. Runes above U+007F
-// encode to two or more bytes in UTF-8 and are therefore invalid.
+// Validity requires all three of:
+//   - exactly one Unicode code point (rune count == 1),
+//   - valid UTF-8 (no surrogate halves U+D800–U+DFFF or other non-scalar values),
+//   - narrow display width (East Asian Width ≠ Wide or Fullwidth), so that a
+//     matrix row printed as a plain string aligns correctly in monospace output.
 type ColorKey string
 
 func (ck ColorKey) valid() bool {
-	return len(ck) == 1
+	s := string(ck)
+	if len(s) == 0 {
+		return false
+	}
+	if !utf8.ValidString(s) {
+		return false
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	if size != len(s) {
+		return false // more than one rune
+	}
+	switch width.LookupRune(r).Kind() {
+	case width.EastAsianWide, width.EastAsianFullwidth:
+		return false
+	}
+	return true
 }
 
 func fromString(s string) (ColorKey, error) {
@@ -33,13 +53,10 @@ func fromString(s string) (ColorKey, error) {
 // Palette represents a collection of colors identified by single-character keys.
 //
 // Key space: auto-generated keys are assigned sequentially starting from '0'
-// (U+0030). Because valid keys must be single-byte ASCII (U+0000–U+007F),
-// there are at most 80 slots available before key generation silently overflows
-// into multi-byte territory (see nextKey). Each call to Add for a new color and
-// each call to Reserve draws from this pool. For typical game sprites — which
-// have small palettes — this limit is unlikely to be reached, but it should be
-// treated as a hard cap when designing data pipelines that construct palettes
-// programmatically.
+// (U+0030), skipping surrogates (U+D800–U+DFFF) and wide/fullwidth code points.
+// The usable space is the set of narrow Unicode scalar values — hundreds of
+// thousands of slots — so exhaustion is not a practical concern for game sprites.
+// If the space is somehow exhausted, nextKey panics.
 type Palette struct {
 	colors   map[ColorKey]color.RGBA
 	registry map[color.RGBA]ColorKey
@@ -57,21 +74,30 @@ func NewPalette() *Palette {
 }
 
 // nextKey returns the next available auto-generated key and advances the
-// internal rune counter. Once nextRune exceeds U+007F the generated key will
-// be multi-byte UTF-8 and will fail valid(), causing silent misbehavior in any
-// code that validates keys (Reserve, fromString). Callers should ensure the
-// total number of Add and Reserve calls stays within the ~80-key ASCII budget.
+// internal rune counter. It skips:
+//   - surrogate halves (U+D800–U+DFFF) and other non-scalar values, via utf8.ValidRune,
+//   - wide and fullwidth code points, via golang.org/x/text/width,
+//   - runes already reserved in this palette.
+//
+// Panics if the narrow Unicode scalar space is exhausted, which is not a
+// realistic concern for game sprite palettes.
 func (p *Palette) nextKey() ColorKey {
-	ck := ColorKey(string(p.nextRune))
-	p.nextRune++
-	for {
-		if _, reserved := p.reserved[ck]; !reserved {
-			break
-		}
-		ck = ColorKey(string(p.nextRune))
+	for p.nextRune <= utf8.MaxRune {
+		r := p.nextRune
 		p.nextRune++
+		if !utf8.ValidRune(r) {
+			continue
+		}
+		switch width.LookupRune(r).Kind() {
+		case width.EastAsianWide, width.EastAsianFullwidth:
+			continue
+		}
+		ck := ColorKey(string(r))
+		if _, reserved := p.reserved[ck]; !reserved {
+			return ck
+		}
 	}
-	return ck
+	panic("sprite: palette key space exhausted")
 }
 
 func (p *Palette) Reserve(ck ColorKey) (ColorKey, error) {
