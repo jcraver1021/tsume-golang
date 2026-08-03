@@ -285,10 +285,18 @@ func (p *Player) AddComponent(componentPath string) error {
 
 func (p *Player) GetDeathEffect() def.DeathEffect {
 	return def.DeathEffect{
-		SpawnVisualEffect: func(_, _ int, _ def.Scene) {
+		SpawnVisualEffect: func(cx, cy int, scene def.Scene) {
 			s, err := effects.LoadExplosionSprite(effects.ExplosionLarge)
-			if err == nil {
-				p.composeExplosion(s)
+			if err != nil {
+				return
+			}
+			if composeErr := p.composeExplosion(s); composeErr != nil {
+				// Composition failed — fall back to a standalone explosion centered
+				// on the player so the death is still visually communicated.
+				exp, spawnErr := effects.NewExplosion(cx, cy, effects.ExplosionLarge)
+				if spawnErr == nil {
+					scene.Entities().Add(exp)
+				}
 			}
 		},
 		SlowdownMultiplier: 0.3,
@@ -299,6 +307,9 @@ func (p *Player) GetDeathEffect() def.DeathEffect {
 func (p *Player) MarkAsDead(_ def.Scene) {
 	p.dead = true
 	p.explosionFrameCount = 0
+	// Safety net: ensures CanBeRemoved() doesn't immediately return true
+	// if SpawnVisualEffect hasn't run yet or composeExplosion fails.
+	p.explosionMaxDuration = 96
 }
 
 func (p *Player) composeExplosion(explosionSprite *sprite.Sprite) error {

@@ -7,32 +7,6 @@ import (
 	. "tsumegolang/pkg/tool/sprite"
 )
 
-// animationSprite builds a 1×1 Sprite whose single pixel is driven by an
-// AnimationSequence over the given colors at the given frameDuration.
-func animationSprite(t *testing.T, colors []color.RGBA, frameDuration int) *Sprite {
-	t.Helper()
-	palette := NewPalette()
-	frames := make([]ColorKey, len(colors))
-	for i, c := range colors {
-		ck, _ := palette.Add(c)
-		frames[i] = ck
-	}
-	keyA, _ := palette.Reserve("A")
-	seq, err := NewAnimationSequence(palette, frames, frameDuration)
-	if err != nil {
-		t.Fatalf("NewAnimationSequence: %v", err)
-	}
-	sprite, err := NewSprite(
-		[][]ColorKey{{keyA}},
-		palette,
-		map[ColorKey]*AnimationSequence{keyA: seq},
-	)
-	if err != nil {
-		t.Fatalf("NewSprite: %v", err)
-	}
-	return sprite
-}
-
 func TestAnimationSequence(t *testing.T) {
 	testCases := []struct {
 		name          string

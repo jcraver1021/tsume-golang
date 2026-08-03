@@ -265,24 +265,6 @@ func TestSpriteRender(t *testing.T) {
 	}
 }
 
-// makeSolidSprite returns a rows×cols Sprite where every pixel is color c.
-func makeSolidSprite(rows, cols int, c color.RGBA) *Sprite {
-	p := NewPalette()
-	ck, _ := p.Add(c)
-	matrix := make([][]ColorKey, rows)
-	for i := range matrix {
-		matrix[i] = make([]ColorKey, cols)
-		for j := range matrix[i] {
-			matrix[i][j] = ck
-		}
-	}
-	s, err := NewSprite(matrix, p, map[ColorKey]*AnimationSequence{})
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
 func TestSpriteComposition(t *testing.T) {
 	type spritePair struct {
 		dst *Sprite
@@ -421,6 +403,91 @@ func TestSpriteComposition(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSpriteCompositionWithAnimations(t *testing.T) {
+	red := color.RGBA{R: 255, A: 255}
+	green := color.RGBA{G: 255, A: 255}
+	blue := color.RGBA{B: 255, A: 255}
+	yellow := color.RGBA{R: 255, G: 255, A: 255}
+	semiBlue := color.RGBA{B: 255, A: 128}
+
+	t.Run("AnimatedSrcOpaqueOverStaticDst", func(t *testing.T) {
+		// src animates red→green (opaque). dst is solid blue.
+		// Correct: src wins every frame (src over dst, both opaque → src shown).
+		// Bug would show blue every frame (dst over src).
+		src := animationSprite(t, []color.RGBA{red, green}, 1)
+		dst := makeSolidSprite(1, 1, blue)
+		result, err := dst.Compose(src, 0, 0)
+		if err != nil {
+			t.Fatalf("Compose: %v", err)
+		}
+		want := []color.RGBA{red, green, red} // cycles
+		for i, wantColor := range want {
+			got := result.Render()[0][0]
+			if got != wantColor {
+				t.Errorf("frame %d: want %v, got %v", i, wantColor, got)
+			}
+			result.Advance()
+		}
+	})
+
+	t.Run("AnimatedSrcSemiTransparentOverStaticDst", func(t *testing.T) {
+		// src animates semiBlue (A=128) single frame. dst is solid red.
+		// Correct blend: alphaComposite(semiBlue, red).
+		src := animationSprite(t, []color.RGBA{semiBlue}, 1)
+		dst := makeSolidSprite(1, 1, red)
+		result, err := dst.Compose(src, 0, 0)
+		if err != nil {
+			t.Fatalf("Compose: %v", err)
+		}
+		// alphaComposite(semiBlue A=128, red A=255):
+		// outA = 128/255 + 1*(1-128/255) = 1.0 → A=255
+		// outR = (0*(128/255) + 255*(127/255)) / 1.0 ≈ 126
+		// outB = (255*(128/255) + 0) / 1.0 = 128
+		want := color.RGBA{R: 126, G: 0, B: 128, A: 255}
+		got := result.Render()[0][0]
+		if got != want {
+			t.Errorf("want %v, got %v", want, got)
+		}
+	})
+
+	t.Run("StaticSrcOverAnimatedDst", func(t *testing.T) {
+		// src is solid opaque red. dst animates blue→yellow.
+		// Correct: red wins every frame (opaque src over dst).
+		src := makeSolidSprite(1, 1, red)
+		dst := animationSprite(t, []color.RGBA{blue, yellow}, 1)
+		result, err := dst.Compose(src, 0, 0)
+		if err != nil {
+			t.Fatalf("Compose: %v", err)
+		}
+		for i := 0; i < 4; i++ {
+			got := result.Render()[0][0]
+			if got != red {
+				t.Errorf("frame %d: want %v, got %v", i, red, got)
+			}
+			result.Advance()
+		}
+	})
+
+	t.Run("BothAnimatedSrcOverDst", func(t *testing.T) {
+		// src animates red→green (opaque). dst animates blue→yellow (opaque).
+		// Correct: src always wins (opaque src over dst).
+		src := animationSprite(t, []color.RGBA{red, green}, 1)
+		dst := animationSprite(t, []color.RGBA{blue, yellow}, 1)
+		result, err := dst.Compose(src, 0, 0)
+		if err != nil {
+			t.Fatalf("Compose: %v", err)
+		}
+		want := []color.RGBA{red, green, red}
+		for i, wantColor := range want {
+			got := result.Render()[0][0]
+			if got != wantColor {
+				t.Errorf("frame %d: want %v, got %v", i, wantColor, got)
+			}
+			result.Advance()
+		}
+	})
 }
 
 func TestSpriteCompositionWithExpansion(t *testing.T) {

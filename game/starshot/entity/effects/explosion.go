@@ -115,12 +115,12 @@ func (e *Explosion) BoundingBoxOverlaps(other def.Entity) bool {
 }
 
 func (e *Explosion) Act(scene def.Scene) {
-	e.sprite.Advance()
 	e.frameCount++
 }
 
 func (e *Explosion) Draw(img *ebit.Image) {
 	render.DrawScaled(img, e.cachedImg, e.pixelBuf, e.sprite, float64(e.x), float64(e.y), e.drawScale)
+	e.sprite.Advance()
 }
 
 func (e *Explosion) CanBeRemoved() bool {

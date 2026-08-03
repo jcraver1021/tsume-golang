@@ -11,8 +11,13 @@ func TestColorKey(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "valid single character",
+			name:    "valid single ASCII character",
 			input:   "a",
+			wantErr: false,
+		},
+		{
+			name:    "valid narrow multi-byte character",
+			input:   "é", // U+00E9, 2-byte UTF-8, narrow
 			wantErr: false,
 		},
 		{
@@ -23,6 +28,16 @@ func TestColorKey(t *testing.T) {
 		{
 			name:    "invalid multiple characters",
 			input:   "ab",
+			wantErr: true,
+		},
+		{
+			name:    "invalid wide character",
+			input:   "広", // U+5E83, CJK wide
+			wantErr: true,
+		},
+		{
+			name:    "invalid surrogate (malformed UTF-8)",
+			input:   "\xed\xa0\x80", // U+D800 encoded as if valid UTF-8
 			wantErr: true,
 		},
 	}

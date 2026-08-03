@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
@@ -143,8 +144,9 @@ func buildSpriteFromDef(def spriteFileDef) (*Sprite, error) {
 	}
 	matrix := make([][]ColorKey, len(def.Matrix))
 	for i, rowStr := range def.Matrix {
-		matrix[i] = make([]ColorKey, len(rowStr))
-		for j, r := range rowStr {
+		matrix[i] = make([]ColorKey, utf8.RuneCountInString(rowStr))
+		j := 0
+		for _, r := range rowStr {
 			ck, err := fromString(string(r))
 			if err != nil {
 				return nil, fmt.Errorf("sprite: matrix[%d][%d]: %w", i, j, err)
@@ -155,6 +157,7 @@ func buildSpriteFromDef(def spriteFileDef) (*Sprite, error) {
 				return nil, fmt.Errorf("sprite: matrix[%d][%d]: key %q not defined in color_codes or animation_sequences", i, j, string(r))
 			}
 			matrix[i][j] = ck
+			j++
 		}
 	}
 
