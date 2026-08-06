@@ -1,0 +1,149 @@
+# Example Citation Evaluation
+# This shows how to evaluate a citation using the schema
+
+citation_id: "lie01_019"
+section: "Lie #1: Abortion Is Health Care"
+citation_number: 19
+url: "https://www.nyc.gov/assets/doh/downloads/pdf/vs/pregnancy-outcomes-2013.pdf"
+full_citation: "Summary of Vital Statistics 2013: Pregnancy Outcomes, New York City Department of Health"
+
+# =============================================================================
+# ACCESSIBILITY
+# =============================================================================
+accessibility:
+  status: ACCESSIBLE
+  notes: "PDF successfully downloaded, 46 pages"
+  archive_url: ""
+  download_date: "2026-06-17"
+
+# =============================================================================
+# SOURCE TYPE
+# =============================================================================
+source_type:
+  primary: GOV_REPORT
+  secondary: []
+  outlet: "New York City Department of Health"
+  publication_date: "2013"
+
+# =============================================================================
+# CREDIBILITY ASSESSMENT
+# =============================================================================
+credibility:
+  rating: 5
+  reasoning: |
+    Official government statistics from NYC DOH. These are vital statistics
+    compiled from birth/death certificates and medical records. Methodology
+    is transparent and data is verifiable. This is a primary source of
+    demographic data.
+  conflicts: []
+  methodological_notes: "Standard vital statistics methodology, large sample size (all NYC births)"
+
+# =============================================================================
+# REPRESENTATION ACCURACY
+# =============================================================================
+representation:
+  accuracy: ACCURATE_BUT_CHERRY_PICKED
+  severity: MODERATE
+  misrep_type:
+    - LIMITATIONS_IGNORED
+
+  book_claim: |
+    "In New York City in 2013, there were more abortions among Black women
+    than live births"
+
+  source_quote: |
+    Page 7, Table 3 shows:
+    - Black non-Hispanic live births: 24,758
+    - Black non-Hispanic induced terminations: 29,007
+
+  context_missing: |
+    The book uses this statistic to imply that abortion is genocide against
+    Black communities. However, the report also shows:
+    1. The abortion rate has been declining since 2001 (pg 8)
+    2. Rates are associated with socioeconomic factors (not mentioned in book)
+    3. Teen pregnancy rates also declining (pg 10)
+    4. The report contextualizes this within broader maternal health disparities
+
+    The book presents one data point without the surrounding context about
+    trends, causes, or the broader picture of reproductive health access.
+
+  notes: |
+    The specific number is accurate, but using it without context about:
+    - Why these disparities exist (poverty, healthcare access)
+    - What the trends are (improving)
+    - How to interpret this data
+    ...constitutes cherry-picking to support a predetermined narrative.
+
+# =============================================================================
+# BIAS ASSESSMENT
+# =============================================================================
+bias:
+  political: CENTER
+  funding: GOVERNMENT_FUNDED
+  author_expertise: SUBJECT_MATTER_EXPERT
+  institutional_bias: |
+    NYC DOH has public health mission, but this is a vital statistics
+    report (descriptive data), not a policy recommendation
+  methodological_concerns: []
+
+# =============================================================================
+# META-ASSESSMENT
+# =============================================================================
+meta:
+  support: WEAK_SUPPORT
+  red_flags: []
+  overall_notes: |
+    This is a highly credible source that contains accurate data. However,
+    the book's use of this data is cherry-picked and lacks context. The
+    source itself is neutral (vital statistics), but the interpretation
+    in the book is misleading by omission.
+
+    The data point is real, but it's used to support a claim (abortion as
+    genocide) that the source itself doesn't make and actually contradicts
+    through its discussion of socioeconomic factors.
+
+  alternative_interpretations: |
+    The same data could be interpreted as:
+    1. Evidence of healthcare access disparities that need addressing
+    2. Evidence that Black women face higher unintended pregnancy rates
+       due to lack of access to contraception
+    3. Part of broader maternal health disparities
+
+    The book chooses only one interpretation (targeting) without evidence.
+
+# =============================================================================
+# VERIFICATION METADATA
+# =============================================================================
+verification:
+  verified_by: "Your Name"
+  verification_date: "2026-06-17"
+  time_spent_minutes: 30
+  requires_followup: true
+  followup_notes: |
+    Should look at:
+    1. More recent NYC vital statistics (2020+) to show trends
+    2. Research on socioeconomic factors and abortion rates
+    3. What Planned Parenthood's actual services are in Black communities
+       (prenatal care, contraception, etc.)
+    4. Statements from Black reproductive health advocates
+
+# =============================================================================
+# SCORING (Optional)
+# =============================================================================
+scoring:
+  accessibility: 2  # Fully accessible
+  credibility: 5    # Government data, highest credibility
+  representation: 2 # Cherry-picked (would be 3 if accurate, 1 if misleading)
+  red_flag_penalty: 0
+  total_score: 9    # Out of 10 (but context matters - it's cherry-picked)
+
+notes: |
+  This is an example of a CREDIBLE SOURCE being MISUSED. The data is real
+  and from a highly reliable source, but the interpretation is misleading.
+
+  This is arguably more insidious than using a bad source, because readers
+  can verify the number is correct and assume the interpretation must also
+  be correct.
+
+  Key lesson: A citation can be technically accurate but still deeply
+  misleading through cherry-picking and lack of context.

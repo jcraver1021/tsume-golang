@@ -1,0 +1,131 @@
+CITATIONS NEEDING MANUAL REVIEW
+
+These citation numbers have missing, incomplete, or unreadable URLs that need to be verified or re-photographed.
+
+=== INTRODUCTION ===
+5. Twitter post - URL partially visible but unclear
+
+=== LIE #1: "Abortion Is Health Care" ===
+6. Court document reference - no URL provided in citation
+7. Grand Jury report - URL partially visible/cut off
+8. LifeSiteNews - URL partial
+9. URL unclear
+12. URL unclear
+14. URL unclear
+15. Full URL unclear (only partial visible)
+17. Unclear
+20. Epstein-related reference - unclear
+22. URL unclear
+25. Fact sheet reference - no URL (may be intended as document-only citation)
+27. Legislative reference - no URL
+28. URL unclear
+29. Deseret News URL - unclear
+30. Unclear
+31. Unclear
+
+=== LIE #2: "Trans Women Are Women" ===
+2. https://billboardchris.substack.com/p/junk-science - CONTINUING URL CUT OFF
+5. URL unreadable
+9. URL unreadable
+10. URL unreadable
+11. Full URL unclear - only partial visible
+12. Murphy NJ transgender reference - unreadable
+16. Zakhem reference - unreadable
+17. WebMD exogenous - appears complete but verify: https://www.webmd.com/a-to-z-guides/what-is-exogenous
+18. Journal reference - unreadable (appears to be about diabetes)
+19. Journal reference - unreadable
+20. Journal reference - unreadable (Endocrine treatment)
+21. Endocrine Society Clinical Practice Guidelines - unreadable
+22. Annual of Clinical Biochemistry reference - unreadable
+24. Acute Cardiovascular Events in Transgender Individuals - journal citation, no direct URL
+25. Urethral Complications After Transgender Phalloplasty - journal citation, no direct URL
+27. URL unreadable
+30. Wisconsin Right to Life URL - appears complete but very long, verify it's accurate
+32. Book reference (Skyborne Publishing) - no URL
+33. URL appears to start with https://www.jamesacantor.org but rest is extremely long and potentially truncated
+34. CDC Undergraduate Reflective Group data report - unreadable
+36. First Reuters URL may be incomplete or there may be two similar URLs (listed twice as #36 and #37)
+39. go.nih.gov affidavit - appears complete but verify
+41. URL unreadable
+42. European Conservative URL about Germany - very long, may be truncated
+48. "SRS Market Analysis, 2021, Grand View Research" at https://sexist.cloud/ - this URL seems suspicious/incorrect
+
+49. Vanderbilt reference - unreadable (appears to be about gender surgery scandal)
+50. URL unreadable
+52. Transgender Clinic Doctor reference - text visible but no clear URL
+55. National Review URL about Zachary Elwood - partially visible but incomplete
+56. Alex Hammer transgender reference - unreadable
+57. URL unreadable
+
+=== LIE #3: "Love Is Love" ===
+2. Pew Research reference - no URL visible
+4. Long Columbia Law Review URL - may be truncated or have errors
+5. Unreadable
+7. Department of Justice reference - unreadable
+9. May be duplicate of #8 or different CDC page - verify
+11. PubMed reference - unreadable
+12. HuffPost Lance Bass URL - verify if complete (very long)
+13. May be duplicate of #12 or slightly different URL - verify
+
+=== LIE #4: "No Human Is Illegal" ===
+1. C.S.J. reference - no URL (appears to be book citation)
+2. Deportation fear reference - unreadable
+5. URL unreadable
+7. Criminal Noncitizen Statistics - unreadable
+11. URL unreadable
+12. Border Patrol Apprehensions reference - unclear
+17. Texas Town Over reference - unreadable
+19. URL unreadable (appears to be about exclusive video)
+20. Texas Ranchers reference - unreadable
+22. Akron reference - unreadable
+27. URL unreadable (appears to be about veteran/Tammaro)
+31. Washington Post reference - unreadable
+33. NPR reference - unreadable
+35. Washington Post reference about proposed border wall - unreadable
+37. URL unreadable
+42. URL unreadable
+44. "Americans Still Value Immigration" reference - unreadable
+47. URL unreadable
+49. URL unreadable (appears to be about immigrant women/birth control)
+51. URL unreadable
+52. Fox News Central America reference - very long, may be truncated
+53. URL unreadable
+54. URL unreadable
+55. URL unreadable
+60. "Leaked Documents Say 2,000 Men Allegedly Assaulted 1,200 German Women on New Year's Eve" - unreadable
+61. "Teenager Raped and Left Pregnant in Cologne Attacks" reference - unreadable
+64. Boston Globe reference - unreadable
+65. YouTube reference with ID GLAZBAFOPBDSWRVTYIZUZ - appears complete but verify
+67. "On Immigration, Some Evangelicals Mistake 'America for the Kingdom of God'" reference - unreadable
+68. URL unreadable
+69. Elizabeth Day, Twitter reference - unreadable
+71. URL unreadable (appears to be Vox about Trump/evangelicals)
+73. Driscoll reference - unreadable
+
+=== LIE #5: "Social Justice Is Justice" ===
+5. YouTube URL about Floyd/abolish/defund police - may be incomplete
+8. URL unreadable
+10. Ellinson, Frosch, and Imerson "Cities Reverse..." - unreadable
+12. URL unreadable
+14. URL unreadable
+15. "Report of Survey" reference - unreadable
+24. Kenosha reference - unreadable
+25. Systemic Racism reference - unreadable
+26. Hardesty reference - unreadable
+28. Facebook reference - unreadable
+31. Census Bureau HOUSEHOLD INCOME reference - partially visible, very long URL
+34. BBC reference - unreadable
+
+=== SUMMARY ===
+Total citations needing review: approximately 85-90
+
+Most problematic sections:
+1. Lie #2 (Trans) - pages 2-5: ~30 citations unclear
+2. Lie #4 (Immigration) - pages 2-6: ~35 citations unclear
+3. Lie #5 (Social Justice): ~10 citations unclear
+
+Recommended actions:
+- Re-photograph pages with better lighting/angle, especially Lie #2 and Lie #4 sections
+- For academic journal citations without URLs, you may need to search by author/title/journal
+- Some references appear to be books or documents that may not have direct URLs
+- A few URLs seem suspicious or potentially incorrect (e.g., #48 in Lie #2)

@@ -1,0 +1,2528 @@
+<!doctype html>
+<!--[if lt IE 7 ]> <html class="no-js ie6" lang="en-US"> <![endif]-->
+<!--[if IE 7 ]>    <html class="no-js ie7" lang="en-US"> <![endif]-->
+<!--[if IE 8 ]>    <html class="no-js ie8" lang="en-US"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--> <html class="no-js" lang="en-US" itemscope="itemscope" itemtype="http://schema.org/WebPage"> <!--<![endif]-->
+
+    
+<head>
+
+<meta charset="" />
+<script>
+//----------------------------------------------------------
+//------ JAVASCRIPT HOOK FUNCTIONS FOR GRAVITY FORMS -------
+//----------------------------------------------------------
+
+if ( ! gform ) {
+	document.addEventListener( 'gform_main_scripts_loaded', function() { gform.scriptsLoaded = true; } );
+	document.addEventListener( 'gform/theme/scripts_loaded', function() { gform.themeScriptsLoaded = true; } );
+	window.addEventListener( 'DOMContentLoaded', function() { gform.domLoaded = true; } );
+
+	var gform = {
+		domLoaded: false,
+		scriptsLoaded: false,
+		themeScriptsLoaded: false,
+		isFormEditor: () => typeof InitializeEditor === 'function',
+
+		/**
+		 * @deprecated 2.9 the use of initializeOnLoaded in the form editor context is deprecated.
+		 * @remove-in 4.0 this function will not check for gform.isFormEditor().
+		 */
+		callIfLoaded: function ( fn ) {
+			if ( gform.domLoaded && gform.scriptsLoaded && ( gform.themeScriptsLoaded || gform.isFormEditor() ) ) {
+				if ( gform.isFormEditor() ) {
+					console.warn( 'The use of gform.initializeOnLoaded() is deprecated in the form editor context and will be removed in Gravity Forms 3.1.' );
+				}
+				fn();
+				return true;
+			}
+			return false;
+		},
+
+		/**
+		 * Call a function when all scripts are loaded
+		 *
+		 * @param function fn the callback function to call when all scripts are loaded
+		 *
+		 * @returns void
+		 */
+		initializeOnLoaded: function( fn ) {
+			if ( ! gform.callIfLoaded( fn ) ) {
+				document.addEventListener( 'gform_main_scripts_loaded', () => { gform.scriptsLoaded = true; gform.callIfLoaded( fn ); } );
+				document.addEventListener( 'gform/theme/scripts_loaded', () => { gform.themeScriptsLoaded = true; gform.callIfLoaded( fn ); } );
+				window.addEventListener( 'DOMContentLoaded', () => { gform.domLoaded = true; gform.callIfLoaded( fn ); } );
+			}
+		},
+
+		hooks: { action: {}, filter: {} },
+		addAction: function( action, callable, priority, tag ) {
+			gform.addHook( 'action', action, callable, priority, tag );
+		},
+		addFilter: function( action, callable, priority, tag ) {
+			gform.addHook( 'filter', action, callable, priority, tag );
+		},
+		doAction: function( action ) {
+			gform.doHook( 'action', action, arguments );
+		},
+		applyFilters: function( action ) {
+			return gform.doHook( 'filter', action, arguments );
+		},
+		removeAction: function( action, tag ) {
+			gform.removeHook( 'action', action, tag );
+		},
+		removeFilter: function( action, priority, tag ) {
+			gform.removeHook( 'filter', action, priority, tag );
+		},
+		addHook: function( hookType, action, callable, priority, tag ) {
+			if ( undefined == gform.hooks[hookType][action] ) {
+				gform.hooks[hookType][action] = [];
+			}
+			var hooks = gform.hooks[hookType][action];
+			if ( undefined == tag ) {
+				tag = action + '_' + hooks.length;
+			}
+			if( priority == undefined ){
+				priority = 10;
+			}
+
+			gform.hooks[hookType][action].push( { tag:tag, callable:callable, priority:priority } );
+		},
+		doHook: function( hookType, action, args ) {
+
+			// splice args from object into array and remove first index which is the hook name
+			args = Array.prototype.slice.call(args, 1);
+
+			if ( undefined != gform.hooks[hookType][action] ) {
+				var hooks = gform.hooks[hookType][action], hook;
+				//sort by priority
+				hooks.sort(function(a,b){return a["priority"]-b["priority"]});
+
+				hooks.forEach( function( hookItem ) {
+					hook = hookItem.callable;
+
+					if(typeof hook != 'function')
+						hook = window[hook];
+					if ( 'action' == hookType ) {
+						hook.apply(null, args);
+					} else {
+						args[0] = hook.apply(null, args);
+					}
+				} );
+			}
+			if ( 'filter'==hookType ) {
+				return args[0];
+			}
+		},
+		removeHook: function( hookType, action, priority, tag ) {
+			if ( undefined != gform.hooks[hookType][action] ) {
+				var hooks = gform.hooks[hookType][action];
+				hooks = hooks.filter( function(hook, index, arr) {
+					var removeHook = (undefined==tag||tag==hook.tag) && (undefined==priority||priority==hook.priority);
+					return !removeHook;
+				} );
+				gform.hooks[hookType][action] = hooks;
+			}
+		}
+	};
+}
+</script>
+
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+<title itemprop="name">Abortion - Right to Life of Michigan</title>
+<link rel="icon" type="image/png" href="https://rtl.org/wp-content/uploads/2024/04/favicon-updated.png" />
+
+<link rel="profile" href="https://gmpg.org/xfn/11" />
+<link rel="pingback" href="https://rtl.org/xmlrpc.php" />
+
+<meta name='robots' content='index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' />
+<link rel="alternate" hreflang="en" href="https://rtl.org/the-issues/abortion/" />
+<link rel="alternate" hreflang="es" href="https://rtl.org/es/the-issues/abortion/" />
+
+	<!-- This site is optimized with the Yoast SEO plugin v27.8 - https://yoast.com/product/yoast-seo-wordpress/ -->
+	<link rel="canonical" href="https://rtl.org/the-issues/abortion/" />
+	<meta property="og:locale" content="en_US" />
+	<meta property="og:type" content="article" />
+	<meta property="og:title" content="Abortion - Right to Life of Michigan" />
+	<meta property="og:description" content="Read more &#8250;" />
+	<meta property="og:url" content="https://rtl.org/the-issues/abortion/" />
+	<meta property="og:site_name" content="Right to Life of Michigan" />
+	<meta property="article:modified_time" content="2024-04-26T14:46:28+00:00" />
+	<meta property="og:image" content="https://rtl.org/wp-content/uploads/2024/04/rtl-social-share.jpg" />
+	<meta property="og:image:width" content="1200" />
+	<meta property="og:image:height" content="675" />
+	<meta property="og:image:type" content="image/jpeg" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:label1" content="Est. reading time" />
+	<meta name="twitter:data1" content="1 minute" />
+	<script type="application/ld+json" class="yoast-schema-graph">{"@context":"https:\/\/schema.org","@graph":[{"@type":"WebPage","@id":"https:\/\/rtl.org\/the-issues\/abortion\/","url":"https:\/\/rtl.org\/the-issues\/abortion\/","name":"Abortion - Right to Life of Michigan","isPartOf":{"@id":"https:\/\/rtl.org\/#website"},"datePublished":"2024-04-12T12:22:36+00:00","dateModified":"2024-04-26T14:46:28+00:00","breadcrumb":{"@id":"https:\/\/rtl.org\/the-issues\/abortion\/#breadcrumb"},"inLanguage":"en-US","potentialAction":[{"@type":"ReadAction","target":["https:\/\/rtl.org\/the-issues\/abortion\/"]}]},{"@type":"BreadcrumbList","@id":"https:\/\/rtl.org\/the-issues\/abortion\/#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https:\/\/rtl.org\/"},{"@type":"ListItem","position":2,"name":"The Issues","item":"https:\/\/rtl.org\/the-issues\/"},{"@type":"ListItem","position":3,"name":"Abortion"}]},{"@type":"WebSite","@id":"https:\/\/rtl.org\/#website","url":"https:\/\/rtl.org\/","name":"Right to Life of Michigan","description":"Life. The Other Choice.","publisher":{"@id":"https:\/\/rtl.org\/#organization"},"potentialAction":[{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"https:\/\/rtl.org\/?s={search_term_string}"},"query-input":{"@type":"PropertyValueSpecification","valueRequired":true,"valueName":"search_term_string"}}],"inLanguage":"en-US"},{"@type":"Organization","@id":"https:\/\/rtl.org\/#organization","name":"Right to Life of Michigan","url":"https:\/\/rtl.org\/","logo":{"@type":"ImageObject","inLanguage":"en-US","@id":"https:\/\/rtl.org\/#\/schema\/logo\/image\/","url":"https:\/\/righttolifemi.wpenginepowered.com\/wp-content\/uploads\/2024\/04\/rtl-logo-square.png","contentUrl":"https:\/\/righttolifemi.wpenginepowered.com\/wp-content\/uploads\/2024\/04\/rtl-logo-square.png","width":696,"height":696,"caption":"Right to Life of Michigan"},"image":{"@id":"https:\/\/rtl.org\/#\/schema\/logo\/image\/"}}]}</script>
+	<!-- / Yoast SEO plugin. -->
+
+
+<link rel="alternate" type="application/rss+xml" title="Right to Life of Michigan &raquo; Feed" href="https://rtl.org/feed/" />
+<link rel="alternate" type="application/rss+xml" title="Right to Life of Michigan &raquo; Comments Feed" href="https://rtl.org/comments/feed/" />
+<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://rtl.org/wp-json/oembed/1.0/embed?url=https%3A%2F%2Frtl.org%2Fthe-issues%2Fabortion%2F" />
+<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://rtl.org/wp-json/oembed/1.0/embed?url=https%3A%2F%2Frtl.org%2Fthe-issues%2Fabortion%2F&#038;format=xml" />
+
+	<!--[if gte IE 9]><style type="text/css">.gradient {filter: none !important;}</style><![endif]-->
+	<script type="text/javascript"> if (!window.console) console = {log: function() {}}; </script>
+	<style>.ellip {display: block;height: 100%;}.ellip-line {display: inline-block;text-overflow: ellipsis;white-space: nowrap;word-wrap: normal;max-width: 100%;}.ellip,.ellip-line {position: relative;overflow: hidden;}</style>
+	<!--[if lte IE 8]><script type="text/javascript" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/compatability/excanvas.js"></script><![endif]-->
+	<!--[if lt IE 7]><script defer type="text/javascript" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/pngfix.js"></script><![endif]-->
+	<style id="wp-img-auto-sizes-contain-inline-css">
+img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
+/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
+</style>
+<style id="wp-emoji-styles-inline-css">
+
+	img.wp-smiley, img.emoji {
+		display: inline !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 1em !important;
+		width: 1em !important;
+		margin: 0 0.07em !important;
+		vertical-align: -0.1em !important;
+		background: none !important;
+		padding: 0 !important;
+	}
+/*# sourceURL=wp-emoji-styles-inline-css */
+</style>
+<style id="wp-block-library-inline-css">
+/**
+ * Colors
+ */
+/**
+ * Typography
+ */
+/**
+ * SCSS Variables.
+ *
+ * Please use variables from this sheet to ensure consistency across the UI.
+ * Don't add to this sheet unless you're pretty sure the value will be reused in many places.
+ * For example, don't add rules to this sheet that affect block visuals. It's purely for UI.
+ */
+/**
+ * Fonts & basic variables.
+ */
+/**
+ * Typography
+ */
+/**
+ * Grid System.
+ * https://make.wordpress.org/design/2019/10/31/proposal-a-consistent-spacing-system-for-wordpress/
+ */
+/**
+ * Radius scale.
+ */
+/**
+ * Elevation scale.
+ */
+/**
+ * Dimensions.
+ */
+/**
+ * Mobile specific styles
+ */
+/**
+ * Editor styles.
+ */
+/**
+ * Block & Editor UI.
+ */
+/**
+ * Block paddings.
+ */
+/**
+ * React Native specific.
+ * These variables do not appear to be used anywhere else.
+ */
+/**
+ * Breakpoints & Media Queries
+ */
+/**
+*  Converts a hex value into the rgb equivalent.
+*
+* @param {string} hex - the hexadecimal value to convert
+* @return {string} comma separated rgb values
+*/
+/**
+ * Long content fade mixin
+ *
+ * Creates a fading overlay to signify that the content is longer
+ * than the space allows.
+ */
+/**
+ * Breakpoint mixins
+ */
+/**
+ * Focus styles.
+ */
+/**
+ * Applies editor left position to the selector passed as argument
+ */
+/**
+ * Styles that are reused verbatim in a few places
+ */
+/**
+ * Allows users to opt-out of animations via OS-level preferences.
+ */
+/**
+ * Reset default styles for JavaScript UI based pages.
+ * This is a WP-admin agnostic reset
+ */
+/**
+ * Reset the WP Admin page styles for Gutenberg-like pages.
+ */
+/**
+ * Creates a checkerboard pattern background to indicate transparency.
+ * @param {String} $size - The size of the squares in the checkerboard pattern. Default is 12px.
+ */
+:root {
+  --wp-block-synced-color: #7a00df;
+  --wp-block-synced-color--rgb: 122, 0, 223;
+  --wp-bound-block-color: var(--wp-block-synced-color);
+  --wp-editor-canvas-background: #ddd;
+  --wp-admin-theme-color: #007cba;
+  --wp-admin-theme-color--rgb: 0, 124, 186;
+  --wp-admin-theme-color-darker-10: rgb(0, 107, 160.5);
+  --wp-admin-theme-color-darker-10--rgb: 0, 107, 160.5;
+  --wp-admin-theme-color-darker-20: #005a87;
+  --wp-admin-theme-color-darker-20--rgb: 0, 90, 135;
+  --wp-admin-border-width-focus: 2px;
+}
+@media (min-resolution: 192dpi) {
+  :root {
+    --wp-admin-border-width-focus: 1.5px;
+  }
+}
+
+/**
+ * Element styles.
+ */
+.wp-element-button {
+  cursor: pointer;
+}
+
+:root .has-very-light-gray-background-color {
+  background-color: #eee;
+}
+:root .has-very-dark-gray-background-color {
+  background-color: #313131;
+}
+:root .has-very-light-gray-color {
+  color: #eee;
+}
+:root .has-very-dark-gray-color {
+  color: #313131;
+}
+:root {
+  /* stylelint-disable @stylistic/function-comma-space-after -- We can not use spacing because of WP multi site kses rule. */
+}
+:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background {
+  background: linear-gradient(135deg, rgb(0, 208, 132) 0%, rgb(6, 147, 227) 100%);
+}
+:root .has-purple-crush-gradient-background {
+  background: linear-gradient(135deg, rgb(52, 226, 228) 0%, rgb(71, 33, 251) 50%, rgb(171, 29, 254) 100%);
+}
+:root .has-hazy-dawn-gradient-background {
+  background: linear-gradient(135deg, rgb(250, 172, 168) 0%, rgb(218, 208, 236) 100%);
+}
+:root .has-subdued-olive-gradient-background {
+  background: linear-gradient(135deg, rgb(250, 250, 225) 0%, rgb(103, 166, 113) 100%);
+}
+:root .has-atomic-cream-gradient-background {
+  background: linear-gradient(135deg, rgb(253, 215, 154) 0%, rgb(0, 74, 89) 100%);
+}
+:root .has-nightshade-gradient-background {
+  background: linear-gradient(135deg, rgb(51, 9, 104) 0%, rgb(49, 205, 207) 100%);
+}
+:root .has-midnight-gradient-background {
+  background: linear-gradient(135deg, rgb(2, 3, 129) 0%, rgb(40, 116, 252) 100%);
+}
+:root {
+  /* stylelint-enable @stylistic/function-comma-space-after */
+  --wp--preset--font-size--normal: 16px;
+  --wp--preset--font-size--huge: 42px;
+}
+
+.has-regular-font-size {
+  font-size: 1em;
+}
+
+.has-larger-font-size {
+  font-size: 2.625em;
+}
+
+.has-normal-font-size {
+  font-size: var(--wp--preset--font-size--normal);
+}
+
+.has-huge-font-size {
+  font-size: var(--wp--preset--font-size--huge);
+}
+
+:root .has-text-align-center {
+  text-align: center;
+}
+
+:root .has-text-align-left {
+  /*rtl:ignore*/
+  text-align: left;
+}
+
+:root .has-text-align-right {
+  /*rtl:ignore*/
+  text-align: right;
+}
+
+.has-fit-text {
+  white-space: nowrap !important;
+}
+
+#end-resizable-editor-section {
+  display: none;
+}
+
+.aligncenter {
+  clear: both;
+}
+
+.items-justified-left {
+  justify-content: flex-start;
+}
+
+.items-justified-center {
+  justify-content: center;
+}
+
+.items-justified-right {
+  justify-content: flex-end;
+}
+
+.items-justified-space-between {
+  justify-content: space-between;
+}
+
+.screen-reader-text {
+  border: 0;
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  word-wrap: normal !important;
+}
+
+.screen-reader-text:focus {
+  background-color: #ddd;
+  clip-path: none;
+  color: #444;
+  display: block;
+  font-size: 1em;
+  height: auto;
+  left: 5px;
+  line-height: normal;
+  padding: 15px 23px 14px;
+  text-decoration: none;
+  top: 5px;
+  width: auto;
+  z-index: 100000;
+}
+
+/**
+ * The following provide a simple means of applying a default border style when
+ * a user first makes a selection in the border block support panel.
+ * This prevents issues such as where the user could set a border width
+ * and see no border due there being no border style set.
+ *
+ * This is intended to be removed once intelligent defaults can be set while
+ * making border selections via the block support.
+ *
+ * See: https://github.com/WordPress/gutenberg/pull/33743
+ */
+html :where(.has-border-color) {
+  border-style: solid;
+}
+
+html :where([style*=border-color]) {
+  border-style: solid;
+}
+
+html :where([style*=border-top-color]) {
+  border-top-style: solid;
+}
+
+html :where([style*=border-right-color]) {
+  /*rtl:ignore*/
+  border-right-style: solid;
+}
+
+html :where([style*=border-bottom-color]) {
+  border-bottom-style: solid;
+}
+
+html :where([style*=border-left-color]) {
+  /*rtl:ignore*/
+  border-left-style: solid;
+}
+
+html :where([style*=border-width]) {
+  border-style: solid;
+}
+
+html :where([style*=border-top-width]) {
+  border-top-style: solid;
+}
+
+html :where([style*=border-right-width]) {
+  /*rtl:ignore*/
+  border-right-style: solid;
+}
+
+html :where([style*=border-bottom-width]) {
+  border-bottom-style: solid;
+}
+
+html :where([style*=border-left-width]) {
+  /*rtl:ignore*/
+  border-left-style: solid;
+}
+
+/**
+ * Provide baseline responsiveness for images.
+ */
+html :where(img[class*=wp-image-]) {
+  height: auto;
+  max-width: 100%;
+}
+
+/**
+ * Reset user agent styles for figure element margins.
+ */
+:where(figure) {
+  margin: 0 0 1em 0;
+}
+
+html :where(.is-position-sticky) {
+  /* stylelint-disable length-zero-no-unit -- 0px is set explicitly so that it can be used in a calc value. */
+  --wp-admin--admin-bar--position-offset: var(--wp-admin--admin-bar--height, 0px);
+  /* stylelint-enable length-zero-no-unit */
+}
+
+@media screen and (max-width: 600px) {
+  html :where(.is-position-sticky) {
+    /* stylelint-disable length-zero-no-unit -- 0px is set explicitly so that it can be used in a calc value. */
+    --wp-admin--admin-bar--position-offset: 0px;
+    /* stylelint-enable length-zero-no-unit */
+  }
+}
+
+/*# sourceURL=/wp-includes/css/dist/block-library/common.css */
+</style>
+<style id="classic-theme-styles-inline-css">
+/**
+ * These rules are needed for backwards compatibility.
+ * They should match the button element rules in the base theme.json file.
+ */
+.wp-block-button__link {
+	color: #ffffff;
+	background-color: #32373c;
+	border-radius: 9999px; /* 100% causes an oval, but any explicit but really high value retains the pill shape. */
+
+	/* This needs a low specificity so it won't override the rules from the button element if defined in theme.json. */
+	box-shadow: none;
+	text-decoration: none;
+
+	/* The extra 2px are added to size solids the same as the outline versions.*/
+	padding: calc(0.667em + 2px) calc(1.333em + 2px);
+
+	font-size: 1.125em;
+}
+
+.wp-block-file__button {
+	background: #32373c;
+	color: #ffffff;
+	text-decoration: none;
+}
+
+/*# sourceURL=/wp-includes/css/classic-themes.css */
+</style>
+
+<style id="global-styles-inline-css">
+:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 13px;--wp--preset--font-size--medium: 20px;--wp--preset--font-size--large: 36px;--wp--preset--font-size--x-large: 42px;--wp--preset--spacing--20: 0.44rem;--wp--preset--spacing--30: 0.67rem;--wp--preset--spacing--40: 1rem;--wp--preset--spacing--50: 1.5rem;--wp--preset--spacing--60: 2.25rem;--wp--preset--spacing--70: 3.38rem;--wp--preset--spacing--80: 5.06rem;--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:where(body) { margin: 0; }:where(.is-layout-flex){gap: 0.5em;}:where(.is-layout-grid){gap: 0.5em;}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{padding-top: 0px;padding-right: 0px;padding-bottom: 0px;padding-left: 0px;}:root :where(.wp-element-button, .wp-block-button__link){background-color: #32373c;border-width: 0;color: #fff;font-family: inherit;font-size: inherit;font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: calc(0.667em + 2px);padding-right: calc(1.333em + 2px);padding-bottom: calc(0.667em + 2px);padding-left: calc(1.333em + 2px);text-decoration: none;text-transform: inherit;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}
+/*# sourceURL=global-styles-inline-css */
+</style>
+
+<link rel='stylesheet' id='animate-css-css' href='https://rtl.org/wp-content/plugins/scs-custom-functionality/css/animate.min.css?ver=419518122' media='all' />
+<link rel='stylesheet' id='bootstrap-styles-css' href='https://rtl.org/wp-content/themes/stack-framework/admin/layouts/bootstrap.min.css?ver=294485517' media='all' />
+<link rel='stylesheet' id='magnific-css' href='https://rtl.org/wp-content/themes/stack-framework/css/magnific.css?ver=67230857' media='all' />
+<link rel='stylesheet' id='responsive-style-css' href='https://rtl.org/wp-content/themes/stack-framework-child/style.css?ver=486071371' media='screen,handheld' />
+<link rel='stylesheet' id='def_print_styles-css' href='https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/scss/def_print_styles.css?ver=196441414' media='print' />
+<link rel='stylesheet' id='font-awesome-css' href='https://rtl.org/wp-content/themes/stack-framework/css/font-awesome6.4.2.min.css?ver=66297066' media='all' />
+<link rel='stylesheet' id='font-awesome-alt-css' href='https://rtl.org/wp-content/themes/stack-framework/fonts/rumble/css/fontello.css?ver=203171634' media='all' />
+<link rel='stylesheet' id='googleFonts-css' href='https://fonts.googleapis.com/css?family=Lato%3A100%2C300%2C400%2C700&#038;ver=493768211' media='all' />
+<script>var jquery_placeholder_url = 'https://rtl.org/wp-content/plugins/gravity-forms-placeholders/jquery.placeholder-1.0.1.js';</script><script id="jquery-core-js" src="https://rtl.org/wp-includes/js/jquery/jquery.js?ver=476230307"></script>
+<script id="jquery-migrate-js" src="https://rtl.org/wp-includes/js/jquery/jquery-migrate.js?ver=80739917"></script>
+<script id="modernizr-js" src="https://rtl.org/wp-content/themes/stack-framework/js/responsive-modernizr.js?ver=206682711"></script>
+<script id="magnific-js" src="https://rtl.org/wp-content/themes/stack-framework/js/magnific.min.js?ver=425766775"></script>
+<script id="bootstrap-script-js" src="https://rtl.org/wp-content/themes/stack-framework/js/bootstrap4.6.1.js?ver=17809422"></script>
+<script id="strap-extras-script-js" src="https://rtl.org/wp-content/themes/stack-framework/js/strap-extras.js?ver=240569259"></script>
+<script id="ai-js-js-extra">
+var MyAjax = {"ajaxurl":"https://rtl.org/wp-admin/admin-ajax.php","security":"317aa7eafe"};
+//# sourceURL=ai-js-js-extra
+</script>
+<script id="ai-js-js" src="https://rtl.org/wp-content/plugins/advanced-iframe/js/ai.min.js?ver=134106403"></script>
+<script id="_gf_placeholders-js" src="https://rtl.org/wp-content/plugins/gravity-forms-placeholders/gf.placeholders.js?ver=463442715"></script>
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://rtl.org/xmlrpc.php?rsd" />
+<link rel='shortlink' href='https://rtl.org/?p=1859' />
+<!-- Custom CSS -->
+<style type="text/css">
+.first-height-100 > div { height: 100% !important; } .featured-section img { max-width: 100%; } .grecaptcha-badge { z-index: 1; } body.page-template-event-donate-page-php .page-wrapper > .container { width: 100% !important; } body.page-template-donate-page .gform_wrapper { display: block !important; }header { background: ;}.navbar-brand { font-weight: normal; }.navbar-nav > li > a, .dropdown-menu > li > a { font-weight: normal; }
+</style><style id="wp-custom-css">
+.postid-4257 #event-content-container > div.container > div > div > div.col-right.col-md-5.color-white.link-color-white.mobile-s-py-1.mobile-bg-green > div > div:nth-child(4) > p:nth-child(2) > a {
+	color: #00A97F!important; 
+}
+.postid-4257 #event-content-container > div.container > div > div > div.col-right.col-md-5.color-white.link-color-white.mobile-s-py-1.mobile-bg-green > div > div:nth-child(4) > p:nth-child(2) > a:hover {
+	color: #ffffff !important; 
+}
+
+/* =========================
+   HEADER ALERT BAR + GF #77
+   (keeps layout the same)
+   ========================= */
+
+/* Base layout */
+.header-bar .header-alerts,
+.header-bar .header-alerts-inner{
+  display:flex !important;
+  align-items:center !important;
+}
+
+
+
+.header-bar .header-alerts-inner{
+  gap:12px !important;
+  flex-wrap:nowrap !important;
+  line-height:1 !important;
+}
+
+
+/* Alert text (final/most-specific version from your pasted block) */
+.header-bar .header-alerts-inner .rtlm-alertbar__text{
+  display:flex !important;
+  align-items:center !important;
+  margin:0 !important;
+  padding:0 !important;
+  font-size:10px !important;
+  line-height:28px !important;
+  font-weight:600 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  max-width:600px !important;
+}
+
+/* Form wrapper resets */
+.header-bar .header-alerts-inner #gform_wrapper_77,
+.header-bar .header-alerts-inner #gform_wrapper_77 form{
+  margin:0 !important;
+  padding:0 !important;
+  width:auto !important;
+}
+
+.header-bar .header-alerts-inner #gform_wrapper_77 *{
+  box-sizing:border-box !important;
+}
+
+/* Keep button + field side-by-side (button on left, input on right) */
+.header-bar .header-alerts-inner #gform_wrapper_77 form{
+  display:grid !important;
+  grid-template-columns:auto auto !important;
+  align-items:center !important;
+  gap:0 !important;
+  direction:rtl !important;
+  unicode-bidi:plaintext !important;
+}
+
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_footer{
+  grid-column:1 !important;
+  margin:0 !important;
+  padding:0 !important;
+  width:auto !important;
+  float:none !important;
+  clear:none !important;
+}
+
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_body{
+  grid-column:2 !important;
+  margin:0 !important;
+  padding:0 !important;
+  width:auto !important;
+  float:none !important;
+  clear:none !important;
+}
+
+/* Remove extra spacing/labels/messages 
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_fields,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gfield,
+.header-bar .header-alerts-inner #gform_wrapper_77 ul,
+.header-bar .header-alerts-inner #gform_wrapper_77 li{
+  margin:0 !important;
+  padding:0 !important;
+  list-style:none !important;
+} 
+
+.header-bar .header-alerts-inner #gform_wrapper_77 label,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gfield_label,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gfield_description,
+.header-bar .header-alerts-inner #gform_wrapper_77 .validation_message,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_validation_errors{
+  display:none !important;
+} */
+
+/* Hide recaptcha elements in bar */
+.header-bar .header-alerts-inner #gform_wrapper_77 .gfield.gfield_recaptcha,
+.header-bar .header-alerts-inner #gform_wrapper_77 .ginput_recaptcha,
+.header-bar .header-alerts-inner #gform_wrapper_77 .grecaptcha-badge{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+}
+
+/* Make sure wrappers aren’t adding extra height 
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_body,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_footer,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gfield,
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_fields > li{
+  margin:0 !important;
+  padding:0 !important;
+  line-height:0 !important;
+}
+*/
+/* Non-form siblings in header alerts (keeps layout identical) */
+.header-bar .header-alerts-inner > *:not(#gform_wrapper_77){
+  font-size:14px !important;
+  line-height:24px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important; 
+}
+
+/* =========================
+   INPUT + BUTTON STYLES
+   ========================= */
+
+/* Shared control baseline */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"],
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"],
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="submit"],
+.header-bar .header-alerts-inner #gform_wrapper_77 button[type="submit"]{
+  box-sizing:border-box !important;
+  border-width:0 !important;
+  margin:0 !important;
+  vertical-align:middle !important;
+  font-size:12px !important;
+}
+
+/* Email field (NOT white) */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"],
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]{
+  height:36px !important;
+  min-height:36px !important;
+  line-height:36px !important;
+  width:170px !important;
+  max-width:170px !important;
+  padding:0 14px !important;
+
+  background:#e6edf2 !important; /* stays gray */
+  border:1px solid rgba(0,0,0,.10) !important;
+  box-shadow:0 1px 2px rgba(0,0,0,.06) !important;
+
+  border-radius:0 6px 6px 0 !important;
+  direction:ltr !important;
+  text-align:left !important;
+
+  transition:background .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+
+.header-bar .header-alerts-inner #gform_wrapper_77 input::placeholder{
+  color:rgba(31,41,55,.55) !important;
+  opacity:1 !important;
+}
+
+/* Focus state */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"]:focus,
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]:focus{
+  outline:none !important;
+  background:#f3f6f9 !important;
+  border-color:#0aa37a !important;
+  box-shadow:0 0 0 2px rgba(10,163,122,.25) !important;
+}
+
+/* Submit button */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="submit"],
+.header-bar .header-alerts-inner #gform_wrapper_77 button[type="submit"]{
+  height:26px !important;
+  min-height:26px !important;
+  line-height:26px !important;
+  padding:0 12px !important;
+
+  border:1px solid transparent !important;
+  background:#0aa37a !important;
+  color:#fff !important;
+  font-weight:700 !important;
+
+  border-radius:6px 0 0 6px !important;
+  cursor:pointer !important;
+  white-space:nowrap !important;
+
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+
+  min-width:20px !important;
+  margin:0 0 0 0 !important;
+}
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+@media (max-width: 1280px){
+  .header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"],
+  .header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]{
+    width:180px !important;
+    max-width:180px !important;
+  }
+  .header-bar .header-alerts-inner .rtlm-alertbar__text{
+    font-size:12px !important;
+  }
+}
+
+@media (max-width: 1100px){
+  .header-bar .header-alerts-inner .rtlm-alertbar__text{
+    display:none !important;
+  }
+} 
+
+/* Offset-center text inside GF #77 email field */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"],
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]{
+  text-align: left !important;
+  padding-left: 35px !important;   /* pushes text toward center */
+  padding-right: 10px !important;  /* keeps visual balance */
+}
+
+/* Match placeholder position */
+.header-bar .header-alerts-inner #gform_wrapper_77 input::placeholder{
+  text-align: left !important;
+}
+
+/* Header bar: make Store / Donate buttons taller */
+.header-bar .header-links a.btn{
+  padding: 12px 18px;      /* increase height */
+  line-height: 1.1;        /* keeps text vertically nice */
+  min-height: 70px;        /* consistent tap target */
+  display: inline-flex;    /* allows vertical centering */
+  align-items: center;
+}
+
+/* Optional: keep the search button the same height too */
+.header-bar .header-links #rtl-searchbar.btn{
+  min-height: 70px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Let the colored blocks visually overflow without changing header layout */
+.header-bar,
+.header-bar .header-links {
+  overflow: visible;
+}
+
+/* Increase overall top header bar height */
+.header-bar {
+  padding: 18px 0;   /* ← main height control */
+}
+
+/* Keep everything vertically centered inside */
+.header-bar .header-bar-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Give the gray alert/header bar a true height */
+.header-bar {
+  min-height: 70px;        /* ← change this to control total height */
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure inner container fills the height 
+.header-bar .header-bar-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+*/
+/* Safety: prevent layout jump */
+#header {
+  position: relative;
+  z-index: 2;
+}
+
+
+/* Default: NO offset */
+:root { --headerbar-h: 0px; }
+body { padding-top: 0 !important; }
+
+/* Only add offset on desktop where the top bar exists AND is used */
+@media (min-width: 992px) {
+
+  /* If the header bar exists on the page, turn the offset on */
+  body:has(.header-bar) { --headerbar-h: 40px; }
+
+  /* Apply the offset (pick one approach; padding-top is safest) */
+  body { padding-top: var(--headerbar-h) !important; }
+
+  /* If your main header is fixed/sticky and needs moving too */
+  #masthead,
+  #wrapper-navbar,
+  #header {
+    top: var(--headerbar-h) !important;
+  }
+}
+
+/* Mobile: force everything back to normal */
+@media (max-width: 991.98px) {
+  :root { --headerbar-h: 0px; }
+  body { padding-top: 0 !important; }
+
+  #masthead,
+  #wrapper-navbar,
+  #header {
+    top: 0 !important;
+  }
+}
+
+
+/* Align alert bar content with site container/logo 
+.header-bar .container{
+ padding-left:0 !important;
+	margin-right:0 !important;
+}
+
+.header-bar .header-bar-container{
+  margin-left:0 !important;
+  padding-left:0 !important;
+} */
+
+
+/* =========================
+   ALERT BAR: left aligned to logo, right flush to edge
+   ========================= */
+
+/* Keep the bar full width */
+.header-bar .container{
+  max-width: none !important;       /* full width container */
+  width: 100% !important;
+  margin: 0 !important;
+  padding-left: 64px !important;    /* match logo padding */
+  padding-right: 0 !important;      /* allow right side to be flush */
+}
+
+/* Keep layout stable */
+.header-bar .header-bar-container{
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Left block (form + text) hugs the left container padding */
+.header-bar .header-alerts{
+  margin-right: auto !important;    /* pushes header-links to far right */
+}
+
+/* Right block stays flush; remove any internal padding/margins */
+.header-bar .header-links{
+  margin-left: auto !important;
+  padding-right: 0 !important;
+  gap: 0 !important;                /* optional: makes blocks touch */
+}
+
+/* Optional: ensure the colored blocks actually touch each other */
+.header-bar .header-links a.btn,
+.header-bar .header-links #rtl-searchbar.btn{
+  margin: 0 !important;
+  border-radius: 0 !important;      /* optional */
+}
+
+
+
+
+/* Keep layout stable (no shift) by reserving border space always */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"],
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]{
+  border: 2px solid transparent !important; /* reserve space */
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Put the button underneath the input so it can't cover the border */
+.header-bar .header-alerts-inner #gform_wrapper_77 .gform_footer,
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="submit"],
+.header-bar .header-alerts-inner #gform_wrapper_77 button[type="submit"]{
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Full green outline on focus (all 4 sides) */
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="email"]:focus,
+.header-bar .header-alerts-inner #gform_wrapper_77 input[type="text"]:focus{
+  outline: none !important;
+  border-color: #0aa37a !important;
+  box-shadow: none !important;
+  z-index: 5 !important; /* above button */
+}
+
+</style>
+
+
+<!-- Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://rtl.org/wp-content/themes/stack-framework/js/respond.min.js"></script>
+<![endif]-->
+<!--CSS# selectors-->
+
+
+<link rel='stylesheet' id='gform_basic-css' href='https://rtl.org/wp-content/plugins/gravityforms/assets/css/dist/basic.min.css?ver=339163693' media='all' />
+<link rel='stylesheet' id='gform_theme_components-css' href='https://rtl.org/wp-content/plugins/gravityforms/assets/css/dist/theme-components.min.css?ver=226134989' media='all' />
+<link rel='stylesheet' id='gform_theme-css' href='https://rtl.org/wp-content/plugins/gravityforms/assets/css/dist/theme.min.css?ver=147563626' media='all' />
+<style id="core-block-supports-inline-css">
+/**
+ * Core styles: block-supports
+ */
+
+/*# sourceURL=core-block-supports-inline-css */
+</style>
+
+</head>
+
+
+<body class="wp-singular page-template page-template-section-page page-template-section-page-php page page-id-1859 page-child parent-pageid-1845 wp-theme-stack-framework wp-child-theme-stack-framework-child  titleLocHead">
+
+<span id="le-Data" data-post_type="page" data-post_id="1859" ></span><span style="display:none;" class="customLogoLink" data-custom_logo_link="" ></span>
+
+	
+	
+<div class="header-bar">
+    <div class="container">
+        <div class="header-bar-container">
+			
+			
+			
+                        <div class="header-alerts">
+                                   
+				
+		<!--	<div class="header-alerts-inner" title="">
+                                            </div> -->
+
+<div class="header-alerts-inner">
+  
+                <div class='gf_browser_unknown gform_wrapper gravity-theme gform-theme--no-framework single-line_wrapper' data-form-theme='gravity-theme' data-form-index='0' id='gform_wrapper_77' ><div id='gf_77' class='gform_anchor' tabindex='-1'></div>
+                        <div class='gform_heading'>
+							<p class='gform_required_legend'>&quot;<span class="gfield_required gfield_required_asterisk">*</span>&quot; indicates required fields</p>
+                        </div><form method='post' enctype='multipart/form-data' target='gform_ajax_frame_77' id='gform_77' class='single-line' action='/the-issues/abortion/#gf_77' data-formid='77' novalidate>
+                        <div class='gform-body gform_body'><div id='gform_fields_77' class='gform_fields top_label form_sublabel_below description_above validation_below'><div id="field_77_2" class="gfield gfield--type-captcha gfield--input-type-captcha gfield--width-third field_sublabel_below gfield--no-description field_description_above hidden_label field_validation_below gfield_visibility_visible"  ><label class='gfield_label gform-field-label' for='input_77_2'>CAPTCHA</label><div id='input_77_2' class='ginput_container ginput_recaptcha' data-sitekey='6LeETcspAAAAALVR202tym6tFdkCm4I7BxzyqCzf'  data-theme='light' data-tabindex='-1' data-size='invisible' data-badge='bottomright'></div></div><div id="field_77_1" class="gfield gfield--type-email gfield--input-type-email gfield--width-third gfield_contains_required field_sublabel_below gfield--no-description field_description_above hidden_label field_validation_below gfield_visibility_visible"  ><label class='gfield_label gform-field-label' for='input_77_1'>Email Address<span class="gfield_required"><span class="gfield_required gfield_required_asterisk">*</span></span></label><div class='ginput_container ginput_container_email'>
+                            <input name='input_1' id='input_77_1' type='email' value='' class='medium'   placeholder='Email Address' aria-required="true" aria-invalid="false"  />
+                        </div></div><div id="field_submit" class="gfield gfield--type-submit gfield--width-third field_sublabel_below gfield--no-description field_description_above field_validation_below gfield_visibility_visible"  data-field-class="gform_editor_submit_container" data-field-position="inline" ><input type='submit' id='gform_submit_button_77' class='gform-button gform-button--white  button' onclick='gform.submission.handleButtonClick(this);' data-submission-type='submit' value='Sign Up'  /></div></div></div>
+        <div class='gform-footer gform_footer top_label'>  <input type='hidden' name='gform_ajax' value='form_id=77&amp;title=&amp;description=&amp;tabindex=0&amp;theme=gravity-theme&amp;styles=[]&amp;hash=f7b628afc1fbc1cb1a189429323dbff0' />
+            <input type='hidden' class='gform_hidden' name='gform_submission_method' data-js='gform_submission_method_77' value='iframe' />
+            <input type='hidden' class='gform_hidden' name='gform_theme' data-js='gform_theme_77' id='gform_theme_77' value='gravity-theme' />
+            <input type='hidden' class='gform_hidden' name='gform_style_settings' data-js='gform_style_settings_77' id='gform_style_settings_77' value='[]' />
+            <input type='hidden' class='gform_hidden' name='is_submit_77' value='1' />
+            <input type='hidden' class='gform_hidden' name='gform_submit' value='77' />
+            
+            <input type='hidden' class='gform_hidden' name='gform_currency' data-currency='USD' value='Hj2fqfTHd7zeOxarRxLoXfm1PV2ogtLi2skXc5r6Ue4G/6qpyimqoFr3EWxBibPSLRsRkKXda798+u5oBV+hsFvMhZfDAw4X5bMgF7ybgvfDzfI=' />
+            <input type='hidden' class='gform_hidden' name='gform_unique_id' value='' />
+            <input type='hidden' class='gform_hidden' name='state_77' value='WyJbXSIsImMzZGE0M2Q3NWRkYmQzMDI3YjU4OWQ4YTg3OWQxZDZmIl0=' />
+            <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_target_page_number_77' id='gform_target_page_number_77' value='0' />
+            <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_source_page_number_77' id='gform_source_page_number_77' value='1' />
+            <input type='hidden' name='gform_field_values' value='' />
+            
+        </div>
+                        <p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_1" name="ak_js" value="161"/><script>
+document.getElementById( "ak_js_1" ).setAttribute( "value", ( new Date() ).getTime() );
+</script>
+</p></form>
+                        </div>
+		                <iframe style='display:none;width:0px;height:0px;' src='about:blank' name='gform_ajax_frame_77' id='gform_ajax_frame_77' title='This iframe contains the logic required to handle Ajax powered Gravity Forms.'></iframe>
+		                <script>
+gform.initializeOnLoaded( function() {gformInitSpinner( 77, 'https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg', true );jQuery('#gform_ajax_frame_77').on('load',function(){var contents = jQuery(this).contents().find('*').html();var is_postback = contents.indexOf('GF_AJAX_POSTBACK') >= 0;if(!is_postback){return;}var form_content = jQuery(this).contents().find('#gform_wrapper_77');var is_confirmation = jQuery(this).contents().find('#gform_confirmation_wrapper_77').length > 0;var is_redirect = contents.indexOf('gformRedirect(){') >= 0;var is_form = form_content.length > 0 && ! is_redirect && ! is_confirmation;var mt = parseInt(jQuery('html').css('margin-top'), 10) + parseInt(jQuery('body').css('margin-top'), 10) + 100;if(is_form){jQuery('#gform_wrapper_77').html(form_content.html());if(form_content.hasClass('gform_validation_error')){jQuery('#gform_wrapper_77').addClass('gform_validation_error');} else {jQuery('#gform_wrapper_77').removeClass('gform_validation_error');}setTimeout( function() { /* delay the scroll by 50 milliseconds to fix a bug in chrome */ jQuery(document).scrollTop(jQuery('#gform_wrapper_77').offset().top - mt); }, 50 );if(window['gformInitDatepicker']) {gformInitDatepicker();}if(window['gformInitPriceFields']) {gformInitPriceFields();}var current_page = jQuery('#gform_source_page_number_77').val();gformInitSpinner( 77, 'https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg', true );jQuery(document).trigger('gform_page_loaded', [77, current_page]);window['gf_submitting_77'] = false;}else if(!is_redirect){var confirmation_content = jQuery(this).contents().find('.GF_AJAX_POSTBACK').html();if(!confirmation_content){confirmation_content = contents;}jQuery('#gform_wrapper_77').replaceWith(confirmation_content);jQuery(document).scrollTop(jQuery('#gf_77').offset().top - mt);jQuery(document).trigger('gform_confirmation_loaded', [77]);window['gf_submitting_77'] = false;wp.a11y.speak(jQuery('#gform_confirmation_message_77').text());}else{jQuery('#gform_77').append(contents);if(window['gformRedirect']) {gformRedirect();}}jQuery(document).trigger("gform_pre_post_render", [{ formId: "77", currentPage: "current_page", abort: function() { this.preventDefault(); } }]);        if (event && event.defaultPrevented) {                return;        }        const gformWrapperDiv = document.getElementById( "gform_wrapper_77" );        if ( gformWrapperDiv ) {            const visibilitySpan = document.createElement( "span" );            visibilitySpan.id = "gform_visibility_test_77";            gformWrapperDiv.insertAdjacentElement( "afterend", visibilitySpan );        }        const visibilityTestDiv = document.getElementById( "gform_visibility_test_77" );        let postRenderFired = false;        function triggerPostRender() {            if ( postRenderFired ) {                return;            }            postRenderFired = true;            gform.core.triggerPostRenderEvents( 77, current_page );            if ( visibilityTestDiv ) {                visibilityTestDiv.parentNode.removeChild( visibilityTestDiv );            }        }        function debounce( func, wait, immediate ) {            var timeout;            return function() {                var context = this, args = arguments;                var later = function() {                    timeout = null;                    if ( !immediate ) func.apply( context, args );                };                var callNow = immediate && !timeout;                clearTimeout( timeout );                timeout = setTimeout( later, wait );                if ( callNow ) func.apply( context, args );            };        }        const debouncedTriggerPostRender = debounce( function() {            triggerPostRender();        }, 200 );        if ( visibilityTestDiv && visibilityTestDiv.offsetParent === null ) {            const observer = new MutationObserver( ( mutations ) => {                mutations.forEach( ( mutation ) => {                    if ( mutation.type === 'attributes' && visibilityTestDiv.offsetParent !== null ) {                        debouncedTriggerPostRender();                        observer.disconnect();                    }                });            });            observer.observe( document.body, {                attributes: true,                childList: false,                subtree: true,                attributeFilter: [ 'style', 'class' ],            });        } else {            triggerPostRender();        }    } );} );
+</script>
+  <div class="rtlm-alertbar__text">
+    Sign up for weekly pro-life updates
+  </div>
+</div>
+
+
+
+				
+				
+                            </div>
+                        <div class="header-links">
+                     
+        <div class="theme-social-icons">
+                            <a href="https://twitter.com/Right_to_Life" target="_blank" class="fa-brands fa-x-twitter"></a>
+                            <a href="https://www.facebook.com/righttolifeofmichigan" target="_blank" class="fa-brands fa-facebook"></a>
+                            <a href="https://www.youtube.com/user/rtlmich/featured" target="_blank" class="fa-brands fa-youtube"></a>
+                            <a href="https://www.instagram.com/righttolifemi/" target="_blank" class="fa-brands fa-instagram"></a>
+                            <a href="/category/prolife-news/"  class="fa-solid fa-rss"></a>
+                            <a href="/the-other-choice-podcast/"  class="fa-solid fa-podcast"></a>
+                    </div>
+                                                           <a class="btn btn-darker-blue" href="https://store.rtl.org/" target="_blank">Store</a>
+                                                    <a class="btn" href="https://rtl.org/donate/">Donate</a>
+                                <div class="btn btn-dark-blue" id="rtl-searchbar">
+                    <i class="fa-solid fa-search"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+	
+
+<header id="header">
+<nav role="navigation">
+   <div class="container">
+        <div class="row">
+            <div class="navBar">
+                <div class="navBar-item navBar-item-logo">
+        
+    <div id="logo">
+    <a href="https://rtl.org/" title="Right to Life of Michigan" rel="home">
+        <img src="https://rtl.org/wp-content/uploads/2024/04/logo-updated.png" alt="Right to Life of Michigan" />
+    </a>
+    </div>
+
+    </div>                                    <div class="navBar-item navBar-item-menu">
+                        <div class="main-menu">
+                            <ul id="menu-header-menu" class="menu"><li id="menu-item-274" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-274"><a href="https://rtl.org/about/">About</a>
+<ul class="sub-menu">
+	<li id="menu-item-3071" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3071"><a href="https://rtl.org/affiliates/">Affiliates</a></li>
+	<li id="menu-item-3070" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3070"><a href="https://rtl.org/careers/">Careers</a></li>
+	<li id="menu-item-3072" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3072"><a href="https://rtl.org/about/our-team/">Staff</a></li>
+	<li id="menu-item-3385" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3385"><a href="https://rtl.org/wp-content/uploads/2024/09/AnnualReport2024.pdf">Annual Report</a></li>
+	<li id="menu-item-3073" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3073"><a href="https://rtl.org/staff-dox/">For Staff</a></li>
+	<li id="menu-item-3921" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3921"><a href="https://rtl.org/affiliate-resources/">For Affiliates</a></li>
+</ul>
+</li>
+<li id="menu-item-1915" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-1915"><a href="https://rtl.org/find-help/">Find Help</a>
+<ul class="sub-menu">
+	<li id="menu-item-3074" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3074"><a href="/find-help/?target=help-centers-map">Pregnancy Help</a></li>
+	<li id="menu-item-3075" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3075"><a href="https://rtl.org/abortion-clinics-and-laws-the-facts/">Clinic Complaint</a></li>
+	<li id="menu-item-3076" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3076"><a href="https://rtl.org/find-help/post-abortion/">Post-Abortion Help</a></li>
+</ul>
+</li>
+<li id="menu-item-1810" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-has-children menu-item-1810"><a href="https://rtl.org/resource/factsheets/">Resources</a>
+<ul class="sub-menu">
+	<li id="menu-item-3080" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3080"><a href="https://rtl.org/resource/factsheets/">FactSheets</a></li>
+	<li id="menu-item-3361" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3361"><a href="https://rtl.org/resource/community-outreach/">Community Engagement</a></li>
+	<li id="menu-item-3079" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3079"><a href="https://rtl.org/resource/faith/">Faith</a></li>
+	<li id="menu-item-3077" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3077"><a href="https://rtl.org/resource/education-centers/">Education Centers</a></li>
+	<li id="menu-item-3078" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3078"><a href="https://rtl.org/resource/legislation/">Legislation</a></li>
+</ul>
+</li>
+<li id="menu-item-1871" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor current-menu-ancestor current-menu-parent current-page-parent current_page_parent current_page_ancestor menu-item-has-children menu-item-1871"><a href="https://rtl.org/the-issues/">The Issues</a>
+<ul class="sub-menu">
+	<li id="menu-item-3081" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-1859 current_page_item menu-item-3081"><a href="https://rtl.org/the-issues/abortion/" aria-current="page">Abortion</a></li>
+	<li id="menu-item-3082" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3082"><a href="https://rtl.org/the-issues/infanticide/">Infanticide</a></li>
+	<li id="menu-item-3083" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3083"><a href="https://rtl.org/the-issues/euthanasia/">Physician-Assisted Suicide and Euthanasia</a></li>
+</ul>
+</li>
+<li id="menu-item-1739" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-1739"><a href="https://rtl.org/get-involved/">Get Involved</a>
+<ul class="sub-menu">
+	<li id="menu-item-3084" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3084"><a href="https://rtl.org/volunteer/">Volunteer</a></li>
+	<li id="menu-item-3270" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3270"><a href="https://rtl.org/become-a-member/">Become a Member</a></li>
+	<li id="menu-item-3271" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3271"><a href="https://rtl.org/get-involved/share-your-story/">Share Your Story</a></li>
+	<li id="menu-item-3272" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3272"><a href="https://rtl.org/affiliates/">Connect With an Affiliate</a></li>
+	<li id="menu-item-3086" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3086"><a href="https://rtl.org/get-involved/migenleads/">MiGen Leads</a></li>
+	<li id="menu-item-4196" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4196"><a href="https://rtl.org/contact-your-legislator/">Contact Your Legislator</a></li>
+	<li id="menu-item-3085" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3085"><a href="https://rtl.org/get-involved/elections/">Politics &#038; Elections</a></li>
+</ul>
+</li>
+<li id="menu-item-3030" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-3030"><a href="https://rtl.org/media/">Media</a>
+<ul class="sub-menu">
+	<li id="menu-item-3027" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3027"><a href="https://rtl.org/category/prolife-news/">Pro-Life News</a></li>
+	<li id="menu-item-3028" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3028"><a href="https://rtl.org/category/real-life-stories/">Real Life Stories</a></li>
+	<li id="menu-item-3026" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3026"><a href="https://rtl.org/category/press-releases/">Press Releases</a></li>
+	<li id="menu-item-3029" class="menu-item menu-item-type-post_type_archive menu-item-object-video menu-item-3029"><a href="https://rtl.org/videos/">Videos</a></li>
+	<li id="menu-item-3227" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3227"><a href="https://rtl.org/the-other-choice-podcast/">The Other Choice Podcast</a></li>
+	<li id="menu-item-4047" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4047"><a href="https://rtl.org/wp-content/uploads/2024/09/RLMNews_Summer2026.pdf">RLM News</a></li>
+</ul>
+</li>
+<li id="menu-item-2969" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2969"><a href="https://rtl.org/events/">Events</a></li>
+<li id="menu-item-2968" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2968"><a href="https://rtl.org/contact/">Contact</a></li>
+</ul>                        </div>
+                    </div>
+                    <div class="navBar-item navBar-item-search">
+                        <div class="btn btn-dark-blue" id="rtl-searchbar-mobile">
+                            <i class="fa-solid fa-search"></i>
+                        </div>
+                    </div>
+                    <div class="navBar-item navBar-item-mobile-menu">
+                        <div class="hamburger hamburger--elastic js-hamburger">
+                            <div class="hamburger-box">
+                                <div class="hamburger-inner"></div>
+                            </div>
+                        </div>
+                        <div class="mobile-menu">
+                            <ul id="menu-mobile-menu" class="subnav-menu"><li id="menu-item-386" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-386"><a href="https://rtl.org/about/">About</a>
+<ul class="sub-menu">
+	<li id="menu-item-3547" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3547"><a href="https://rtl.org/about/">About Us</a></li>
+	<li id="menu-item-3548" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3548"><a href="https://rtl.org/affiliates/">Affiliates</a></li>
+	<li id="menu-item-3549" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3549"><a href="https://rtl.org/careers/">Careers</a></li>
+	<li id="menu-item-3550" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3550"><a href="https://rtl.org/about/our-team/">Staff</a></li>
+	<li id="menu-item-3551" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3551"><a target="_blank" href="https://rtl.org/wp-content/uploads/2024/09/AnnualReport2024.pdf">Annual Report</a></li>
+	<li id="menu-item-3552" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3552"><a href="https://rtl.org/staff-dox/">For Staff</a></li>
+	<li id="menu-item-3923" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3923"><a href="https://rtl.org/affiliate-resources/">For Affiliates</a></li>
+</ul>
+</li>
+<li id="menu-item-3553" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-3553"><a href="https://rtl.org/find-help/">Find Help</a>
+<ul class="sub-menu">
+	<li id="menu-item-3555" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3555"><a href="https://rtl.org/find-help/">Find Help</a></li>
+	<li id="menu-item-3554" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-3554"><a href="/find-help/?target=help-centers-map">Pregnancy Help</a></li>
+	<li id="menu-item-3556" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3556"><a href="https://rtl.org/abortion-clinics-and-laws-the-facts/">Clinic Complaint</a></li>
+	<li id="menu-item-3557" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3557"><a href="https://rtl.org/find-help/post-abortion/">Post-Abortion Help</a></li>
+</ul>
+</li>
+<li id="menu-item-3558" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-has-children menu-item-3558"><a href="https://rtl.org/resource/factsheets/">Resources</a>
+<ul class="sub-menu">
+	<li id="menu-item-3563" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3563"><a href="https://rtl.org/resource/factsheets/">FactSheets</a></li>
+	<li id="menu-item-3559" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3559"><a href="https://rtl.org/resource/community-outreach/">Community Engagement</a></li>
+	<li id="menu-item-3562" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3562"><a href="https://rtl.org/resource/faith/">Faith</a></li>
+	<li id="menu-item-3560" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3560"><a href="https://rtl.org/resource/education-centers/">Education Centers</a></li>
+	<li id="menu-item-3561" class="menu-item menu-item-type-post_type menu-item-object-resource menu-item-3561"><a href="https://rtl.org/resource/legislation/">Legislation</a></li>
+</ul>
+</li>
+<li id="menu-item-3564" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor current-menu-ancestor current-menu-parent current-page-parent current_page_parent current_page_ancestor menu-item-has-children menu-item-3564"><a href="https://rtl.org/the-issues/">Issues</a>
+<ul class="sub-menu">
+	<li id="menu-item-3581" class="menu-item menu-item-type-post_type menu-item-object-page current-page-ancestor current-page-parent menu-item-3581"><a href="https://rtl.org/the-issues/">The Issues</a></li>
+	<li id="menu-item-3565" class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-1859 current_page_item menu-item-3565"><a href="https://rtl.org/the-issues/abortion/" aria-current="page">Abortion</a></li>
+	<li id="menu-item-3566" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3566"><a href="https://rtl.org/the-issues/infanticide/">Infanticide</a></li>
+	<li id="menu-item-3567" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3567"><a href="https://rtl.org/the-issues/euthanasia/">Physician-Assisted Suicide and Euthanasia</a></li>
+</ul>
+</li>
+<li id="menu-item-3568" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-3568"><a href="https://rtl.org/get-involved/">Get Involved</a>
+<ul class="sub-menu">
+	<li id="menu-item-3582" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3582"><a href="https://rtl.org/get-involved/">Get Involved</a></li>
+	<li id="menu-item-3570" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3570"><a href="https://rtl.org/become-a-member/">Become a Member</a></li>
+	<li id="menu-item-3571" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3571"><a href="https://rtl.org/get-involved/share-your-story/">Share Your Story</a></li>
+	<li id="menu-item-3572" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3572"><a href="https://rtl.org/affiliates/">Connect With an Affiliate</a></li>
+	<li id="menu-item-3573" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3573"><a href="https://rtl.org/get-involved/migenleads/">MiGen Leads</a></li>
+	<li id="menu-item-4198" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4198"><a href="https://rtl.org/contact-your-legislator/">Contact Your Legislator</a></li>
+	<li id="menu-item-3569" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3569"><a href="https://rtl.org/get-involved/elections/">Politics &#038; Elections</a></li>
+</ul>
+</li>
+<li id="menu-item-390" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-has-children menu-item-390"><a href="https://rtl.org/media/">Media</a>
+<ul class="sub-menu">
+	<li id="menu-item-3574" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3574"><a href="https://rtl.org/media/">All Media</a></li>
+	<li id="menu-item-3575" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3575"><a href="https://rtl.org/category/prolife-news/">Pro-Life News</a></li>
+	<li id="menu-item-3576" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3576"><a href="https://rtl.org/category/press-releases/">Press Releases</a></li>
+	<li id="menu-item-3578" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3578"><a href="https://rtl.org/category/videos/">Videos</a></li>
+	<li id="menu-item-4730" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-4730"><a href="https://rtl.org/the-other-choice-podcast/">The Other Choice Podcast</a></li>
+	<li id="menu-item-3577" class="menu-item menu-item-type-taxonomy menu-item-object-category menu-item-3577"><a href="https://rtl.org/category/real-life-stories/">Real Life Stories</a></li>
+	<li id="menu-item-4048" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-4048"><a href="https://rtl.org/wp-content/uploads/2024/09/RLMNews_Summer2026.pdf">RLM News</a></li>
+</ul>
+</li>
+<li id="menu-item-3579" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3579"><a href="https://rtl.org/events/">Events</a></li>
+<li id="menu-item-3580" class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3580"><a href="https://rtl.org/contact/">Contact</a></li>
+<li class="menu-item donate-btn"><a target="_blank" href="https://store.rtl.org/">Store</a></li><li class="menu-item donate-btn"><a target="_blank" href="https://rtl.org/donate/">Donate</a></li></ul>                        </div>
+                    </div>
+                            </div>
+        </div>
+    </div>
+</nav>
+
+</header><!-- end of header -->
+<div class="page-wrapper">
+
+
+		<section id="pageHead" class="">
+						<div class="pageHead-overlay" style=""></div>
+			<div class="container">
+				<div class="pageHead-content ">
+					<div class="pageHead-content-inner align-center text-center">	
+													<h1 class="pageHead-featured-title">Abortion</h1>
+																	</div>
+				</div>
+			</div>
+		</section>
+	
+
+<div class="homeContainer">
+    <div id="wrapper" class="clearfix">
+
+<div class="le le-post_content">
+    
+	
+	<section data-menu_id="" data-post_id="1862" style="background: url( /rgba/156/199/177/20);background: rgba(156, 199, 177, .20);_background:none;_filter: progid:DXImageTransform.Microsoft.gradient( startColorstr=&#039;#809cc7b1&#039;, endColorstr=&#039;#809cc7b1&#039;,GradientType=0 );" class="homepage-section imported-section  has-bg-offset has-bg-image  has-bg-media" id="abortion-intro"
+			>
+	
+        <div class="sectionOverlay" style="background: url( /rgba/156/199/177/20);background: rgba(156, 199, 177, .20);_background:none;_filter: progid:DXImageTransform.Microsoft.gradient( startColorstr=&#039;#809cc7b1&#039;, endColorstr=&#039;#809cc7b1&#039;,GradientType=0 );"></div>
+                        
+            
+            <div class="sectionImage bg-pos-right bg-pos-width-6 align-on-image">
+            <div class="container section-bg-container">
+                <div class="row">
+                    <div class="col-md-offset-6 col-md-6"> 
+                        <div class="sectionImageOuter">
+                                                            <div class="sectionImageInner" style="background-image:url(https://rtl.org/wp-content/uploads/2024/04/PLUD1-18-24.png);  background-attachment:scroll;background-size: cover;
+  behavior: url(https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/compatability/backgroundsize.htc) \9;
+  _behavior: none;background-position-x:50%;background-position-y:50%;"></div>
+                                <div class="sectionImageOverlay" style="opacity:1;"></div>
+                                                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+	
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content  bg-pos-right bg-pos-width-6 align-on-image">
+
+            
+                <div class="row primary-row no-margin-last">
+
+                    <div class="col-left col-md-6">
+
+                        <div class="column-inner">
+
+                            <h4>Abortion is any act or procedure performed with the willful intent to cause the death of an unborn child which is between fertilization and birth. Abortion is dangerous for women and children and commonly results in physical or emotional damage. More than 62 million abortions are estimated to have happened in America since 1973, and more than 30,000 happen every year in Michigan.</h4>
+<h4>RLM’s long-standing, compassionate position on abortion which seeks to help equip women to make a choice for life, continues to include an exception for the life of the mother. The life of the mother exception for abortion has been and remains a prolife standard of care.</h4>
+                        
+                        </div>
+                    
+                    </div>
+
+                    <div class="col-right col-md-6">
+
+                        <div class="column-inner">
+
+                                                        
+                        </div>
+
+                    </div>
+
+                </div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+
+						<div class="grid-section pageHead-preset-height-75" id="section-1872" style="background:#9cc7b1;">
+								<div class="grid-item background-position-bottom grid-2 color-white no-margin-last">
+											<div class="grid-item-background" style="background:#1c4c68;opacity:1;"></div>
+																<div class="grid-item-image background-position-bottom" style="background: url('https://rtl.org/wp-content/uploads/2024/04/joshua-hoehne-7s1j-DZ5KYQ-unsplash-zoomed.jpg');background-size:cover;background-attachment:scroll;background-position:50% 50%;">
+							<div class="grid-item-content">
+								<div class="grid-item-content-inner">
+									<h2>National<br />
+Statistics</h2>								</div>
+							</div>
+							<div class="grid-item-image-overlay" style="opacity:1;"></div>
+						</div>
+										<div class="grid-item-content">
+						<div class="grid-item-content-inner">
+							<h2>National<br />
+Statistics</h2>						</div>
+					</div>
+				</div>
+								<div class="grid-item grid-2">
+															<div class="grid-item-content">
+						<div class="grid-item-content-inner">
+							<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >1,026,690</h3>
+<p class="color-gray"     ><strong>Induced surgical and medical abortions performed during 2023 in the United States.</strong></p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >61,051,230</h3>
+<p class="color-gray"     ><strong>Estimated abortions performed between 1973-2023 in the United States.</strong></p>
+<p class="color-gray"     >No data was released for 2018, 2021, 2022.</p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >1,000,000+</h3>
+<p class="color-gray"     ><strong>Abortions in 2023</strong></p>
+<p class="color-gray"     >The last time that Abortions were over the 1 million mark was in 2012.</p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >39.2%</h3>
+<p class="color-gray"     ><strong>Percentage of abortions that were performed on non-Hispanic Black women in 2020.</strong></p>
+<p class="color-gray"     >Only 12.4 percent of the U.S. population is non-Hispanic Black according to the 2020 census.</p>
+</div>
+</div>						</div>
+					</div>
+				</div>
+							</div>
+				
+						<div class="grid-section pageHead-preset-height-75" id="section-1877" style="background:#00a97f;">
+								<div class="grid-item background-position-bottom grid-3 no-margin-last desktop-hidden">
+											<div class="grid-item-background" style="background:#ffffff;"></div>
+																<div class="grid-item-image background-position-bottom" style="background: url('https://rtl.org/wp-content/uploads/2024/04/alex-brisbey-fGIERvYOxJ0-unsplash.jpg');background-size:cover;background-attachment:scroll;background-position:50% 50%;">
+							<div class="grid-item-content">
+								<div class="grid-item-content-inner">
+									<h2>Michigan<br />
+Statistics</h2>								</div>
+							</div>
+							<div class="grid-item-image-overlay" style=""></div>
+						</div>
+										<div class="grid-item-content">
+						<div class="grid-item-content-inner">
+							<h2>Michigan<br />
+Statistics</h2>						</div>
+					</div>
+				</div>
+								<div class="grid-item grid-3">
+															<div class="grid-item-content">
+						<div class="grid-item-content-inner">
+							<div class="color-white">
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >31,241</h3>
+<p      ><strong>Induced surgical and medical abortions performed during 2023 in Michigan.</strong></p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >52.1%</h3>
+<p      ><strong>of abortions in 2023 are repeat abortions</strong></p>
+<p      >Women who had abortions who reported two or more previous abortions was 27.6% in 2023.</p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >70%</h3>
+<p      ><strong>of abortions in 2023 were done on women in their 8th week of pregnancy or earlier.</strong></p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >53%</h3>
+<p      ><strong>of abortions in Michigan are done on Black women.</strong></p>
+<p      >Black women make up 14% of the female population.</p>
+</div>
+</div>
+<div class="stack_alignment row-block" style="">
+<div class="no-margin"     >
+<h3   >247</h3>
+<p      ><strong>serious complications were reported in 2023, compared to 15 in 2018.</strong></p>
+<p      >72% of the reported serious complications occurred after the abortion pill was taken.</p>
+</div>
+</div>
+</div>						</div>
+					</div>
+				</div>
+								<div class="grid-item background-position-bottom grid-3 no-margin-last mobile-hidden">
+											<div class="grid-item-background" style="background:#ffffff;opacity:1;"></div>
+																<div class="grid-item-image background-position-bottom" style="background: url('https://rtl.org/wp-content/uploads/2024/04/alex-brisbey-fGIERvYOxJ0-unsplash.jpg');background-size:cover;background-attachment:scroll;background-position:50% 50%;">
+							<div class="grid-item-content">
+								<div class="grid-item-content-inner">
+									<h2>Michigan<br />
+Statistics</h2>								</div>
+							</div>
+							<div class="grid-item-image-overlay" style="opacity:1;"></div>
+						</div>
+										<div class="grid-item-content">
+						<div class="grid-item-content-inner">
+							<h2>Michigan<br />
+Statistics</h2>						</div>
+					</div>
+				</div>
+							</div>
+				
+
+	
+	<section data-menu_id="" data-post_id="1880" style="background-color:;" class="homepage-section imported-section mobile-bg-dark-blue has-bg-offset" id="abortion-abortion-methods"
+			>
+	
+        <div class="sectionOverlay" ></div>
+                        
+            
+            <div class="sectionImage bg-pos-right bg-pos-width-6 align-on-image">
+            <div class="container section-bg-container">
+                <div class="row">
+                    <div class="col-md-offset-6 col-md-6"> 
+                        <div class="sectionImageOuter">
+                                                            <div class="sectionImageInner" style=""></div>
+                                <div class="sectionImageOverlay" style="background-color:#1c4c68;opacity:1;"></div>
+                                                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+	
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content  bg-pos-right bg-pos-width-6 align-on-image">
+
+            
+                <div class="row primary-row mobile-color-white mobile-s-pb-0">
+
+                    <div class="col-left col-md-6">
+
+                        <div class="column-inner">
+
+                            <h2>Abortion<br />
+Methods</h2>
+                        
+                        </div>
+                    
+                    </div>
+
+                    <div class="col-right col-md-6 color-white">
+
+                        <div class="column-inner">
+
+                                                        <h4>Mifepristone &amp; Misoprostol</h4>
+<ul>
+<li>Used before ten weeks.</li>
+<li>The first drug, mifepristone, blocks the hormone progesterone. The second drug, misoprostol, is taken 1-2 days later and causes uterine contractions.</li>
+<li>Fetal demise occurs from the breakdown of the uterine lining, or the fetus is expelled by the force of contractions.</li>
+<li>Common physical side effects: heavy bleeding for an average of two weeks, nausea, vomiting, fatigue, fever, and chills.</li>
+<li>Serious side effects: hemorrhage, infection, and incomplete abortion</li>
+</ul>
+                        </div>
+
+                    </div>
+
+                </div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+
+
+	
+	<section data-menu_id="" data-post_id="1882" style="background-color:;" class="homepage-section imported-section bg-color-blue-200 mobile-bg-dark-blue has-bg-offset" id="abortion-abortion-methods-2"
+			>
+	
+        <div class="sectionOverlay" ></div>
+                        
+            
+            <div class="sectionImage bg-pos-left bg-pos-width-6 align-on-image">
+            <div class="container section-bg-container">
+                <div class="row">
+                    <div class=" col-md-6"> 
+                        <div class="sectionImageOuter">
+                                                            <div class="sectionImageInner" style=""></div>
+                                <div class="sectionImageOverlay" style="background-color:#3e6599;opacity:1;"></div>
+                                                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+	
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content  bg-pos-left bg-pos-width-6 align-on-image">
+
+            
+                <div class="row primary-row color-gray mobile-color-white-important mobile-s-pt-0">
+
+                    <div class="col-left col-md-6 desktop-color-white-important tablet-color-white-important">
+
+                        <div class="column-inner">
+
+                            <h4>Suction Curettage</h4>
+<ul>
+<li>Used before 12 weeks.</li>
+<li>A small tube is inserted into the uterus, and a suction machine removes all uterine contents.</li>
+<li>The procedure typically lasts less than 15 minutes, and patients return home on the same day.</li>
+<li>Fetal demise occurs from the force of the suction.</li>
+<li>Common physical side effects: pain/cramping and bleeding.</li>
+<li>Serious side effects: uterine perforation, hemorrhage, infection, and incomplete abortion.</li>
+</ul>                        
+                        </div>
+                    
+                    </div>
+
+                    <div class="col-right col-md-6">
+
+                        <div class="column-inner">
+
+                                                        <h4><span style="color: #1c4c68;">Dilation &amp; Evacuation</span></h4>
+<ul>
+<li>Used between 12 and 24 weeks.</li>
+<li>Before the abortion, the cervix is dilated. The procedure typically lasts less than 30 minutes, and patients return<br />
+home the same day. Grasping forceps are introduced into the uterus to remove parts of the fetus; other instruments are used to remove the placenta and other pregnancy tissue.</li>
+<li>Fetal demise occurs from the force of the forceps.</li>
+<li>Common physical side effects: pain/cramping, bleeding.</li>
+<li>Serious side effects: uterine perforation, hemorrhage, infection, and incomplete abortion</li>
+</ul>
+
+                        </div>
+
+                    </div>
+
+                </div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+
+
+	
+	<section data-menu_id="" data-post_id="1885" style="background-color:#00a97f;" class="homepage-section imported-section  has-bg-offset has-bg-image  has-bg-media" id="abortion-the-abortion-pill"
+			>
+	
+        <div class="sectionOverlay" ></div>
+                        
+            
+            <div class="sectionImage bg-pos-right bg-pos-width-6 align-on-image">
+            <div class="container section-bg-container">
+                <div class="row">
+                    <div class="col-md-offset-6 col-md-6"> 
+                        <div class="sectionImageOuter">
+                                                            <div class="sectionImageInner" style="background-image:url(https://rtl.org/wp-content/uploads/2024/04/abortion-pill-image-1.jpg);  background-attachment:scroll;background-size: cover;
+  behavior: url(https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/compatability/backgroundsize.htc) \9;
+  _behavior: none;background-position-x:50%;background-position-y:50%;"></div>
+                                <div class="sectionImageOverlay" style="opacity:1;"></div>
+                                                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+	
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content  bg-pos-right bg-pos-width-6 align-on-image">
+
+            
+                <div class="row primary-row color-white">
+
+                    <div class="col-left col-md-6">
+
+                        <div class="column-inner">
+
+                            <h2 class="color-white-800"  >The Abortion Pill</h2>
+<h4   >The abortion pill (mifepristone) accounts for almost 52% of abortions in Michigan.</h4>
+<p      >The abortion pill is a two-drug regimen that is taken over the course of one to two days. The drug in the regime which blocks progesterone is mifepristone and leads to the uterine lining thinning. After one to two days, Misoprostol is then taken to expel the pregnancy.</p>
+<p      >Abortion Pill Reversal</p>
+<p      >Do you regret your decision and wish you could reverse the effects of the abortion pill? It may not be too late!</p>
+<p class="link-color-white phone-icon phone-icon-white align-phone-top border-bottom-white pb-1"     >Call <a href="tel:8775580333">(877) 558-0333</a> to speak with a nurse for more information now, day or night.</p>
+<p      >LifeNotes: A Detailed Look at the Abortion Pill</p>
+<p      >This in-depth 4-page booklet explains what the abortion pill is and how it ends the pregnancy. It details possible side effects and explains the abortion pill reversal process.</p>
+<a  href="https://rtl.org/wp-content/uploads/2024/04/MailOrderAbortions.pdf" class="btn btn-md btn-white btn-white " target="_blank" title="" rel="">Read More</a>
+                        
+                        </div>
+                    
+                    </div>
+
+                    <div class="col-right col-md-6">
+
+                        <div class="column-inner">
+
+                                                        
+                        </div>
+
+                    </div>
+
+                </div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+
+
+	
+	<section data-menu_id="" data-post_id="3098" style="background-color:;" class="homepage-section imported-section " id="abortion-the-history-of-you"
+			>
+	
+        <div class="sectionOverlay" ></div>
+                        
+            
+            <div class="sectionImage align-on-image" style="">
+            <div class="sectionImageInner"></div>
+            <div class="sectionImageOverlay" style="opacity:1;"></div>
+        </div>	
+    
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content primary-row  align-on-image">
+
+                            <div class="row text-center " >
+<div   class="col-md-8  col-md-offset-2" style="vertical-align:top;"><div>
+<h2   >The History of You</h2>
+<p      >Features basic facts about fetal development through the nine months of pregnancy.</p>
+<div class="pt-2"     >
+<a  href="https://rtl.org/wp-content/uploads/2024/04/fetaldevelopment.pdf" class="btn btn-md btn-default " target="_blank" title="" rel="">Download PDF</a>
+</div>
+</div></div>
+</div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+
+</div>
+</div><!-- end of wrapper-->
+
+
+<div id="search-modal">
+    <div class="custom-modal-overlay">
+        <i class="modal-close-icon"></i>
+    </div>
+    <div class="custom-modal-container">
+        <div class="custom-modal-col">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-8 col-md-offset-2">
+                        <div class="cusstom-modal-body">
+                            	<form method="get" class="stack-form-search-main" action="https://rtl.org/">
+		<div class="stack-form-item">
+			<input type="text" class="form-control search-query" name="s" placeholder="Search..." />
+			<input type="hidden" name="global" value="true" />
+			<span class="form-search-icon"><i class="fas fa-search"></i><i class="fa-solid fa-x hidden"></i></span>
+		</div><div class="stack-form-item">
+			<input type="submit" class="btn" name="submit" value="Search" id="searchsubmit" value="Go">
+		</div>
+	</form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div><!-- end of container -->
+
+<footer id="footer" class="clearfix">
+
+    <div id="footer-wrapper">
+        
+	
+	<section data-menu_id="" data-post_id="358" style="background-color:;" class="homepage-section imported-section " id="footer"
+			>
+	
+        <div class="sectionOverlay" ></div>
+                        
+            
+            <div class="sectionImage align-on-image" style="">
+            <div class="sectionImageInner"></div>
+            <div class="sectionImageOverlay" style="opacity:1;"></div>
+        </div>	
+    
+        
+    <div class="container " style="color:;">
+
+        <div class="le le-post_content primary-row  align-on-image s-pt-0-5 s-pb-0">
+
+                            <div class="row align-items-end mb-2 pb-2 border-bottom shrink-w-spacing mobile-mb-3 shrink-on-md tablet-text-center " >
+<div   class="col-sm-3 mobile-mb-3 col-md-4 " style="vertical-align:top;"><div>
+
+				<div class="site-logo">
+			<a href="https://rtl.org/" title="Right to Life of Michigan" rel="home">				<img decoding="async" src="https://rtl.org/wp-content/uploads/2024/04/logo-updated.png" alt="Right to Life of Michigan" />
+			</a>		</div>
+		
+</div></div>
+<div   class="col-md-4 mobile-mb-1 tablet-mb-1 col-md-offset-1" style="vertical-align:top;"><div>
+
+                <div class='gf_browser_unknown gform_wrapper gravity-theme gform-theme--no-framework single-line_wrapper' data-form-theme='gravity-theme' data-form-index='0' id='gform_wrapper_7' ><div id='gf_7' class='gform_anchor' tabindex='-1'></div>
+                        <div class='gform_heading'>
+                            <p class='gform_description'>Sign up to receive important weekly pro-life updates from Right to Life of Michigan.</p>
+							<p class='gform_required_legend'>&quot;<span class="gfield_required gfield_required_asterisk">*</span>&quot; indicates required fields</p>
+                        </div><form method='post' enctype='multipart/form-data' target='gform_ajax_frame_7' id='gform_7' class='single-line' action='/the-issues/abortion/#gf_7' data-formid='7' novalidate>
+                        <div class='gform-body gform_body'><div id='gform_fields_7' class='gform_fields top_label form_sublabel_below description_above validation_below'><div id="field_7_2" class="gfield gfield--type-captcha gfield--input-type-captcha gfield--width-third field_sublabel_below gfield--no-description field_description_above hidden_label field_validation_below gfield_visibility_visible"  ><label class='gfield_label gform-field-label' for='input_7_2'>CAPTCHA</label><div id='input_7_2' class='ginput_container ginput_recaptcha' data-sitekey='6LeETcspAAAAALVR202tym6tFdkCm4I7BxzyqCzf'  data-theme='light' data-tabindex='-1' data-size='invisible' data-badge='bottomright'></div></div><div id="field_7_1" class="gfield gfield--type-email gfield--input-type-email gfield--width-third gfield_contains_required field_sublabel_below gfield--no-description field_description_above hidden_label field_validation_below gfield_visibility_visible"  ><label class='gfield_label gform-field-label' for='input_7_1'>Email Address<span class="gfield_required"><span class="gfield_required gfield_required_asterisk">*</span></span></label><div class='ginput_container ginput_container_email'>
+                            <input name='input_1' id='input_7_1' type='email' value='' class='medium'   placeholder='Email Address' aria-required="true" aria-invalid="false"  />
+                        </div></div><div id="field_submit" class="gfield gfield--type-submit gfield--width-third field_sublabel_below gfield--no-description field_description_above field_validation_below gfield_visibility_visible"  data-field-class="gform_editor_submit_container" data-field-position="inline" ><input type='submit' id='gform_submit_button_7' class='gform-button gform-button--white  button' onclick='gform.submission.handleButtonClick(this);' data-submission-type='submit' value='Sign Up'  /></div></div></div>
+        <div class='gform-footer gform_footer top_label'>  <input type='hidden' name='gform_ajax' value='form_id=7&amp;title=&amp;description=1&amp;tabindex=0&amp;theme=gravity-theme&amp;styles=[]&amp;hash=ce54d8bdece999db334720a797c539bb' />
+            <input type='hidden' class='gform_hidden' name='gform_submission_method' data-js='gform_submission_method_7' value='iframe' />
+            <input type='hidden' class='gform_hidden' name='gform_theme' data-js='gform_theme_7' id='gform_theme_7' value='gravity-theme' />
+            <input type='hidden' class='gform_hidden' name='gform_style_settings' data-js='gform_style_settings_7' id='gform_style_settings_7' value='[]' />
+            <input type='hidden' class='gform_hidden' name='is_submit_7' value='1' />
+            <input type='hidden' class='gform_hidden' name='gform_submit' value='7' />
+            
+            <input type='hidden' class='gform_hidden' name='gform_currency' data-currency='USD' value='9HolT1STmxvrJpjtBK0rmSirPWoppAulh1Nx/MrNMHe2kWGquLS7P9RPcF8OEEkQ0ToHeV7ocxho84v5B5is3cBLS/qmgDZqmSnVyATdSV2XMHY=' />
+            <input type='hidden' class='gform_hidden' name='gform_unique_id' value='' />
+            <input type='hidden' class='gform_hidden' name='state_7' value='WyJbXSIsImMzZGE0M2Q3NWRkYmQzMDI3YjU4OWQ4YTg3OWQxZDZmIl0=' />
+            <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_target_page_number_7' id='gform_target_page_number_7' value='0' />
+            <input type='hidden' autocomplete='off' class='gform_hidden' name='gform_source_page_number_7' id='gform_source_page_number_7' value='1' />
+            <input type='hidden' name='gform_field_values' value='' />
+            
+        </div>
+                        <p style="display: none !important;" class="akismet-fields-container" data-prefix="ak_"><label>&#916;<textarea name="ak_hp_textarea" cols="45" rows="8" maxlength="100"></textarea></label><input type="hidden" id="ak_js_2" name="ak_js" value="53"/><script>
+document.getElementById( "ak_js_2" ).setAttribute( "value", ( new Date() ).getTime() );
+</script>
+</p></form>
+                        </div>
+		                <iframe style='display:none;width:0px;height:0px;' src='about:blank' name='gform_ajax_frame_7' id='gform_ajax_frame_7' title='This iframe contains the logic required to handle Ajax powered Gravity Forms.'></iframe>
+		                <script>
+gform.initializeOnLoaded( function() {gformInitSpinner( 7, 'https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg', true );jQuery('#gform_ajax_frame_7').on('load',function(){var contents = jQuery(this).contents().find('*').html();var is_postback = contents.indexOf('GF_AJAX_POSTBACK') >= 0;if(!is_postback){return;}var form_content = jQuery(this).contents().find('#gform_wrapper_7');var is_confirmation = jQuery(this).contents().find('#gform_confirmation_wrapper_7').length > 0;var is_redirect = contents.indexOf('gformRedirect(){') >= 0;var is_form = form_content.length > 0 && ! is_redirect && ! is_confirmation;var mt = parseInt(jQuery('html').css('margin-top'), 10) + parseInt(jQuery('body').css('margin-top'), 10) + 100;if(is_form){jQuery('#gform_wrapper_7').html(form_content.html());if(form_content.hasClass('gform_validation_error')){jQuery('#gform_wrapper_7').addClass('gform_validation_error');} else {jQuery('#gform_wrapper_7').removeClass('gform_validation_error');}setTimeout( function() { /* delay the scroll by 50 milliseconds to fix a bug in chrome */ jQuery(document).scrollTop(jQuery('#gform_wrapper_7').offset().top - mt); }, 50 );if(window['gformInitDatepicker']) {gformInitDatepicker();}if(window['gformInitPriceFields']) {gformInitPriceFields();}var current_page = jQuery('#gform_source_page_number_7').val();gformInitSpinner( 7, 'https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg', true );jQuery(document).trigger('gform_page_loaded', [7, current_page]);window['gf_submitting_7'] = false;}else if(!is_redirect){var confirmation_content = jQuery(this).contents().find('.GF_AJAX_POSTBACK').html();if(!confirmation_content){confirmation_content = contents;}jQuery('#gform_wrapper_7').replaceWith(confirmation_content);jQuery(document).scrollTop(jQuery('#gf_7').offset().top - mt);jQuery(document).trigger('gform_confirmation_loaded', [7]);window['gf_submitting_7'] = false;wp.a11y.speak(jQuery('#gform_confirmation_message_7').text());}else{jQuery('#gform_7').append(contents);if(window['gformRedirect']) {gformRedirect();}}jQuery(document).trigger("gform_pre_post_render", [{ formId: "7", currentPage: "current_page", abort: function() { this.preventDefault(); } }]);        if (event && event.defaultPrevented) {                return;        }        const gformWrapperDiv = document.getElementById( "gform_wrapper_7" );        if ( gformWrapperDiv ) {            const visibilitySpan = document.createElement( "span" );            visibilitySpan.id = "gform_visibility_test_7";            gformWrapperDiv.insertAdjacentElement( "afterend", visibilitySpan );        }        const visibilityTestDiv = document.getElementById( "gform_visibility_test_7" );        let postRenderFired = false;        function triggerPostRender() {            if ( postRenderFired ) {                return;            }            postRenderFired = true;            gform.core.triggerPostRenderEvents( 7, current_page );            if ( visibilityTestDiv ) {                visibilityTestDiv.parentNode.removeChild( visibilityTestDiv );            }        }        function debounce( func, wait, immediate ) {            var timeout;            return function() {                var context = this, args = arguments;                var later = function() {                    timeout = null;                    if ( !immediate ) func.apply( context, args );                };                var callNow = immediate && !timeout;                clearTimeout( timeout );                timeout = setTimeout( later, wait );                if ( callNow ) func.apply( context, args );            };        }        const debouncedTriggerPostRender = debounce( function() {            triggerPostRender();        }, 200 );        if ( visibilityTestDiv && visibilityTestDiv.offsetParent === null ) {            const observer = new MutationObserver( ( mutations ) => {                mutations.forEach( ( mutation ) => {                    if ( mutation.type === 'attributes' && visibilityTestDiv.offsetParent !== null ) {                        debouncedTriggerPostRender();                        observer.disconnect();                    }                });            });            observer.observe( document.body, {                attributes: true,                childList: false,                subtree: true,                attributeFilter: [ 'style', 'class' ],            });        } else {            triggerPostRender();        }    } );} );
+</script>
+
+</div></div>
+<div   class="col-md-3  " style="vertical-align:top;"><div>
+     
+        <div class="theme-social-icons">
+                            <a href="https://twitter.com/Right_to_Life" target="_blank" class="fa-brands fa-x-twitter"></a>
+                            <a href="https://www.facebook.com/righttolifeofmichigan" target="_blank" class="fa-brands fa-facebook"></a>
+                            <a href="https://www.youtube.com/user/rtlmich/featured" target="_blank" class="fa-brands fa-youtube"></a>
+                            <a href="https://www.instagram.com/righttolifemi/" target="_blank" class="fa-brands fa-instagram"></a>
+                            <a href="/category/prolife-news/"  class="fa-solid fa-rss"></a>
+                            <a href="/the-other-choice-podcast/"  class="fa-solid fa-podcast"></a>
+                    </div>
+       
+</div></div>
+</div>
+<div class="row align-items-start pb-2 border-bottom shrink-w-spacing mb-1 mobile-mb-3 desktop-pt-2 desktop-pb-4 " >
+<div   class="col-md-12  " style="vertical-align:top;"><div>
+
+	<div class="footer-menu">
+							<div class="footer-menu">
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/about/">About</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/affiliates/">Affiliates</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/careers/">Careers</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/about/our-team/">Staff</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/wp-content/uploads/2024/09/AnnualReport2024.pdf">Annual Report</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/staff-dox/">For Staff</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/affiliate-resources/">For Affiliates</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/find-help/">Find Help</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="/find-help/?target=help-centers-map">Pregnancy Help</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/abortion-clinics-and-laws-the-facts/">Clinic Complaint</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/find-help/post-abortion/">Post-Abortion Help</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/resource/factsheets/">Resources</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/resource/factsheets/">FactSheets</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/resource/community-outreach/">Community Engagement</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/resource/faith/">Faith</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/resource/legislation/">Legislation</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/resource/education-centers/">Education Centers</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/the-issues/">The Issues</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/the-issues/abortion/">Abortion</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/the-issues/infanticide/">Infanticide</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/the-issues/euthanasia/">Euthanasia</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/get-involved/">Get Involved</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/volunteer/">Volunteer</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/become-a-member/">Become a Member</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/get-involved/share-your-story/">Share Your Story</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/affiliates/">Connect With an Affiliate</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/get-involved/migenleads/">MiGen Leads</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/contact-your-legislator/">Contact Your Legislator</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/get-involved/elections/">Politics &amp; Elections</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/media/">Media</a>
+								</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/category/prolife-news/">Pro-Life News</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/category/real-life-stories/">Real Life Stories</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/category/press-releases/">Press Releases</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/videos/">Videos</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/the-other-choice-podcast/">The Other Choice Podcast</a>
+									</div>
+																	<div class="footer-menu-item-child">
+										<a  href="https://rtl.org/wp-content/uploads/2024/09/RLMNews_Summer2026.pdf">RLM News</a>
+									</div>
+															</div>
+													<div class="footer-menu-col">
+								<div>
+									<a  href="https://rtl.org/events/">Events</a>
+								</div>
+															</div>
+																			<div class="footer-menu-col">
+								<div>
+									<a href="https://rtl.org/donate/">Donate</a>
+								</div>
+							</div>
+																			<div class="footer-menu-col">
+								<div>
+									<a target="_blank" href="https://store.rtl.org/">Store</a>
+								</div>
+							</div>
+											</div>
+					</div>
+	
+</div></div>
+</div>
+<div      >
+<div class="sub-footer pb-1"><div class="row align-items-center " >
+<div   class="col-md-4 text-left mobile-text-center sm-mb-0-5 " style="vertical-align:top;">
+<div>
+<div class="copyright">&copy; 2026 Right to Life of Michigan</div>
+</div>
+</div>
+<div   class="col-md-8 mobile-text-center text-right inline-content " style="vertical-align:top;">
+<div>
+<div class="mr-1 mobile-mr-0"     >
+<p>		<a target="" href="https://rtl.org/privacy-policy/">Privacy Policy</a></p>
+</div>
+<div class="mobile-mr-0"     >
+<p>		<a target="" href="https://rtl.org/terms-and-conditions/">Video/Image Usage Policy</a></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+                    </div>
+
+    </div>
+
+    	</section>
+
+    </div>
+
+</footer><!-- end #footer -->
+
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":["/wp-*.php","/wp-admin/*","/wp-content/uploads/*","/wp-content/*","/wp-content/plugins/*","/wp-content/themes/stack-framework-child/*","/wp-content/themes/stack-framework/*","/*\\?(.+)"]}},{"not":{"selector_matches":"a[rel~=\"nofollow\"]"}},{"not":{"selector_matches":".no-prefetch, .no-prefetch a"}}]},"eagerness":"conservative"}]}
+</script>
+<div class="gtranslate_wrapper" id="gt-wrapper-52474927"></div>    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        
+        ga('create', 'UA-44686458-1', 'auto');
+        ga('send', 'pageview');
+        
+        </script>
+	<script type="text/javascript">
+	// <![CDATA[
+	jQuery(document).ready(function($){
+		$("a[rel='magnific']").magnificPopup({
+				type:'image',
+				image: {
+					titleSrc: function(item){
+
+						if (item.el.next().hasClass('wp-caption-text')){
+							return item.el.next().html();
+						}
+
+					}
+				}
+		});
+	});
+	// ]]>
+	</script>
+
+	<script type="text/javascript" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/fitToWidth.js"></script>
+	<!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+	<script>
+		var tag = document.createElement("script");
+		tag.src = "https://www.youtube.com/iframe_api";
+		var firstScriptTag = document.getElementsByTagName("script")[0];
+		firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+	</script>
+	<!--[if (gte IE 7)&(lte IE 8)]>
+	<script type="text/javascript" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/selectivizr-min.js">
+	</script>
+	<![endif]-->
+
+	<script id="slick-js" src="https://rtl.org/wp-content/themes/stack-framework-child/stack-custom/assets/slick/slick.min.js?ver=223780773"></script>
+<script id="custom-js" src="https://rtl.org/wp-content/themes/stack-framework-child/stack-custom/inc/js/custom.js?ver=206320286"></script>
+<script id="bootstrap-hover-dropdown-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/bootstrap-hover-dropdown.js?ver=93268577"></script>
+<script id="jquery.ellipsis-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/jquery.ellipsis.js?ver=8608178"></script>
+<script id="parallax-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/parallax.js?ver=110518236"></script>
+<script id="ie_prototype_fixes-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/ie_prototype_fixes.js?ver=505550819"></script>
+<script id="stack_scripts-js-extra">
+var load_more_object = {"ajaxurl":"https://rtl.org/wp-admin/admin-ajax.php","ajax_nonce":"5de0b30e43"};
+var do_shortcode_object = {"ajaxurl":"https://rtl.org/wp-admin/admin-ajax.php","ajax_nonce":"a28a762868"};
+//# sourceURL=stack_scripts-js-extra
+</script>
+<script id="stack_scripts-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/stack_scripts.js?ver=115401000"></script>
+<script id="detectmobilebrowser-js" src="https://rtl.org/wp-content/themes/stack-framework/stack-custom/inc/js/detectmobilebrowser.min.js?ver=324355894"></script>
+<script id="wp-dom-ready-js" src="https://rtl.org/wp-includes/js/dist/dom-ready.js?ver=194962115"></script>
+<script id="wp-hooks-js" src="https://rtl.org/wp-includes/js/dist/hooks.js?ver=388917669"></script>
+<script id="wp-i18n-js" src="https://rtl.org/wp-includes/js/dist/i18n.js?ver=484744845"></script>
+<script id="wp-i18n-js-after">
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
+//# sourceURL=wp-i18n-js-after
+</script>
+<script id="wp-a11y-js" src="https://rtl.org/wp-includes/js/dist/a11y.js?ver=227301696"></script>
+<script id="gform_json-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/js/jquery.json.js?ver=433830877"></script>
+<script id="gform_gravityforms-js-extra">
+var gform_i18n = {"datepicker":{"days":{"monday":"Mo","tuesday":"Tu","wednesday":"We","thursday":"Th","friday":"Fr","saturday":"Sa","sunday":"Su"},"months":{"january":"January","february":"February","march":"March","april":"April","may":"May","june":"June","july":"July","august":"August","september":"September","october":"October","november":"November","december":"December"},"firstDay":1,"iconText":"Select date"}};
+var gf_legacy_multi = [];
+var gform_gravityforms = {"strings":{"invalid_file_extension":"This type of file is not allowed. Must be one of the following:","delete_file":"Delete this file","in_progress":"in progress","file_exceeds_limit":"File exceeds size limit","illegal_extension":"This type of file is not allowed.","max_reached":"Maximum number of files reached","unknown_error":"There was a problem while saving the file on the server","currently_uploading":"Please wait for the uploading to complete","cancel":"Cancel","cancel_upload":"Cancel this upload","cancelled":"Cancelled","error":"Error","message":"Message"},"vars":{"images_url":"https://rtl.org/wp-content/plugins/gravityforms/images"}};
+var gf_global = {"gf_currency_config":{"name":"U.S. Dollar","symbol_left":"$","symbol_right":"","symbol_padding":"","thousand_separator":",","decimal_separator":".","decimals":2,"code":"USD"},"base_url":"https://rtl.org/wp-content/plugins/gravityforms","number_formats":[],"spinnerUrl":"https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg","version_hash":"63435e8c122f7f15f1fafdc0bd961e83","strings":{"newRowAdded":"New row added.","rowRemoved":"Row removed","formSaved":"The form has been saved.  The content contains the link to return and complete the form."}};
+var gf_global = {"gf_currency_config":{"name":"U.S. Dollar","symbol_left":"$","symbol_right":"","symbol_padding":"","thousand_separator":",","decimal_separator":".","decimals":2,"code":"USD"},"base_url":"https://rtl.org/wp-content/plugins/gravityforms","number_formats":[],"spinnerUrl":"https://rtl.org/wp-content/plugins/gravityforms/images/spinner.svg","version_hash":"63435e8c122f7f15f1fafdc0bd961e83","strings":{"newRowAdded":"New row added.","rowRemoved":"Row removed","formSaved":"The form has been saved.  The content contains the link to return and complete the form."}};
+//# sourceURL=gform_gravityforms-js-extra
+</script>
+<script id="gform_gravityforms-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/js/gravityforms.js?ver=411372859"></script>
+<script id="gform_recaptcha-js" defer='defer' src="https://www.google.com/recaptcha/api.js?hl=en&#038;ver=62563805#038;render=explicit"></script>
+<script id="gform_placeholder-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/js/placeholders.jquery.min.js?ver=495889433"></script>
+<script id="gform_gravityforms_utils-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/assets/js/dist/utils.min.js?ver=308675829"></script>
+<script id="gform_gravityforms_theme_vendors-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/assets/js/dist/vendor-theme.min.js?ver=496395567"></script>
+<script id="gform_gravityforms_theme-js-extra">
+var gform_theme_config = {"common":{"form":{"honeypot":{"version_hash":"63435e8c122f7f15f1fafdc0bd961e83"},"ajax":{"ajaxurl":"https://rtl.org/wp-admin/admin-ajax.php","ajax_submission_nonce":"1860bfcb01","i18n":{"step_announcement":"Step %1$s of %2$s, %3$s","unknown_error":"There was an unknown error processing your request. Please try again.","error_403":"The request was blocked (403 error) for unknown security reasons. Remove any code-like text (scripts or DB queries) and try again."}},"logging":{"is_enabled":false}}},"hmr_dev":"","public_path":"https://rtl.org/wp-content/plugins/gravityforms/assets/js/dist/","config_nonce":"cba86c4622"};
+//# sourceURL=gform_gravityforms_theme-js-extra
+</script>
+<script id="gform_gravityforms_theme-js" defer='defer' src="https://rtl.org/wp-content/plugins/gravityforms/assets/js/dist/scripts-theme.min.js?ver=94407629"></script>
+<script defer id="akismet-frontend-js" src="https://rtl.org/wp-content/plugins/akismet/_inc/akismet-frontend.js?ver=403157368"></script>
+<script id="gt_widget_script_52474927-js-before">
+window.gtranslateSettings = /* document.write */ window.gtranslateSettings || {};window.gtranslateSettings['52474927'] = {"default_language":"en","languages":["en","es"],"url_structure":"sub_directory","flag_style":"2d","wrapper_selector":"#gt-wrapper-52474927","alt_flags":{"en":"usa","es":"mexico"},"float_switcher_open_direction":"top","switcher_horizontal_position":"left","switcher_vertical_position":"bottom","flags_location":"\/wp-content\/plugins\/gtranslate\/flags\/"};
+//# sourceURL=gt_widget_script_52474927-js-before
+</script><script src="https://rtl.org/wp-content/plugins/gtranslate/js/float.js?ver=146152115" data-no-optimize="1" data-no-minify="1" data-gt-orig-url="/the-issues/abortion/" data-gt-orig-domain="rtl.org" data-gt-widget-id="52474927" defer></script><script id="wp-emoji-settings" type="application/json">
+{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"wpemoji":"https://rtl.org/wp-includes/js/wp-emoji.js?ver=12158510","twemoji":"https://rtl.org/wp-includes/js/twemoji.js?ver=323695482"}}
+</script>
+<script type="module">
+/**
+ * @output wp-includes/js/wp-emoji-loader.js
+ */
+
+/* eslint-env es6 */
+
+// Note: This is loaded as a script module, so there is no need for an IIFE to prevent pollution of the global scope.
+
+/**
+ * Emoji Settings as exported in PHP via _print_emoji_detection_script().
+ * @typedef WPEmojiSettings
+ * @type {object}
+ * @property {?object} source
+ * @property {?string} source.concatemoji
+ * @property {?string} source.twemoji
+ * @property {?string} source.wpemoji
+ */
+
+const settings = /** @type {WPEmojiSettings} */ (
+	JSON.parse( document.getElementById( 'wp-emoji-settings' ).textContent )
+);
+
+// For compatibility with other scripts that read from this global, in particular wp-includes/js/wp-emoji.js (source file: js/_enqueues/wp/emoji.js).
+window._wpemojiSettings = settings;
+
+/**
+ * Support tests.
+ * @typedef SupportTests
+ * @type {object}
+ * @property {?boolean} flag
+ * @property {?boolean} emoji
+ */
+
+const sessionStorageKey = 'wpEmojiSettingsSupports';
+const tests = [ 'flag', 'emoji' ];
+
+/**
+ * Checks whether the browser supports offloading to a Worker.
+ *
+ * @since 6.3.0
+ *
+ * @private
+ *
+ * @returns {boolean}
+ */
+function supportsWorkerOffloading() {
+	return (
+		typeof Worker !== 'undefined' &&
+		typeof OffscreenCanvas !== 'undefined' &&
+		typeof URL !== 'undefined' &&
+		URL.createObjectURL &&
+		typeof Blob !== 'undefined'
+	);
+}
+
+/**
+ * @typedef SessionSupportTests
+ * @type {object}
+ * @property {number} timestamp
+ * @property {SupportTests} supportTests
+ */
+
+/**
+ * Get support tests from session.
+ *
+ * @since 6.3.0
+ *
+ * @private
+ *
+ * @returns {?SupportTests} Support tests, or null if not set or older than 1 week.
+ */
+function getSessionSupportTests() {
+	try {
+		/** @type {SessionSupportTests} */
+		const item = JSON.parse(
+			sessionStorage.getItem( sessionStorageKey )
+		);
+		if (
+			typeof item === 'object' &&
+			typeof item.timestamp === 'number' &&
+			new Date().valueOf() < item.timestamp + 604800 && // Note: Number is a week in seconds.
+			typeof item.supportTests === 'object'
+		) {
+			return item.supportTests;
+		}
+	} catch ( e ) {}
+	return null;
+}
+
+/**
+ * Persist the supports in session storage.
+ *
+ * @since 6.3.0
+ *
+ * @private
+ *
+ * @param {SupportTests} supportTests Support tests.
+ */
+function setSessionSupportTests( supportTests ) {
+	try {
+		/** @type {SessionSupportTests} */
+		const item = {
+			supportTests: supportTests,
+			timestamp: new Date().valueOf()
+		};
+
+		sessionStorage.setItem(
+			sessionStorageKey,
+			JSON.stringify( item )
+		);
+	} catch ( e ) {}
+}
+
+/**
+ * Checks if two sets of Emoji characters render the same visually.
+ *
+ * This is used to determine if the browser is rendering an emoji with multiple data points
+ * correctly. set1 is the emoji in the correct form, using a zero-width joiner. set2 is the emoji
+ * in the incorrect form, using a zero-width space. If the two sets render the same, then the browser
+ * does not support the emoji correctly.
+ *
+ * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+ * scope. Everything must be passed by parameters.
+ *
+ * @since 4.9.0
+ *
+ * @private
+ *
+ * @param {CanvasRenderingContext2D} context 2D Context.
+ * @param {string} set1 Set of Emoji to test.
+ * @param {string} set2 Set of Emoji to test.
+ *
+ * @return {boolean} True if the two sets render the same.
+ */
+function emojiSetsRenderIdentically( context, set1, set2 ) {
+	// Cleanup from previous test.
+	context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+	context.fillText( set1, 0, 0 );
+	const rendered1 = new Uint32Array(
+		context.getImageData(
+			0,
+			0,
+			context.canvas.width,
+			context.canvas.height
+		).data
+	);
+
+	// Cleanup from previous test.
+	context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+	context.fillText( set2, 0, 0 );
+	const rendered2 = new Uint32Array(
+		context.getImageData(
+			0,
+			0,
+			context.canvas.width,
+			context.canvas.height
+		).data
+	);
+
+	return rendered1.every( ( rendered2Data, index ) => {
+		return rendered2Data === rendered2[ index ];
+	} );
+}
+
+/**
+ * Checks if the center point of a single emoji is empty.
+ *
+ * This is used to determine if the browser is rendering an emoji with a single data point
+ * correctly. The center point of an incorrectly rendered emoji will be empty. A correctly
+ * rendered emoji will have a non-zero value at the center point.
+ *
+ * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+ * scope. Everything must be passed by parameters.
+ *
+ * @since 6.8.2
+ *
+ * @private
+ *
+ * @param {CanvasRenderingContext2D} context 2D Context.
+ * @param {string} emoji Emoji to test.
+ *
+ * @return {boolean} True if the center point is empty.
+ */
+function emojiRendersEmptyCenterPoint( context, emoji ) {
+	// Cleanup from previous test.
+	context.clearRect( 0, 0, context.canvas.width, context.canvas.height );
+	context.fillText( emoji, 0, 0 );
+
+	// Test if the center point (16, 16) is empty (0,0,0,0).
+	const centerPoint = context.getImageData(16, 16, 1, 1);
+	for ( let i = 0; i < centerPoint.data.length; i++ ) {
+		if ( centerPoint.data[ i ] !== 0 ) {
+			// Stop checking the moment it's known not to be empty.
+			return false;
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Determines if the browser properly renders Emoji that Twemoji can supplement.
+ *
+ * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+ * scope. Everything must be passed by parameters.
+ *
+ * @since 4.2.0
+ *
+ * @private
+ *
+ * @param {CanvasRenderingContext2D} context 2D Context.
+ * @param {string} type Whether to test for support of "flag" or "emoji".
+ * @param {Function} emojiSetsRenderIdentically Reference to emojiSetsRenderIdentically function, needed due to minification.
+ * @param {Function} emojiRendersEmptyCenterPoint Reference to emojiRendersEmptyCenterPoint function, needed due to minification.
+ *
+ * @return {boolean} True if the browser can render emoji, false if it cannot.
+ */
+function browserSupportsEmoji( context, type, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint ) {
+	let isIdentical;
+
+	switch ( type ) {
+		case 'flag':
+			/*
+			 * Test for Transgender flag compatibility. Added in Unicode 13.
+			 *
+			 * To test for support, we try to render it, and compare the rendering to how it would look if
+			 * the browser doesn't render it correctly (white flag emoji + transgender symbol).
+			 */
+			isIdentical = emojiSetsRenderIdentically(
+				context,
+				'\uD83C\uDFF3\uFE0F\u200D\u26A7\uFE0F', // as a zero-width joiner sequence
+				'\uD83C\uDFF3\uFE0F\u200B\u26A7\uFE0F' // separated by a zero-width space
+			);
+
+			if ( isIdentical ) {
+				return false;
+			}
+
+			/*
+			 * Test for Sark flag compatibility. This is the least supported of the letter locale flags,
+			 * so gives us an easy test for full support.
+			 *
+			 * To test for support, we try to render it, and compare the rendering to how it would look if
+			 * the browser doesn't render it correctly ([C] + [Q]).
+			 */
+			isIdentical = emojiSetsRenderIdentically(
+				context,
+				'\uD83C\uDDE8\uD83C\uDDF6', // as the sequence of two code points
+				'\uD83C\uDDE8\u200B\uD83C\uDDF6' // as the two code points separated by a zero-width space
+			);
+
+			if ( isIdentical ) {
+				return false;
+			}
+
+			/*
+			 * Test for English flag compatibility. England is a country in the United Kingdom, it
+			 * does not have a two letter locale code but rather a five letter sub-division code.
+			 *
+			 * To test for support, we try to render it, and compare the rendering to how it would look if
+			 * the browser doesn't render it correctly (black flag emoji + [G] + [B] + [E] + [N] + [G]).
+			 */
+			isIdentical = emojiSetsRenderIdentically(
+				context,
+				// as the flag sequence
+				'\uD83C\uDFF4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F',
+				// with each code point separated by a zero-width space
+				'\uD83C\uDFF4\u200B\uDB40\uDC67\u200B\uDB40\uDC62\u200B\uDB40\uDC65\u200B\uDB40\uDC6E\u200B\uDB40\uDC67\u200B\uDB40\uDC7F'
+			);
+
+			return ! isIdentical;
+		case 'emoji':
+			/*
+			 * Is there a large, hairy, humanoid mythical creature living in the browser?
+			 *
+			 * To test for Emoji 17.0 support, try to render a new emoji: Hairy Creature.
+			 *
+			 * The hairy creature emoji is a single code point emoji. Testing for browser
+			 * support required testing the center point of the emoji to see if it is empty.
+			 *
+			 * 0xD83E 0x1FAC8 (\uD83E\u1FAC8) == 🫈 Hairy creature.
+			 *
+			 * When updating this test, please ensure that the emoji is either a single code point
+			 * or switch to using the emojiSetsRenderIdentically function and testing with a zero-width
+			 * joiner vs a zero-width space.
+			 */
+			const notSupported = emojiRendersEmptyCenterPoint( context, '\uD83E\u1FAC8' );
+			return ! notSupported;
+	}
+
+	return false;
+}
+
+/**
+ * Checks emoji support tests.
+ *
+ * This function may be serialized to run in a Worker. Therefore, it cannot refer to variables from the containing
+ * scope. Everything must be passed by parameters.
+ *
+ * @since 6.3.0
+ *
+ * @private
+ *
+ * @param {string[]} tests Tests.
+ * @param {Function} browserSupportsEmoji Reference to browserSupportsEmoji function, needed due to minification.
+ * @param {Function} emojiSetsRenderIdentically Reference to emojiSetsRenderIdentically function, needed due to minification.
+ * @param {Function} emojiRendersEmptyCenterPoint Reference to emojiRendersEmptyCenterPoint function, needed due to minification.
+ *
+ * @return {SupportTests} Support tests.
+ */
+function testEmojiSupports( tests, browserSupportsEmoji, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint ) {
+	let canvas;
+	if (
+		typeof WorkerGlobalScope !== 'undefined' &&
+		self instanceof WorkerGlobalScope
+	) {
+		canvas = new OffscreenCanvas( 300, 150 ); // Dimensions are default for HTMLCanvasElement.
+	} else {
+		canvas = document.createElement( 'canvas' );
+	}
+
+	const context = canvas.getContext( '2d', { willReadFrequently: true } );
+
+	/*
+	 * Chrome on OS X added native emoji rendering in M41. Unfortunately,
+	 * it doesn't work when the font is bolder than 500 weight. So, we
+	 * check for bold rendering support to avoid invisible emoji in Chrome.
+	 */
+	context.textBaseline = 'top';
+	context.font = '600 32px Arial';
+
+	const supports = {};
+	tests.forEach( ( test ) => {
+		supports[ test ] = browserSupportsEmoji( context, test, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint );
+	} );
+	return supports;
+}
+
+/**
+ * Adds a script to the head of the document.
+ *
+ * @ignore
+ *
+ * @since 4.2.0
+ *
+ * @param {string} src The url where the script is located.
+ *
+ * @return {void}
+ */
+function addScript( src ) {
+	const script = document.createElement( 'script' );
+	script.src = src;
+	script.defer = true;
+	document.head.appendChild( script );
+}
+
+settings.supports = {
+	everything: true,
+	everythingExceptFlag: true
+};
+
+// Obtain the emoji support from the browser, asynchronously when possible.
+new Promise( ( resolve ) => {
+	let supportTests = getSessionSupportTests();
+	if ( supportTests ) {
+		resolve( supportTests );
+		return;
+	}
+
+	if ( supportsWorkerOffloading() ) {
+		try {
+			// Note that the functions are being passed as arguments due to minification.
+			const workerScript =
+				'postMessage(' +
+				testEmojiSupports.toString() +
+				'(' +
+				[
+					JSON.stringify( tests ),
+					browserSupportsEmoji.toString(),
+					emojiSetsRenderIdentically.toString(),
+					emojiRendersEmptyCenterPoint.toString()
+				].join( ',' ) +
+				'));';
+			const blob = new Blob( [ workerScript ], {
+				type: 'text/javascript'
+			} );
+			const worker = new Worker( URL.createObjectURL( blob ), { name: 'wpTestEmojiSupports' } );
+			worker.onmessage = ( event ) => {
+				supportTests = event.data;
+				setSessionSupportTests( supportTests );
+				worker.terminate();
+				resolve( supportTests );
+			};
+			return;
+		} catch ( e ) {}
+	}
+
+	supportTests = testEmojiSupports( tests, browserSupportsEmoji, emojiSetsRenderIdentically, emojiRendersEmptyCenterPoint );
+	setSessionSupportTests( supportTests );
+	resolve( supportTests );
+} )
+	// Once the browser emoji support has been obtained from the session, finalize the settings.
+	.then( ( supportTests ) => {
+		/*
+		 * Tests the browser support for flag emojis and other emojis, and adjusts the
+		 * support settings accordingly.
+		 */
+		for ( const test in supportTests ) {
+			settings.supports[ test ] = supportTests[ test ];
+
+			settings.supports.everything =
+				settings.supports.everything && settings.supports[ test ];
+
+			if ( 'flag' !== test ) {
+				settings.supports.everythingExceptFlag =
+					settings.supports.everythingExceptFlag &&
+					settings.supports[ test ];
+			}
+		}
+
+		settings.supports.everythingExceptFlag =
+			settings.supports.everythingExceptFlag &&
+			! settings.supports.flag;
+
+		// When the browser can not render everything we need to load a polyfill.
+		if ( ! settings.supports.everything ) {
+			const src = settings.source || {};
+
+			if ( src.concatemoji ) {
+				addScript( src.concatemoji );
+			} else if ( src.wpemoji && src.twemoji ) {
+				addScript( src.twemoji );
+				addScript( src.wpemoji );
+			}
+		}
+	} );
+//# sourceURL=https://rtl.org/wp-includes/js/wp-emoji-loader.js
+</script>
+<script>
+gform.initializeOnLoaded( function() { jQuery(document).on('gform_post_render', function(event, formId, currentPage){if(formId == 77) {if(typeof Placeholders != 'undefined'){
+                        Placeholders.enable();
+                    }} } );jQuery(document).on('gform_post_conditional_logic', function(event, formId, fields, isInit){} ) } );
+</script>
+<script>
+gform.initializeOnLoaded( function() {jQuery(document).trigger("gform_pre_post_render", [{ formId: "77", currentPage: "1", abort: function() { this.preventDefault(); } }]);        if (event && event.defaultPrevented) {                return;        }        const gformWrapperDiv = document.getElementById( "gform_wrapper_77" );        if ( gformWrapperDiv ) {            const visibilitySpan = document.createElement( "span" );            visibilitySpan.id = "gform_visibility_test_77";            gformWrapperDiv.insertAdjacentElement( "afterend", visibilitySpan );        }        const visibilityTestDiv = document.getElementById( "gform_visibility_test_77" );        let postRenderFired = false;        function triggerPostRender() {            if ( postRenderFired ) {                return;            }            postRenderFired = true;            gform.core.triggerPostRenderEvents( 77, 1 );            if ( visibilityTestDiv ) {                visibilityTestDiv.parentNode.removeChild( visibilityTestDiv );            }        }        function debounce( func, wait, immediate ) {            var timeout;            return function() {                var context = this, args = arguments;                var later = function() {                    timeout = null;                    if ( !immediate ) func.apply( context, args );                };                var callNow = immediate && !timeout;                clearTimeout( timeout );                timeout = setTimeout( later, wait );                if ( callNow ) func.apply( context, args );            };        }        const debouncedTriggerPostRender = debounce( function() {            triggerPostRender();        }, 200 );        if ( visibilityTestDiv && visibilityTestDiv.offsetParent === null ) {            const observer = new MutationObserver( ( mutations ) => {                mutations.forEach( ( mutation ) => {                    if ( mutation.type === 'attributes' && visibilityTestDiv.offsetParent !== null ) {                        debouncedTriggerPostRender();                        observer.disconnect();                    }                });            });            observer.observe( document.body, {                attributes: true,                childList: false,                subtree: true,                attributeFilter: [ 'style', 'class' ],            });        } else {            triggerPostRender();        }    } );
+</script>
+<script>
+gform.initializeOnLoaded( function() { jQuery(document).on('gform_post_render', function(event, formId, currentPage){if(formId == 7) {if(typeof Placeholders != 'undefined'){
+                        Placeholders.enable();
+                    }} } );jQuery(document).on('gform_post_conditional_logic', function(event, formId, fields, isInit){} ) } );
+</script>
+<script>
+gform.initializeOnLoaded( function() {jQuery(document).trigger("gform_pre_post_render", [{ formId: "7", currentPage: "1", abort: function() { this.preventDefault(); } }]);        if (event && event.defaultPrevented) {                return;        }        const gformWrapperDiv = document.getElementById( "gform_wrapper_7" );        if ( gformWrapperDiv ) {            const visibilitySpan = document.createElement( "span" );            visibilitySpan.id = "gform_visibility_test_7";            gformWrapperDiv.insertAdjacentElement( "afterend", visibilitySpan );        }        const visibilityTestDiv = document.getElementById( "gform_visibility_test_7" );        let postRenderFired = false;        function triggerPostRender() {            if ( postRenderFired ) {                return;            }            postRenderFired = true;            gform.core.triggerPostRenderEvents( 7, 1 );            if ( visibilityTestDiv ) {                visibilityTestDiv.parentNode.removeChild( visibilityTestDiv );            }        }        function debounce( func, wait, immediate ) {            var timeout;            return function() {                var context = this, args = arguments;                var later = function() {                    timeout = null;                    if ( !immediate ) func.apply( context, args );                };                var callNow = immediate && !timeout;                clearTimeout( timeout );                timeout = setTimeout( later, wait );                if ( callNow ) func.apply( context, args );            };        }        const debouncedTriggerPostRender = debounce( function() {            triggerPostRender();        }, 200 );        if ( visibilityTestDiv && visibilityTestDiv.offsetParent === null ) {            const observer = new MutationObserver( ( mutations ) => {                mutations.forEach( ( mutation ) => {                    if ( mutation.type === 'attributes' && visibilityTestDiv.offsetParent !== null ) {                        debouncedTriggerPostRender();                        observer.disconnect();                    }                });            });            observer.observe( document.body, {                attributes: true,                childList: false,                subtree: true,                attributeFilter: [ 'style', 'class' ],            });        } else {            triggerPostRender();        }    } );
+</script>
+</div><!-- end page wrapper -->
+</body>
+</html>
