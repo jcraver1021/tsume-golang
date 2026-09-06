@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"path/filepath"
+	"strings"
 
 	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/mapper"
+	"tsumegolang/internal/labrador/reducer"
 )
 
 var (
@@ -15,6 +17,8 @@ var (
 	flagBackoff     = flag.Int("backoff", 1000, "backoff time in milliseconds between retries")
 	flagWorkerCount = flag.Int("worker-count", 1, "number of concurrent workers to use for downloading")
 	flagOutputDir   = flag.String("output-dir", "downloads", "base directory for downloaded files")
+	flagMap         = flag.String("map", "", "comma-separated mappers applied in order to each download")
+	flagReduce      = flag.String("reduce", "markdown-index", "reducer run once over every record, or \"\" for none")
 )
 
 func main() {
@@ -22,6 +26,18 @@ func main() {
 
 	if *flagFile == "" {
 		log.Fatal("Error: -file flag is required")
+	}
+
+	// Both chains resolve before the config is read or a socket is opened, so a
+	// bad -map fails in milliseconds rather than after a run's worth of fetches.
+	chain, err := mapper.Resolve(strings.Split(*flagMap, ","))
+	if err != nil {
+		log.Fatalf("Error resolving -map: %v", err)
+	}
+
+	fold, hasReducer, err := reducer.Lookup(*flagReduce)
+	if err != nil {
+		log.Fatalf("Error resolving -reduce: %v", err)
 	}
 
 	sections, err := labrador.ParseSectionsFromYAML(*flagFile)
@@ -38,6 +54,7 @@ func main() {
 		BackoffMs:   *flagBackoff,
 		WorkerCount: *flagWorkerCount,
 		OutputDir:   *flagOutputDir,
+		Mappers:     chain,
 	})
 
 	downloader.Start()
@@ -46,19 +63,19 @@ func main() {
 	fmt.Println("Starting downloads...")
 	records := downloader.DownloadSections(sections)
 
-	indexPath := filepath.Join(*flagOutputDir, "index.md")
-	err = labrador.GenerateMarkdownIndex(records, indexPath)
-	if err != nil {
-		log.Fatalf("Error generating markdown index: %v", err)
-	}
-
 	successCount := 0
 	for _, record := range records {
 		if record.Success {
 			successCount++
 		}
 	}
-
 	fmt.Printf("Downloads completed: %d/%d successful\n", successCount, len(records))
-	fmt.Printf("Index generated at: %s\n", indexPath)
+
+	if hasReducer {
+		summary, err := fold.Reduce(records, *flagOutputDir)
+		if err != nil {
+			log.Fatalf("Error running reducer %q: %v", fold.Name, err)
+		}
+		fmt.Println(summary)
+	}
 }

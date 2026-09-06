@@ -15,6 +15,105 @@ A Go-based download utility that uses worker pools for efficient concurrent down
 - `-backoff`: Backoff time in milliseconds between retries (default: 1000)
 - `-worker-count`: Number of concurrent workers (default: 1)
 - `-output-dir`: Base directory for downloaded files (default: "downloads")
+- `-map`: Comma-separated mapper names applied in order to each download (default: none)
+- `-reduce`: Name of the single reducer run over every record, or `""` for none (default: "markdown-index")
+
+## Maps and Reduces
+
+Each download runs through an ordered **mapper chain** before it is written, and
+the whole run finishes with at most one **reducer** that folds every record into
+a single artifact.
+
+```bash
+./labrador -file config.yaml -map strip-scripts,html-to-text -reduce manifest-json
+```
+
+Both flags are resolved before the config is parsed or a socket is opened, so a
+typo or an incoherent chain costs milliseconds rather than a full run.
+
+### Chain validation
+
+Every mapper declares the payload **kinds** it accepts and the kind it produces.
+Validation adjoins those declarations down the chain — the way matrix dimensions
+are checked — starting from the assumption that any kind could arrive, since the
+URLs have not been fetched yet. A mapper that could never fire is rejected:
+
+```
+$ ./labrador -file config.yaml -map html-to-text,strip-scripts
+Error resolving -map: unreachable mapper: "strip-scripts" at position 2 accepts
+html, but html is consumed by "html-to-text" at position 1; kinds reaching
+position 2: binary, json, text, xml
+```
+
+Repeating a mapper is rejected too, since running one twice cannot change the
+result of running it once.
+
+The kinds are `html`, `text`, `json`, `xml` and `binary`. A payload whose
+Content-Type is absent or unrecognised is treated as `binary`, so no mapper
+touches it — guessing wrong would corrupt the download.
+
+### Available mappers
+
+| Name | Accepts | Produces | Effect |
+| --- | --- | --- | --- |
+| `strip-scripts` | html | unchanged | Removes `<script>` blocks |
+| `strip-styles` | html | unchanged | Removes `<style>` blocks |
+| `html-to-text` | html | text | Converts HTML to plain text and writes `.txt` |
+| `normalize-newlines` | text, json, xml | unchanged | Rewrites CRLF/CR to LF |
+
+At runtime a mapper is skipped for any payload outside its `Accepts` set, so
+`-map html-to-text` leaves PDFs and images alone rather than failing on them.
+
+### Available reducers
+
+| Name | Artifact |
+| --- | --- |
+| `markdown-index` | `index.md` — the default browsable index |
+| `manifest-json` | `manifest.json` — machine-readable record of the run |
+
+Pass `-reduce ""` to skip the aggregate artifact entirely.
+
+### Package layout
+
+```
+internal/labrador/
+  mapper/          package-level types, Kind, Chain, validation (mapper.go)
+    strip_scripts.go       one file and one test file per mapper
+    html_to_text.go
+    ...
+  reducer/         package-level types, registry, Lookup (reducer.go)
+    markdown_index.go      one file and one test file per reducer
+    manifest_json.go
+```
+
+### Adding your own
+
+Define the mapper in its own file under `internal/labrador/mapper/` and add it
+to `registry` in `mapper.go`; the map key is the name the flag accepts. Reducers
+follow the same pattern under `internal/labrador/reducer/`.
+
+```go
+type Mapper struct {
+	Name string
+	// Accepts is the set of kinds this mapper transforms. Payloads of any
+	// other kind skip it untouched.
+	Accepts []Kind
+	// Produces is the kind emitted for an accepted payload, or KindSame when
+	// the mapper leaves the kind alone.
+	Produces  Kind
+	Transform func(Payload) (Payload, error)
+}
+
+type Reducer struct {
+	Name   string
+	Reduce func(records []labrador.DownloadRecord, outputDir string) (string, error)
+}
+```
+
+Declaring `Accepts` accurately is what makes validation work, and it removes the
+need for a content-type guard inside the transform. A mapper that changes the
+shape of the content should also set `Payload.Extension`, because file naming
+otherwise trusts the URL suffix over `ContentType`.
 
 ## Input YAML Format & Directory Organization
 

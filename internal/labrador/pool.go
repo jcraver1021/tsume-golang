@@ -1,9 +1,11 @@
 package labrador
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"tsumegolang/internal/labrador/mapper"
 	"tsumegolang/pkg/concurrency"
 )
 
@@ -12,10 +14,10 @@ const (
 )
 
 var (
-	ErrDownloadFailed      = fmt.Errorf("download failed")
-	ErrJobSubmissionFailed = fmt.Errorf("job submission failed")
-	ErrWriteResultFailed   = fmt.Errorf("failed to write result to file")
-	ErrTimeout             = fmt.Errorf("timeout waiting for result")
+	ErrDownloadFailed      = errors.New("download failed")
+	ErrJobSubmissionFailed = errors.New("job submission failed")
+	ErrWriteResultFailed   = errors.New("failed to write result to file")
+	ErrTimeout             = errors.New("timeout waiting for result")
 )
 
 type downloadJob struct {
@@ -33,6 +35,7 @@ type MultiDownloaderSettings struct {
 	BackoffMs   int
 	WorkerCount int
 	OutputDir   string
+	Mappers     mapper.Chain
 }
 
 func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
@@ -74,7 +77,23 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 			}
 		}
 
-		filePath, err := WriteToFile(dj.URL, result.Content, result.ContentType, outputDir, dj.Section)
+		payload, err := settings.Mappers.Apply(mapper.Payload{
+			URL:         dj.URL,
+			Section:     dj.Section,
+			Content:     result.Content,
+			ContentType: result.ContentType,
+		})
+		if err != nil {
+			record.Error = err
+			return concurrency.JobResult[downloadJob, DownloadRecord]{
+				Input:  dj,
+				Output: record,
+				Err:    err,
+				Status: concurrency.StatusError,
+			}
+		}
+
+		filePath, err := WritePayload(payload, outputDir)
 		if err != nil {
 			record.Error = err
 			return concurrency.JobResult[downloadJob, DownloadRecord]{

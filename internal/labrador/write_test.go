@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/mapper"
 )
 
 func TestConvertUrlToFilename(t *testing.T) {
@@ -183,5 +184,53 @@ func TestWriteToFile_BinaryContent(t *testing.T) {
 		if gotContent[i] != binaryContent[i] {
 			t.Errorf("Binary content[%d] = 0x%02X; want 0x%02X", i, gotContent[i], binaryContent[i])
 		}
+	}
+}
+
+func TestWritePayloadForcedExtensionReplacesURLSuffix(t *testing.T) {
+	testCases := []struct {
+		name       string
+		payload    mapper.Payload
+		wantSuffix string
+	}{
+		{
+			name:       "forced extension overrides URL suffix",
+			payload:    mapper.Payload{URL: "https://example.com/page.html", Section: "Docs", Content: []byte("text"), ContentType: "text/plain", Extension: "txt"},
+			wantSuffix: filepath.Join("Docs", "page.txt"),
+		},
+		{
+			name:       "forced extension applies to extensionless URL",
+			payload:    mapper.Payload{URL: "https://example.com/guide", Section: "Docs", Content: []byte("text"), ContentType: "text/plain", Extension: "txt"},
+			wantSuffix: filepath.Join("Docs", "guide.txt"),
+		},
+		{
+			name:       "without a forced extension the URL suffix wins",
+			payload:    mapper.Payload{URL: "https://example.com/page.html", Section: "Docs", Content: []byte("<p>x</p>"), ContentType: "text/html"},
+			wantSuffix: filepath.Join("Docs", "page.html"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			baseDir := t.TempDir()
+
+			got, err := WritePayload(tc.payload, baseDir)
+			if err != nil {
+				t.Fatalf("WritePayload() = %v", err)
+			}
+
+			want := filepath.Join(baseDir, tc.wantSuffix)
+			if got != want {
+				t.Fatalf("path = %q, want %q", got, want)
+			}
+
+			content, err := os.ReadFile(got)
+			if err != nil {
+				t.Fatalf("reading written file: %v", err)
+			}
+			if string(content) != string(tc.payload.Content) {
+				t.Errorf("content = %q, want %q", content, tc.payload.Content)
+			}
+		})
 	}
 }

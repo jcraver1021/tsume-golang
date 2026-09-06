@@ -1,18 +1,21 @@
 package labrador
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"tsumegolang/internal/labrador/mapper"
 )
 
 var (
-	ErrCantCreateFile = fmt.Errorf("failed to create file")
-	ErrWriteFile      = fmt.Errorf("failed to write to file")
-	ErrInvalidURL     = fmt.Errorf("invalid URL")
-	ErrCreateDir      = fmt.Errorf("failed to create directory")
+	ErrCantCreateFile = errors.New("failed to create file")
+	ErrWriteFile      = errors.New("failed to write to file")
+	ErrInvalidURL     = errors.New("invalid URL")
+	ErrCreateDir      = errors.New("failed to create directory")
 )
 
 func ConvertUrlToFilename(urlStr string) string {
@@ -67,6 +70,32 @@ func WriteToFile(urlStr string, content []byte, contentType string, baseDir stri
 
 	_, err = file.Write(content)
 	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrWriteFile, err)
+	}
+
+	return filePath, nil
+}
+
+// WritePayload writes a mapped payload, honouring an extension a mapper forced
+// in place of the one DetermineFileExtension would infer from the URL.
+func WritePayload(payload mapper.Payload, baseDir string) (string, error) {
+	ext := payload.Extension
+	if ext == "" {
+		ext = DetermineFileExtension(payload.URL, payload.ContentType)
+	}
+
+	filePath, err := buildFilePath(payload.URL, baseDir, payload.Section, ext)
+	if err != nil {
+		return "", err
+	}
+
+	// buildFilePath keeps an extension already present in the URL's last
+	// segment, so a forced extension has to be swapped in afterwards.
+	if payload.Extension != "" {
+		filePath = strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "." + payload.Extension
+	}
+
+	if err := os.WriteFile(filePath, payload.Content, 0644); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrWriteFile, err)
 	}
 

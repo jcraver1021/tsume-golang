@@ -2,6 +2,7 @@ package labrador
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 
@@ -9,9 +10,9 @@ import (
 )
 
 var (
-	ErrCantOpenFile = fmt.Errorf("failed to open file")
-	ErrParseFile    = fmt.Errorf("failed to parse file")
-	ErrParseYAML    = fmt.Errorf("failed to parse YAML")
+	ErrCantOpenFile = errors.New("failed to open file")
+	ErrParseFile    = errors.New("failed to parse file")
+	ErrParseYAML    = errors.New("failed to parse YAML")
 )
 
 type Section struct {

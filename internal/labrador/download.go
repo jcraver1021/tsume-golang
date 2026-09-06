@@ -10,8 +10,8 @@ import (
 
 var (
 	ErrUnknown      = errors.New("unknown error")
-	ErrRetryable    = fmt.Errorf("retryable error")
-	ErrNonRetryable = fmt.Errorf("non-retryable error")
+	ErrRetryable    = errors.New("retryable error")
+	ErrNonRetryable = errors.New("non-retryable error")
 )
 
 type DownloadResult struct {
