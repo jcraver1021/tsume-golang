@@ -8,6 +8,7 @@ import (
 
 	"tsumegolang/internal/labrador"
 	"tsumegolang/internal/labrador/mapper"
+	"tsumegolang/internal/labrador/operation"
 	"tsumegolang/internal/labrador/reducer"
 )
 
@@ -63,13 +64,8 @@ func main() {
 	fmt.Println("Starting downloads...")
 	records := downloader.DownloadSections(sections)
 
-	successCount := 0
-	for _, record := range records {
-		if record.Success {
-			successCount++
-		}
-	}
-	fmt.Printf("Downloads completed: %d/%d successful\n", successCount, len(records))
+	succeeded, _ := operation.CountOutcomes(records)
+	fmt.Printf("Downloads completed: %d/%d successful\n", succeeded, len(records))
 
 	if hasReducer {
 		summary, err := fold.Reduce(records, *flagOutputDir)

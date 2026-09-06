@@ -7,6 +7,7 @@ import (
 
 	"tsumegolang/internal/labrador/fetch"
 	"tsumegolang/internal/labrador/mapper"
+	"tsumegolang/internal/labrador/operation"
 	"tsumegolang/pkg/concurrency"
 )
 
@@ -26,7 +27,7 @@ type downloadJob struct {
 }
 
 type MultiDownloader struct {
-	workerPool *concurrency.WorkerPool[downloadJob, DownloadRecord]
+	workerPool *concurrency.WorkerPool[downloadJob, operation.Record]
 	outputDir  string
 }
 
@@ -58,10 +59,10 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 	}
 	fetcher := fetch.New(fetchOpts...)
 
-	job := func(dj downloadJob) concurrency.JobResult[downloadJob, DownloadRecord] {
+	job := func(dj downloadJob) concurrency.JobResult[downloadJob, operation.Record] {
 		result, err := fetcher.Get(dj.URL)
 
-		record := DownloadRecord{
+		record := operation.Record{
 			Section: dj.Section,
 			URL:     dj.URL,
 			Success: false,
@@ -69,7 +70,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 
 		if err != nil {
 			record.Error = fmt.Errorf("%w: %w", ErrDownloadFailed, err)
-			return concurrency.JobResult[downloadJob, DownloadRecord]{
+			return concurrency.JobResult[downloadJob, operation.Record]{
 				Input:  dj,
 				Output: record,
 				Err:    record.Error,
@@ -85,7 +86,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		})
 		if err != nil {
 			record.Error = err
-			return concurrency.JobResult[downloadJob, DownloadRecord]{
+			return concurrency.JobResult[downloadJob, operation.Record]{
 				Input:  dj,
 				Output: record,
 				Err:    err,
@@ -96,7 +97,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		filePath, err := WritePayload(payload, outputDir)
 		if err != nil {
 			record.Error = err
-			return concurrency.JobResult[downloadJob, DownloadRecord]{
+			return concurrency.JobResult[downloadJob, operation.Record]{
 				Input:  dj,
 				Output: record,
 				Err:    err,
@@ -107,7 +108,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		record.Success = true
 		record.FilePath = filePath
 
-		return concurrency.JobResult[downloadJob, DownloadRecord]{
+		return concurrency.JobResult[downloadJob, operation.Record]{
 			Input:  dj,
 			Output: record,
 			Status: concurrency.StatusSuccess,
@@ -124,7 +125,7 @@ func (md *MultiDownloader) Start() {
 	md.workerPool.Start()
 }
 
-func (md *MultiDownloader) DownloadSections(sections []Section) []DownloadRecord {
+func (md *MultiDownloader) DownloadSections(sections []Section) []operation.Record {
 	var allJobs []downloadJob
 	for _, section := range sections {
 		for _, url := range section.URLs {
@@ -135,19 +136,19 @@ func (md *MultiDownloader) DownloadSections(sections []Section) []DownloadRecord
 		}
 	}
 
-	results := make([]concurrency.JobResult[downloadJob, DownloadRecord], len(allJobs))
-	resultChans := make([]chan concurrency.JobResult[downloadJob, DownloadRecord], len(allJobs))
+	results := make([]concurrency.JobResult[downloadJob, operation.Record], len(allJobs))
+	resultChans := make([]chan concurrency.JobResult[downloadJob, operation.Record], len(allJobs))
 
 	for i, job := range allJobs {
 		resultCh, err := md.workerPool.Submit(job)
 		if err != nil {
-			record := DownloadRecord{
+			record := operation.Record{
 				Section: job.Section,
 				URL:     job.URL,
 				Success: false,
 				Error:   fmt.Errorf("%w: %w", ErrJobSubmissionFailed, err),
 			}
-			results[i] = concurrency.JobResult[downloadJob, DownloadRecord]{
+			results[i] = concurrency.JobResult[downloadJob, operation.Record]{
 				Input:  job,
 				Output: record,
 				Err:    record.Error,
@@ -166,13 +167,13 @@ func (md *MultiDownloader) DownloadSections(sections []Section) []DownloadRecord
 		case result := <-resultCh:
 			results[i] = result
 		case <-time.After(10 * time.Minute):
-			record := DownloadRecord{
+			record := operation.Record{
 				Section: allJobs[i].Section,
 				URL:     allJobs[i].URL,
 				Success: false,
 				Error:   fmt.Errorf("%w: %s", ErrTimeout, allJobs[i].URL),
 			}
-			results[i] = concurrency.JobResult[downloadJob, DownloadRecord]{
+			results[i] = concurrency.JobResult[downloadJob, operation.Record]{
 				Input:  allJobs[i],
 				Output: record,
 				Err:    record.Error,
@@ -181,7 +182,7 @@ func (md *MultiDownloader) DownloadSections(sections []Section) []DownloadRecord
 		}
 	}
 
-	records := make([]DownloadRecord, len(results))
+	records := make([]operation.Record, len(results))
 	for i, result := range results {
 		records[i] = result.Output
 	}

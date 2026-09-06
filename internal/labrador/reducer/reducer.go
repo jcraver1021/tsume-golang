@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/operation"
 )
 
 var (
@@ -21,7 +21,7 @@ type Reducer struct {
 	Name string
 	// Reduce folds every record of the run into a single artifact under
 	// outputDir and returns a one-line summary for the operator.
-	Reduce func(records []labrador.DownloadRecord, outputDir string) (string, error)
+	Reduce func(records []operation.Record, outputDir string) (string, error)
 }
 
 var registry = map[string]Reducer{
@@ -60,32 +60,4 @@ func ensureOutputDir(outputDir string) error {
 		return fmt.Errorf("%w: %w", ErrCreateDir, err)
 	}
 	return nil
-}
-
-func countOutcomes(records []labrador.DownloadRecord) (succeeded, failed int) {
-	for _, record := range records {
-		if record.Success {
-			succeeded++
-		} else {
-			failed++
-		}
-	}
-	return succeeded, failed
-}
-
-// groupBySection returns the records keyed by section along with the section
-// names in sorted order, so both reducers lay out sections identically.
-func groupBySection(records []labrador.DownloadRecord) (map[string][]labrador.DownloadRecord, []string) {
-	grouped := make(map[string][]labrador.DownloadRecord)
-	for _, record := range records {
-		grouped[record.Section] = append(grouped[record.Section], record)
-	}
-
-	sections := make([]string, 0, len(grouped))
-	for section := range grouped {
-		sections = append(sections, section)
-	}
-	sort.Strings(sections)
-
-	return grouped, sections
 }

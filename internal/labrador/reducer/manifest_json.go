@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/operation"
 )
 
 var ErrWriteManifest = errors.New("failed to write manifest file")
@@ -35,7 +35,7 @@ type manifest struct {
 
 var manifestJSON = Reducer{
 	Name: "manifest-json",
-	Reduce: func(records []labrador.DownloadRecord, outputDir string) (string, error) {
+	Reduce: func(records []operation.Record, outputDir string) (string, error) {
 		if err := ensureOutputDir(outputDir); err != nil {
 			return "", err
 		}
@@ -48,8 +48,8 @@ var manifestJSON = Reducer{
 	},
 }
 
-func GenerateJSONManifest(records []labrador.DownloadRecord, outputPath string) error {
-	succeeded, failed := countOutcomes(records)
+func GenerateJSONManifest(records []operation.Record, outputPath string) error {
+	succeeded, failed := operation.CountOutcomes(records)
 	result := manifest{
 		Generated: time.Now().Format(time.RFC3339),
 		Total:     len(records),
@@ -58,10 +58,9 @@ func GenerateJSONManifest(records []labrador.DownloadRecord, outputPath string) 
 		Sections:  []manifestSection{},
 	}
 
-	bySection, sections := groupBySection(records)
-	for _, section := range sections {
-		entries := make([]manifestEntry, 0, len(bySection[section]))
-		for _, record := range bySection[section] {
+	for _, group := range operation.GroupBySection(records) {
+		entries := make([]manifestEntry, 0, len(group.Records))
+		for _, record := range group.Records {
 			entry := manifestEntry{
 				URL:      record.URL,
 				FilePath: record.FilePath,
@@ -72,7 +71,7 @@ func GenerateJSONManifest(records []labrador.DownloadRecord, outputPath string) 
 			}
 			entries = append(entries, entry)
 		}
-		result.Sections = append(result.Sections, manifestSection{Name: section, Entries: entries})
+		result.Sections = append(result.Sections, manifestSection{Name: group.Section, Entries: entries})
 	}
 
 	encoded, err := json.MarshalIndent(result, "", "  ")

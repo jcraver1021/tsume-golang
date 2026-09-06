@@ -1,17 +1,23 @@
 package reducer_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/operation"
 	. "tsumegolang/internal/labrador/reducer"
 )
 
-func generateIndex(t *testing.T, records []labrador.DownloadRecord) string {
+var (
+	errDownloadFailed = errors.New("record failed")
+	errTimeout        = errors.New("timeout waiting for result")
+)
+
+func generateIndex(t *testing.T, records []operation.Record) string {
 	t.Helper()
 
 	indexPath := filepath.Join(t.TempDir(), "index.md")
@@ -29,14 +35,14 @@ func generateIndex(t *testing.T, records []labrador.DownloadRecord) string {
 func TestGenerateMarkdownIndex(t *testing.T) {
 	testCases := []struct {
 		name           string
-		records        []labrador.DownloadRecord
+		records        []operation.Record
 		wantSections   []string
 		wantSuccessful int
 		wantFailed     int
 	}{
 		{
 			name: "all successful downloads",
-			records: []labrador.DownloadRecord{
+			records: []operation.Record{
 				{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
 				{Section: "Chapter 1", URL: "https://example.com/page2", FilePath: "page2.html", Success: true},
 				{Section: "Chapter 2", URL: "https://example.com/page3", FilePath: "page3.html", Success: true},
@@ -46,9 +52,9 @@ func TestGenerateMarkdownIndex(t *testing.T) {
 		},
 		{
 			name: "mixed success and failure",
-			records: []labrador.DownloadRecord{
+			records: []operation.Record{
 				{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
-				{Section: "Chapter 1", URL: "https://example.com/page2", Error: labrador.ErrDownloadFailed},
+				{Section: "Chapter 1", URL: "https://example.com/page2", Error: errDownloadFailed},
 				{Section: "Chapter 2", URL: "https://example.com/page3", FilePath: "page3.html", Success: true},
 			},
 			wantSections:   []string{"Chapter 1", "Chapter 2"},
@@ -57,21 +63,21 @@ func TestGenerateMarkdownIndex(t *testing.T) {
 		},
 		{
 			name: "all failed downloads",
-			records: []labrador.DownloadRecord{
-				{Section: "Chapter 1", URL: "https://example.com/page1", Error: labrador.ErrDownloadFailed},
-				{Section: "Chapter 1", URL: "https://example.com/page2", Error: labrador.ErrTimeout},
+			records: []operation.Record{
+				{Section: "Chapter 1", URL: "https://example.com/page1", Error: errDownloadFailed},
+				{Section: "Chapter 1", URL: "https://example.com/page2", Error: errTimeout},
 			},
 			wantSections: []string{"Chapter 1"},
 			wantFailed:   2,
 		},
 		{
 			name:         "empty records",
-			records:      []labrador.DownloadRecord{},
+			records:      []operation.Record{},
 			wantSections: []string{},
 		},
 		{
 			name: "different file types",
-			records: []labrador.DownloadRecord{
+			records: []operation.Record{
 				{Section: "Documents", URL: "https://example.com/doc.pdf", FilePath: "doc.pdf", Success: true},
 				{Section: "Documents", URL: "https://example.com/image.png", FilePath: "image.png", Success: true},
 				{Section: "Data", URL: "https://example.com/data.json", FilePath: "data.json", Success: true},
@@ -120,7 +126,7 @@ func TestGenerateMarkdownIndexUsesRelativePaths(t *testing.T) {
 	tmpDir := t.TempDir()
 	indexPath := filepath.Join(tmpDir, "index.md")
 
-	records := []labrador.DownloadRecord{
+	records := []operation.Record{
 		{
 			Section:  "Chapter 1",
 			URL:      "https://example.com/page1",
@@ -145,7 +151,7 @@ func TestGenerateMarkdownIndexUsesRelativePaths(t *testing.T) {
 }
 
 func TestGenerateMarkdownIndexGroupsSectionsOnce(t *testing.T) {
-	records := []labrador.DownloadRecord{
+	records := []operation.Record{
 		{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
 		{Section: "Chapter 1", URL: "https://example.com/page2", FilePath: "page2.html", Success: true},
 		{Section: "Chapter 1", URL: "https://example.com/page3", FilePath: "page3.html", Success: true},
@@ -164,8 +170,8 @@ func TestGenerateMarkdownIndexGroupsSectionsOnce(t *testing.T) {
 }
 
 func TestGenerateMarkdownIndexReportsErrorMessages(t *testing.T) {
-	records := []labrador.DownloadRecord{
-		{Section: "Chapter 1", URL: "https://example.com/timeout", Error: labrador.ErrTimeout},
+	records := []operation.Record{
+		{Section: "Chapter 1", URL: "https://example.com/timeout", Error: errTimeout},
 	}
 
 	content := generateIndex(t, records)
@@ -179,7 +185,7 @@ func TestGenerateMarkdownIndexReportsErrorMessages(t *testing.T) {
 }
 
 func TestGenerateMarkdownIndexHandlesMissingError(t *testing.T) {
-	records := []labrador.DownloadRecord{
+	records := []operation.Record{
 		{Section: "Chapter 1", URL: "https://example.com/x", Success: false},
 	}
 

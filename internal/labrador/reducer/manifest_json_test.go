@@ -78,7 +78,7 @@ func TestGenerateJSONManifestRecordsFailures(t *testing.T) {
 		t.Errorf("error = %q, want %q", failed.Error, "404")
 	}
 	if failed.FilePath != "" {
-		t.Errorf("file_path = %q, want it omitted for a failed download", failed.FilePath)
+		t.Errorf("file_path = %q, want it omitted for a failed record", failed.FilePath)
 	}
 }
 

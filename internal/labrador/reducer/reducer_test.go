@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/operation"
 	. "tsumegolang/internal/labrador/reducer"
 )
 
-func testRecords() []labrador.DownloadRecord {
-	return []labrador.DownloadRecord{
+func testRecords() []operation.Record {
+	return []operation.Record{
 		{Section: "Beta", URL: "https://example.com/b", FilePath: "Beta/b.html", Success: true},
 		{Section: "Alpha", URL: "https://example.com/a", FilePath: "Alpha/a.html", Success: true},
 		{Section: "Alpha", URL: "https://example.com/gone", Success: false, Error: errors.New("404")},

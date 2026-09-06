@@ -8,14 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/operation"
 )
 
 var ErrWriteMarkdown = errors.New("failed to write markdown file")
 
 var markdownIndex = Reducer{
 	Name: "markdown-index",
-	Reduce: func(records []labrador.DownloadRecord, outputDir string) (string, error) {
+	Reduce: func(records []operation.Record, outputDir string) (string, error) {
 		if err := ensureOutputDir(outputDir); err != nil {
 			return "", err
 		}
@@ -28,21 +28,20 @@ var markdownIndex = Reducer{
 	},
 }
 
-func GenerateMarkdownIndex(records []labrador.DownloadRecord, outputPath string) error {
+func GenerateMarkdownIndex(records []operation.Record, outputPath string) error {
 	var sb strings.Builder
 
 	sb.WriteString("# Download Index\n\n")
 	fmt.Fprintf(&sb, "Generated: %s\n\n", time.Now().Format(time.RFC1123))
 
-	successCount, failCount := countOutcomes(records)
+	successCount, failCount := operation.CountOutcomes(records)
 	fmt.Fprintf(&sb, "**Total Downloads**: %d | **Successful**: %d | **Failed**: %d\n\n", len(records), successCount, failCount)
 	sb.WriteString("---\n\n")
 
-	bySection, sections := groupBySection(records)
-	for _, section := range sections {
-		fmt.Fprintf(&sb, "## %s\n\n", section)
+	for _, group := range operation.GroupBySection(records) {
+		fmt.Fprintf(&sb, "## %s\n\n", group.Section)
 
-		for _, record := range bySection[section] {
+		for _, record := range group.Records {
 			if record.Success {
 				relPath, err := filepath.Rel(filepath.Dir(outputPath), record.FilePath)
 				if err != nil {
