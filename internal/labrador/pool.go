@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"tsumegolang/internal/labrador/fetch"
 	"tsumegolang/internal/labrador/mapper"
 	"tsumegolang/pkg/concurrency"
 )
@@ -48,17 +49,17 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		outputDir = "."
 	}
 
-	handlerOpts := []DownloadHandlerOption{}
+	fetchOpts := []fetch.Option{fetch.WithIdleConnsPerHost(numWorkers)}
 	if settings.RetryCount > 0 {
-		handlerOpts = append(handlerOpts, WithRetryCount(settings.RetryCount))
+		fetchOpts = append(fetchOpts, fetch.WithRetryCount(settings.RetryCount))
 	}
 	if settings.BackoffMs > 0 {
-		handlerOpts = append(handlerOpts, WithBackoff(settings.BackoffMs))
+		fetchOpts = append(fetchOpts, fetch.WithBackoff(settings.BackoffMs))
 	}
+	fetcher := fetch.New(fetchOpts...)
 
 	job := func(dj downloadJob) concurrency.JobResult[downloadJob, DownloadRecord] {
-		downloader := NewDownloadHandler(handlerOpts...)
-		result, err := downloader.Download(dj.URL)
+		result, err := fetcher.Get(dj.URL)
 
 		record := DownloadRecord{
 			Section: dj.Section,
