@@ -1,4 +1,4 @@
-package labrador_test
+package store_test
 
 import (
 	"bytes"
@@ -6,11 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "tsumegolang/internal/labrador"
 	"tsumegolang/internal/labrador/mapper"
+	. "tsumegolang/internal/labrador/store"
 )
 
-func TestWritePayloadSectionBased(t *testing.T) {
+func TestWriteSectionBased(t *testing.T) {
 	testCases := []struct {
 		name         string
 		payload      mapper.Payload
@@ -59,9 +59,9 @@ func TestWritePayloadSectionBased(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			baseDir := t.TempDir()
 
-			gotPath, err := WritePayload(tc.payload, baseDir)
+			gotPath, err := Write(tc.payload, baseDir)
 			if err != nil {
-				t.Fatalf("WritePayload() = %v", err)
+				t.Fatalf("Write() = %v", err)
 			}
 
 			wantPath := filepath.Join(baseDir, tc.wantDir, tc.wantFilename)
@@ -84,7 +84,7 @@ func TestWritePayloadSectionBased(t *testing.T) {
 	}
 }
 
-func TestWritePayloadBinaryContent(t *testing.T) {
+func TestWriteBinaryContent(t *testing.T) {
 	binaryContent := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D}
 	payload := mapper.Payload{
 		URL:         "https://example.com/image.png",
@@ -93,9 +93,9 @@ func TestWritePayloadBinaryContent(t *testing.T) {
 		ContentType: "image/png",
 	}
 
-	gotPath, err := WritePayload(payload, t.TempDir())
+	gotPath, err := Write(payload, t.TempDir())
 	if err != nil {
-		t.Fatalf("WritePayload() = %v", err)
+		t.Fatalf("Write() = %v", err)
 	}
 
 	gotContent, err := os.ReadFile(gotPath)
@@ -107,7 +107,7 @@ func TestWritePayloadBinaryContent(t *testing.T) {
 	}
 }
 
-func TestWritePayloadForcedExtensionReplacesURLSuffix(t *testing.T) {
+func TestWriteForcedExtensionReplacesURLSuffix(t *testing.T) {
 	testCases := []struct {
 		name       string
 		payload    mapper.Payload
@@ -134,9 +134,9 @@ func TestWritePayloadForcedExtensionReplacesURLSuffix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			baseDir := t.TempDir()
 
-			got, err := WritePayload(tc.payload, baseDir)
+			got, err := Write(tc.payload, baseDir)
 			if err != nil {
-				t.Fatalf("WritePayload() = %v", err)
+				t.Fatalf("Write() = %v", err)
 			}
 
 			want := filepath.Join(baseDir, tc.wantSuffix)

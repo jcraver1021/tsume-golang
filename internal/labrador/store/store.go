@@ -1,4 +1,7 @@
-package labrador
+// Package store decides where a downloaded payload lands and writes it there.
+// Naming is the interesting part: the URL's own suffix wins over the
+// Content-Type header, and a mapper that reshaped the content overrides both.
+package store
 
 import (
 	"errors"
@@ -17,7 +20,7 @@ var (
 	ErrCreateDir  = errors.New("failed to create directory")
 )
 
-func buildFilePath(urlStr string, baseDir string, section string, ext string) (string, error) {
+func pathFor(urlStr string, baseDir string, section string, ext string) (string, error) {
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", ErrInvalidURL, err)
@@ -48,21 +51,21 @@ func buildFilePath(urlStr string, baseDir string, section string, ext string) (s
 	return filepath.Join(dirPath, filename), nil
 }
 
-// WritePayload writes a mapped payload, honouring an extension a mapper forced
-// in place of the one DetermineFileExtension would infer from the URL.
-func WritePayload(payload mapper.Payload, baseDir string) (string, error) {
+// Write puts a mapped payload on disk, honouring an extension a mapper forced
+// in place of the one extensionFor would infer from the URL.
+func Write(payload mapper.Payload, baseDir string) (string, error) {
 	ext := payload.Extension
 	if ext == "" {
-		ext = DetermineFileExtension(payload.URL, payload.ContentType)
+		ext = extensionFor(payload.URL, payload.ContentType)
 	}
 
-	filePath, err := buildFilePath(payload.URL, baseDir, payload.Section, ext)
+	filePath, err := pathFor(payload.URL, baseDir, payload.Section, ext)
 	if err != nil {
 		return "", err
 	}
 
-	// buildFilePath keeps an extension already present in the URL's last
-	// segment, so a forced extension has to be swapped in afterwards.
+	// pathFor keeps an extension already present in the URL's last segment, so
+	// a forced extension has to be swapped in afterwards.
 	if payload.Extension != "" {
 		filePath = strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "." + payload.Extension
 	}

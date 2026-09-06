@@ -8,6 +8,7 @@ import (
 	"tsumegolang/internal/labrador/fetch"
 	"tsumegolang/internal/labrador/mapper"
 	"tsumegolang/internal/labrador/operation"
+	"tsumegolang/internal/labrador/store"
 	"tsumegolang/pkg/concurrency"
 )
 
@@ -94,7 +95,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 			}
 		}
 
-		filePath, err := WritePayload(payload, outputDir)
+		filePath, err := store.Write(payload, outputDir)
 		if err != nil {
 			record.Error = err
 			return concurrency.JobResult[downloadJob, operation.Record]{
