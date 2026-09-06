@@ -12,17 +12,10 @@ import (
 )
 
 var (
-	ErrCantCreateFile = errors.New("failed to create file")
-	ErrWriteFile      = errors.New("failed to write to file")
-	ErrInvalidURL     = errors.New("invalid URL")
-	ErrCreateDir      = errors.New("failed to create directory")
+	ErrWriteFile  = errors.New("failed to write to file")
+	ErrInvalidURL = errors.New("invalid URL")
+	ErrCreateDir  = errors.New("failed to create directory")
 )
-
-func ConvertUrlToFilename(urlStr string) string {
-	replacer := strings.NewReplacer("http://", "", "https://", "", "/", "_", ":", "_")
-	filename := replacer.Replace(urlStr)
-	return filename + ".html"
-}
 
 func buildFilePath(urlStr string, baseDir string, section string, ext string) (string, error) {
 	parsedURL, err := url.Parse(urlStr)
@@ -53,27 +46,6 @@ func buildFilePath(urlStr string, baseDir string, section string, ext string) (s
 	}
 
 	return filepath.Join(dirPath, filename), nil
-}
-
-func WriteToFile(urlStr string, content []byte, contentType string, baseDir string, section string) (string, error) {
-	ext := DetermineFileExtension(urlStr, contentType)
-	filePath, err := buildFilePath(urlStr, baseDir, section, ext)
-	if err != nil {
-		return "", err
-	}
-
-	file, err := os.Create(filePath)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrCantCreateFile, err)
-	}
-	defer file.Close()
-
-	_, err = file.Write(content)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrWriteFile, err)
-	}
-
-	return filePath, nil
 }
 
 // WritePayload writes a mapped payload, honouring an extension a mapper forced

@@ -16,7 +16,6 @@ const (
 var (
 	ErrDownloadFailed      = errors.New("download failed")
 	ErrJobSubmissionFailed = errors.New("job submission failed")
-	ErrWriteResultFailed   = errors.New("failed to write result to file")
 	ErrTimeout             = errors.New("timeout waiting for result")
 )
 

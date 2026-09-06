@@ -1,7 +1,6 @@
 package labrador
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -11,7 +10,6 @@ import (
 
 var (
 	ErrCantOpenFile = errors.New("failed to open file")
-	ErrParseFile    = errors.New("failed to parse file")
 	ErrParseYAML    = errors.New("failed to parse YAML")
 )
 
@@ -31,29 +29,6 @@ func isValidURL(url string) bool {
 		return true
 	}
 	return false
-}
-
-func ParseURLsFromTextFile(filename string) ([]string, error) {
-	urls := []string{}
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCantOpenFile, err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if isValidURL(line) {
-			urls = append(urls, line)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrParseFile, err)
-	}
-
-	return urls, nil
 }
 
 func ParseSectionsFromYAML(filename string) ([]Section, error) {
