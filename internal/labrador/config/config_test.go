@@ -1,13 +1,13 @@
-package labrador_test
+package config_test
 
 import (
 	"os"
 	"testing"
 
-	. "tsumegolang/internal/labrador"
+	. "tsumegolang/internal/labrador/config"
 )
 
-func TestParseSectionsFromYAML(t *testing.T) {
+func TestLoad(t *testing.T) {
 	testCases := []struct {
 		name        string
 		yamlContent string
@@ -111,9 +111,9 @@ func TestParseSectionsFromYAML(t *testing.T) {
 			}
 			tmpFile.Close()
 
-			got, err := ParseSectionsFromYAML(tmpFile.Name())
+			got, err := Load(tmpFile.Name())
 			if (err != nil) != tc.wantErr {
-				t.Errorf("ParseSectionsFromYAML() error = %v, wantErr %v", err, tc.wantErr)
+				t.Errorf("Load() error = %v, wantErr %v", err, tc.wantErr)
 				return
 			}
 
@@ -122,7 +122,7 @@ func TestParseSectionsFromYAML(t *testing.T) {
 			}
 
 			if len(got) != len(tc.want) {
-				t.Errorf("ParseSectionsFromYAML() got %d sections, want %d sections", len(got), len(tc.want))
+				t.Errorf("Load() got %d sections, want %d sections", len(got), len(tc.want))
 				return
 			}
 
@@ -134,19 +134,19 @@ func TestParseSectionsFromYAML(t *testing.T) {
 			for _, wantSection := range tc.want {
 				gotURLs, exists := gotMap[wantSection.Name]
 				if !exists {
-					t.Errorf("ParseSectionsFromYAML() missing section %q", wantSection.Name)
+					t.Errorf("Load() missing section %q", wantSection.Name)
 					continue
 				}
 
 				if len(gotURLs) != len(wantSection.URLs) {
-					t.Errorf("ParseSectionsFromYAML() section %q has %d URLs, want %d URLs",
+					t.Errorf("Load() section %q has %d URLs, want %d URLs",
 						wantSection.Name, len(gotURLs), len(wantSection.URLs))
 					continue
 				}
 
 				for i, wantURL := range wantSection.URLs {
 					if gotURLs[i] != wantURL {
-						t.Errorf("ParseSectionsFromYAML() section %q URL[%d] = %q; want %q",
+						t.Errorf("Load() section %q URL[%d] = %q; want %q",
 							wantSection.Name, i, gotURLs[i], wantURL)
 					}
 				}
@@ -155,9 +155,9 @@ func TestParseSectionsFromYAML(t *testing.T) {
 	}
 }
 
-func TestParseSectionsFromYAML_FileNotFound(t *testing.T) {
-	_, err := ParseSectionsFromYAML("/nonexistent/file.yaml")
+func TestLoadFileNotFound(t *testing.T) {
+	_, err := Load("/nonexistent/file.yaml")
 	if err == nil {
-		t.Error("ParseSectionsFromYAML() expected error for nonexistent file, got nil")
+		t.Error("Load() expected error for nonexistent file, got nil")
 	}
 }

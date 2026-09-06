@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"tsumegolang/internal/labrador"
+	"tsumegolang/internal/labrador/config"
 	"tsumegolang/internal/labrador/mapper"
 	"tsumegolang/internal/labrador/operation"
 	"tsumegolang/internal/labrador/reducer"
@@ -41,7 +42,7 @@ func main() {
 		log.Fatalf("Error resolving -reduce: %v", err)
 	}
 
-	sections, err := labrador.ParseSectionsFromYAML(*flagFile)
+	sections, err := config.Load(*flagFile)
 	if err != nil {
 		log.Fatalf("Error parsing YAML file: %v", err)
 	}

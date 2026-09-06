@@ -1,4 +1,7 @@
-package labrador
+// Package config reads the YAML that describes a download operation. Section
+// names double as directory paths, so the document's shape is the output tree's
+// shape.
+package config
 
 import (
 	"errors"
@@ -13,6 +16,8 @@ var (
 	ErrParseYAML    = errors.New("failed to parse YAML")
 )
 
+// Section is one YAML key and the URLs beneath it. Name may contain "/" to
+// nest directories.
 type Section struct {
 	Name string
 	URLs []string
@@ -31,7 +36,9 @@ func isValidURL(url string) bool {
 	return false
 }
 
-func ParseSectionsFromYAML(filename string) ([]Section, error) {
+// Load reads a YAML document into sections, dropping URLs that are not HTTP(S)
+// and sections left with none.
+func Load(filename string) ([]Section, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCantOpenFile, err)

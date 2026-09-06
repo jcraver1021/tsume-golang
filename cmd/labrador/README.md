@@ -77,14 +77,20 @@ Pass `-reduce ""` to skip the aggregate artifact entirely.
 
 ```
 internal/labrador/
-  mapper/          package-level types, Kind, Chain, validation (mapper.go)
-    strip_scripts.go       one file and one test file per mapper
-    html_to_text.go
-    ...
-  reducer/         package-level types, registry, Lookup (reducer.go)
-    markdown_index.go      one file and one test file per reducer
-    manifest_json.go
+  pool.go       orchestration: fans URLs across workers, gathers records
+  config/       reads the YAML into sections
+  fetch/        HTTP with retry; one pooled client per run
+  mapper/       Kind, Chain, chain validation (mapper.go)
+                  one file and one test file per mapper
+  store/        decides the output path and writes the bytes
+  operation/    the per-URL Record plus the folds reducers share
+  reducer/      registry and Lookup (reducer.go)
+                  one file and one test file per reducer
 ```
+
+Every sub-package is a leaf except `store` (which needs `mapper.Payload`) and
+`reducer` (which needs `operation.Record`). Nothing imports the root, so the
+orchestrator can grow without creating cycles.
 
 ### Adding your own
 

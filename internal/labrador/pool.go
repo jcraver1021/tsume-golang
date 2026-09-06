@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"tsumegolang/internal/labrador/config"
 	"tsumegolang/internal/labrador/fetch"
 	"tsumegolang/internal/labrador/mapper"
 	"tsumegolang/internal/labrador/operation"
@@ -126,7 +127,7 @@ func (md *MultiDownloader) Start() {
 	md.workerPool.Start()
 }
 
-func (md *MultiDownloader) DownloadSections(sections []Section) []operation.Record {
+func (md *MultiDownloader) DownloadSections(sections []config.Section) []operation.Record {
 	var allJobs []downloadJob
 	for _, section := range sections {
 		for _, url := range section.URLs {
