@@ -1,6 +1,6 @@
 # Labrador - Concurrent Download Utility
 
-A Go-based download utility that uses worker pools for efficient concurrent downloads with retry logic. Downloads are organized by YAML sections that map directly to directory structure, and an index markdown file is automatically generated.
+A Go-based download utility that uses worker pools for efficient concurrent downloads with retry logic. Downloads are organized by YAML sections that map directly to directory structure. Each download can be passed through a chain of **mappers** before it is written, and the finished run is folded into report artifacts by **reducers** — a markdown index by default.
 
 ## Usage
 
@@ -80,15 +80,39 @@ Reducers are independent, so asking for several gets you all of them:
 
 They run in the order listed, and one failing does not stop the rest — every
 artifact that can be produced is, and the failures are reported together at the
-end.
+end. Pass `-reduce ""` to skip aggregate artifacts entirely.
 
-A reducer may also **decline** a run by returning an error wrapping
-`reducer.ErrSkipped` along with its reason. A skip is reported separately from a
-failure and does not make the run unsuccessful:
+#### Incompatible reducers
+
+Two reducers that write the same file are **incompatible**, and such a set is
+rejected before any download starts. Naming the same reducer twice is the case
+you can reproduce today:
+
+```
+$ ./labrador -file config.yaml -reduce markdown-index,markdown-index
+Error resolving -reduce: duplicate reducer: "markdown-index" appears at
+positions 1 and 2; it would only overwrite its own artifact
+```
+
+No two built-in reducers claim the same artifact, so a genuine collision only
+arises once you add one. A hypothetical `markdown-summary` also writing
+`index.md` would be rejected as `incompatible reducers: "markdown-index" and
+"markdown-summary" both write "index.md"; pick one`.
+
+The check reads each reducer's declared `Artifact`, and the package tests assert
+every reducer writes exactly what it declares — which is what makes the
+declaration trustworthy rather than advisory.
+
+#### Declining a run
+
+A reducer may **decline** by returning an error wrapping `reducer.ErrSkipped`
+along with its reason. A skip is reported separately from a failure and does not
+make the run unsuccessful. `manifest-json` is the one built-in that declines —
+see [re-running reducers](#re-running-reducers-without-downloading):
 
 ```
 Index generated at: downloads/index.md
-manifest-json: skipped: nothing to record
+manifest-json: skipped: downloads/manifest.json is the manifest this run was loaded from
 ```
 
 Declining is not knowable at validation time, so a reducer that might skip still
@@ -126,22 +150,7 @@ Two things do not survive the round trip: an error's identity (the manifest
 keeps its text, so `errors.Is` against a sentinel no longer matches) and any
 `FilePath` that was recorded relative to a different working directory.
 
-Two reducers that write the same file are **incompatible** and the set is
-rejected before any download starts, alongside naming the same reducer twice:
-
-```
-$ ./labrador -file config.yaml -reduce markdown-index,markdown-summary
-Error resolving -reduce: incompatible reducers: "markdown-index" and
-"markdown-summary" both write "index.md"; pick one
-```
-
-That check reads each reducer's declared `Artifact`, and the package tests
-assert every reducer writes exactly what it declares — which is what makes the
-declaration trustworthy rather than advisory.
-
-Pass `-reduce ""` to skip aggregate artifacts entirely.
-
-### Package layout
+## Package layout
 
 ```
 internal/labrador/
@@ -152,7 +161,7 @@ internal/labrador/
                   one file and one test file per mapper
   store/        decides the output path and writes the bytes
   operation/    the per-URL Record plus the folds reducers share
-  reducer/      registry, Resolve, Run, the write guard (reducer.go, output.go)
+  reducer/      registry, Resolve, Validate, Run (reducer.go, output.go)
                   one file and one test file per reducer
 ```
 
@@ -160,7 +169,7 @@ Every sub-package is a leaf except `store` (which needs `mapper.Payload`) and
 `reducer` (which needs `operation.Record`). Nothing imports the root, so the
 orchestrator can grow without creating cycles.
 
-### Adding your own
+## Adding your own mappers and reducers
 
 Define the mapper in its own file under `internal/labrador/mapper/` and add it
 to `registry` in `mapper.go`; the map key is the name the flag accepts. Reducers
@@ -169,11 +178,11 @@ follow the same pattern under `internal/labrador/reducer/`.
 ```go
 type Mapper struct {
 	Name string
-	// Accepts is the set of kinds this mapper transforms. Payloads of any
-	// other kind skip it untouched.
+	// Accepts is the set of kinds this mapper transforms. Payloads of any other
+	// kind skip it untouched.
 	Accepts []Kind
-	// Produces is the kind emitted for an accepted payload, or KindSame when
-	// the mapper leaves the kind alone.
+	// Produces is the kind emitted for an accepted payload, or KindSame when the
+	// mapper leaves the kind alone.
 	Produces  Kind
 	Transform func(Payload) (Payload, error)
 }
@@ -181,10 +190,14 @@ type Mapper struct {
 type Reducer struct {
 	Name string
 	// Artifact is the file this reducer writes, relative to the output
-	// directory.
+	// directory. Two reducers claiming the same artifact are incompatible, and
+	// Validate rejects the pair. The package tests assert that each reducer
+	// writes exactly what it declares here, which is what makes that check
+	// sound rather than advisory.
 	Artifact string
 	// Reduce folds every record of the run into its artifact and returns a
-	// one-line summary for the operator.
+	// one-line summary for the operator. Returning an error wrapping ErrSkipped
+	// declines the run without failing it.
 	Reduce func(records []operation.Record, out *Output) (string, error)
 }
 ```
@@ -235,7 +248,7 @@ downloads/
     getting-started.html
   Chapter 2/
     Concurrency/
-      concurrency.html
+      effective_go.html
       pipelines.html
   Reference/
     API/
@@ -266,10 +279,12 @@ Supported types include: HTML, PDF, images (JPG, PNG, GIF, SVG, WebP), JSON, XML
 
 ## Output
 
-Labrador generates two types of output:
+Labrador generates:
 
 1. **Downloaded files**: Organized by YAML section names (section → directory path)
-2. **index.md**: A markdown index file listing all sections, URLs, and links to downloaded files
+2. **Whatever the reducers produce**: by default `index.md`, a markdown index of
+   every section, URL and downloaded file. `-reduce` selects others, several at
+   once, or none.
 
 ### Example index.md:
 
@@ -289,8 +304,8 @@ Generated: Tue, 17 Jun 2026 10:30:45 PDT
 
 ## Chapter 2/Concurrency
 
-- [https://go.dev/doc/effective_go#concurrency](Chapter 2/Concurrency/concurrency.html)
-- ❌ https://go.dev/blog/pipelines (Error: timeout)
+- [https://go.dev/doc/effective_go#concurrency](Chapter 2/Concurrency/effective_go.html)
+- ❌ https://go.dev/blog/pipelines (Error: download failed: retryable error: 503)
 ```
 
 ## Examples
@@ -346,7 +361,8 @@ downloads/
 - **Section-based directory organization**: YAML sections map directly to directory paths
   - Use `/` in section names to create nested directories
   - Intuitive: what you write in YAML is what you get on disk
-- **Automatic markdown index**: Generated index with links to all downloads
+- **Reducer artifacts**: A markdown index by default, a JSON manifest on request, or both
+- **Re-runnable reporting**: `-from` re-applies reducers to an earlier run's manifest without downloading again
 - **Smart file type detection**: Automatically detects file extensions from URLs and Content-Type headers
   - Supports HTML, PDF, images (JPG, PNG, GIF, SVG), JSON, XML, text files, and more
   - Preserves original file extensions when present in URL
