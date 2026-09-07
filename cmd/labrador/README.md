@@ -10,19 +10,20 @@ A Go-based download utility that uses worker pools for efficient concurrent down
 
 ## Flags
 
-- `-file`: Path to YAML file containing sections and URLs (required)
+- `-file`: Path to YAML file containing sections and URLs (required, unless `-from`)
+- `-from`: Manifest from an earlier run; re-applies reducers without downloading
 - `-retry-count`: Number of retry attempts for failed downloads (default: 3)
 - `-backoff`: Backoff time in milliseconds between retries (default: 1000)
 - `-worker-count`: Number of concurrent workers (default: 1)
 - `-output-dir`: Base directory for downloaded files (default: "downloads")
 - `-map`: Comma-separated mapper names applied in order to each download (default: none)
-- `-reduce`: Name of the single reducer run over every record, or `""` for none (default: "markdown-index")
+- `-reduce`: Comma-separated reducers, each folding every record into its own artifact, or `""` for none (default: "markdown-index")
 
 ## Maps and Reduces
 
 Each download runs through an ordered **mapper chain** before it is written, and
-the whole run finishes with at most one **reducer** that folds every record into
-a single artifact.
+the run finishes with any number of **reducers**, each folding the same records
+into its own artifact.
 
 ```bash
 ./labrador -file config.yaml -map strip-scripts,html-to-text -reduce manifest-json
@@ -71,7 +72,74 @@ At runtime a mapper is skipped for any payload outside its `Accepts` set, so
 | `markdown-index` | `index.md` — the default browsable index |
 | `manifest-json` | `manifest.json` — machine-readable record of the run |
 
-Pass `-reduce ""` to skip the aggregate artifact entirely.
+Reducers are independent, so asking for several gets you all of them:
+
+```bash
+./labrador -file config.yaml -reduce markdown-index,manifest-json
+```
+
+They run in the order listed, and one failing does not stop the rest — every
+artifact that can be produced is, and the failures are reported together at the
+end.
+
+A reducer may also **decline** a run by returning an error wrapping
+`reducer.ErrSkipped` along with its reason. A skip is reported separately from a
+failure and does not make the run unsuccessful:
+
+```
+Index generated at: downloads/index.md
+manifest-json: skipped: nothing to record
+```
+
+Declining is not knowable at validation time, so a reducer that might skip still
+declares an `Artifact` and still participates in compatibility checking.
+
+## Re-running reducers without downloading
+
+`-from` points at a `manifest.json` from an earlier run and re-applies reducers
+to it, fetching nothing:
+
+```bash
+./labrador -from downloads/manifest.json -reduce markdown-index
+```
+
+This works because `manifest-json` round-trips a run's records field for field,
+which makes it the serialized form of an operation rather than just a report.
+Use it to regenerate an index after changing how one is rendered, to add an
+artifact a run did not originally produce, or to re-report when the source
+server is gone.
+
+Artifacts land beside the manifest unless `-output-dir` says otherwise. The
+flags that only describe downloading — `-file`, `-map`, `-worker-count`,
+`-retry-count`, `-backoff` — are rejected rather than ignored:
+
+```
+$ ./labrador -from downloads/manifest.json -map html-to-text
+Error: -map has no meaning with -from, which downloads nothing
+```
+
+`manifest-json` declines to run when its artifact is the manifest the records
+came from, since that would only restamp the file and a failed write would take
+the source with it. Point `-output-dir` elsewhere to write a fresh copy.
+
+Two things do not survive the round trip: an error's identity (the manifest
+keeps its text, so `errors.Is` against a sentinel no longer matches) and any
+`FilePath` that was recorded relative to a different working directory.
+
+Two reducers that write the same file are **incompatible** and the set is
+rejected before any download starts, alongside naming the same reducer twice:
+
+```
+$ ./labrador -file config.yaml -reduce markdown-index,markdown-summary
+Error resolving -reduce: incompatible reducers: "markdown-index" and
+"markdown-summary" both write "index.md"; pick one
+```
+
+That check reads each reducer's declared `Artifact`, and the package tests
+assert every reducer writes exactly what it declares — which is what makes the
+declaration trustworthy rather than advisory.
+
+Pass `-reduce ""` to skip aggregate artifacts entirely.
 
 ### Package layout
 
@@ -84,7 +152,7 @@ internal/labrador/
                   one file and one test file per mapper
   store/        decides the output path and writes the bytes
   operation/    the per-URL Record plus the folds reducers share
-  reducer/      registry and Lookup (reducer.go)
+  reducer/      registry, Resolve, Run, the write guard (reducer.go, output.go)
                   one file and one test file per reducer
 ```
 
@@ -111,8 +179,13 @@ type Mapper struct {
 }
 
 type Reducer struct {
-	Name   string
-	Reduce func(records []labrador.DownloadRecord, outputDir string) (string, error)
+	Name string
+	// Artifact is the file this reducer writes, relative to the output
+	// directory.
+	Artifact string
+	// Reduce folds every record of the run into its artifact and returns a
+	// one-line summary for the operator.
+	Reduce func(records []operation.Record, out *Output) (string, error)
 }
 ```
 

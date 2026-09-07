@@ -3,7 +3,6 @@ package reducer_test
 import (
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -19,20 +18,10 @@ var (
 
 func generateIndex(t *testing.T, records []operation.Record) string {
 	t.Helper()
-
-	indexPath := filepath.Join(t.TempDir(), "index.md")
-	if err := GenerateMarkdownIndex(records, indexPath); err != nil {
-		t.Fatalf("GenerateMarkdownIndex() = %v", err)
-	}
-
-	content, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("index not written: %v", err)
-	}
-	return string(content)
+	return string(RenderMarkdownIndex(records, filepath.Join(t.TempDir(), "index.md")))
 }
 
-func TestGenerateMarkdownIndex(t *testing.T) {
+func TestRenderMarkdownIndex(t *testing.T) {
 	testCases := []struct {
 		name           string
 		records        []operation.Record
@@ -122,7 +111,7 @@ func TestGenerateMarkdownIndex(t *testing.T) {
 	}
 }
 
-func TestGenerateMarkdownIndexUsesRelativePaths(t *testing.T) {
+func TestRenderMarkdownIndexUsesRelativePaths(t *testing.T) {
 	tmpDir := t.TempDir()
 	indexPath := filepath.Join(tmpDir, "index.md")
 
@@ -135,14 +124,7 @@ func TestGenerateMarkdownIndexUsesRelativePaths(t *testing.T) {
 		},
 	}
 
-	if err := GenerateMarkdownIndex(records, indexPath); err != nil {
-		t.Fatalf("GenerateMarkdownIndex() = %v", err)
-	}
-
-	raw, err := os.ReadFile(indexPath)
-	if err != nil {
-		t.Fatalf("index not written: %v", err)
-	}
+	raw := RenderMarkdownIndex(records, indexPath)
 
 	want := fmt.Sprintf("- [https://example.com/page1](%s)", filepath.Join("Chapter 1", "page1.html"))
 	if !strings.Contains(string(raw), want) {
@@ -150,7 +132,7 @@ func TestGenerateMarkdownIndexUsesRelativePaths(t *testing.T) {
 	}
 }
 
-func TestGenerateMarkdownIndexGroupsSectionsOnce(t *testing.T) {
+func TestRenderMarkdownIndexGroupsSectionsOnce(t *testing.T) {
 	records := []operation.Record{
 		{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
 		{Section: "Chapter 1", URL: "https://example.com/page2", FilePath: "page2.html", Success: true},
@@ -169,7 +151,7 @@ func TestGenerateMarkdownIndexGroupsSectionsOnce(t *testing.T) {
 	}
 }
 
-func TestGenerateMarkdownIndexReportsErrorMessages(t *testing.T) {
+func TestRenderMarkdownIndexReportsErrorMessages(t *testing.T) {
 	records := []operation.Record{
 		{Section: "Chapter 1", URL: "https://example.com/timeout", Error: errTimeout},
 	}
@@ -184,7 +166,7 @@ func TestGenerateMarkdownIndexReportsErrorMessages(t *testing.T) {
 	}
 }
 
-func TestGenerateMarkdownIndexHandlesMissingError(t *testing.T) {
+func TestRenderMarkdownIndexHandlesMissingError(t *testing.T) {
 	records := []operation.Record{
 		{Section: "Chapter 1", URL: "https://example.com/x", Success: false},
 	}

@@ -1,9 +1,7 @@
 package reducer
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -11,24 +9,25 @@ import (
 	"tsumegolang/internal/labrador/operation"
 )
 
-var ErrWriteMarkdown = errors.New("failed to write markdown file")
+const artifactIndex = "index.md"
 
 var markdownIndex = Reducer{
-	Name: "markdown-index",
-	Reduce: func(records []operation.Record, outputDir string) (string, error) {
-		if err := ensureOutputDir(outputDir); err != nil {
-			return "", err
-		}
+	Name:     "markdown-index",
+	Artifact: artifactIndex,
+	Reduce: func(records []operation.Record, out *Output) (string, error) {
+		content := RenderMarkdownIndex(records, out.Path(artifactIndex))
 
-		indexPath := filepath.Join(outputDir, "index.md")
-		if err := GenerateMarkdownIndex(records, indexPath); err != nil {
+		path, err := out.Write(artifactIndex, content)
+		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("Index generated at: %s", indexPath), nil
+		return fmt.Sprintf("Index generated at: %s", path), nil
 	},
 }
 
-func GenerateMarkdownIndex(records []operation.Record, outputPath string) error {
+// RenderMarkdownIndex needs outputPath to make each link relative to where the
+// index itself will sit.
+func RenderMarkdownIndex(records []operation.Record, outputPath string) []byte {
 	var sb strings.Builder
 
 	sb.WriteString("# Download Index\n\n")
@@ -59,9 +58,5 @@ func GenerateMarkdownIndex(records []operation.Record, outputPath string) error 
 		sb.WriteString("\n")
 	}
 
-	if err := os.WriteFile(outputPath, []byte(sb.String()), 0644); err != nil {
-		return fmt.Errorf("%w: %w", ErrWriteMarkdown, err)
-	}
-
-	return nil
+	return []byte(sb.String())
 }

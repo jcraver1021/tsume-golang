@@ -5,13 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"tsumegolang/internal/labrador/operation"
 )
 
-var ErrWriteManifest = errors.New("failed to write manifest file")
+var (
+	ErrRenderManifest = errors.New("failed to render manifest")
+	ErrReadManifest   = errors.New("failed to read manifest")
+	ErrParseManifest  = errors.New("failed to parse manifest")
+)
+
+const artifactManifest = "manifest.json"
 
 type manifestEntry struct {
 	URL      string `json:"url"`
@@ -34,21 +39,29 @@ type manifest struct {
 }
 
 var manifestJSON = Reducer{
-	Name: "manifest-json",
-	Reduce: func(records []operation.Record, outputDir string) (string, error) {
-		if err := ensureOutputDir(outputDir); err != nil {
+	Name:     "manifest-json",
+	Artifact: artifactManifest,
+	Reduce: func(records []operation.Record, out *Output) (string, error) {
+		// Rewriting the manifest a run was loaded from would only restamp it,
+		// and a failed write would take the source with it.
+		if path := out.Path(artifactManifest); out.Source() == path {
+			return "", fmt.Errorf("%w: %s is the manifest this run was loaded from", ErrSkipped, path)
+		}
+
+		content, err := RenderJSONManifest(records)
+		if err != nil {
 			return "", err
 		}
 
-		manifestPath := filepath.Join(outputDir, "manifest.json")
-		if err := GenerateJSONManifest(records, manifestPath); err != nil {
+		path, err := out.Write(artifactManifest, content)
+		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("Manifest generated at: %s", manifestPath), nil
+		return fmt.Sprintf("Manifest generated at: %s", path), nil
 	},
 }
 
-func GenerateJSONManifest(records []operation.Record, outputPath string) error {
+func RenderJSONManifest(records []operation.Record) ([]byte, error) {
 	succeeded, failed := operation.CountOutcomes(records)
 	result := manifest{
 		Generated: time.Now().Format(time.RFC3339),
@@ -76,12 +89,44 @@ func GenerateJSONManifest(records []operation.Record, outputPath string) error {
 
 	encoded, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrWriteManifest, err)
+		return nil, fmt.Errorf("%w: %w", ErrRenderManifest, err)
 	}
 
-	if err := os.WriteFile(outputPath, append(encoded, '\n'), 0644); err != nil {
-		return fmt.Errorf("%w: %w", ErrWriteManifest, err)
+	return append(encoded, '\n'), nil
+}
+
+// LoadJSONManifest reads back the records an earlier run wrote, so reducers can
+// be re-applied without downloading anything again. Errors come back as plain
+// values: the manifest keeps their text, not their identity.
+func LoadJSONManifest(path string) ([]operation.Record, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrReadManifest, err)
+	}
+	return ParseJSONManifest(raw)
+}
+
+func ParseJSONManifest(raw []byte) ([]operation.Record, error) {
+	var decoded manifest
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrParseManifest, err)
 	}
 
-	return nil
+	records := []operation.Record{}
+	for _, section := range decoded.Sections {
+		for _, entry := range section.Entries {
+			record := operation.Record{
+				Section:  section.Name,
+				URL:      entry.URL,
+				FilePath: entry.FilePath,
+				Success:  entry.Success,
+			}
+			if entry.Error != "" {
+				record.Error = errors.New(entry.Error)
+			}
+			records = append(records, record)
+		}
+	}
+
+	return records, nil
 }
