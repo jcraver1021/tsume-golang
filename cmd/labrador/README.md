@@ -58,11 +58,12 @@ Filenames come from the URL's last path segment. Extensions come from the URL
 suffix when it has a known one, otherwise the `Content-Type` header, otherwise
 `.html` — see [FILETYPE_DETECTION.md](FILETYPE_DETECTION.md).
 
-When two URLs in a section would land on the same name, both take more of their
-path until they separate, so `a/index.html` and `b/index.html` become
-`a_index.html` and `b_index.html`. Names are planned from the config before
-downloading, so they do not depend on the order downloads finish in. Sections
-are separate directories and never contend with each other.
+When two URLs in a section would land on the same name, each takes more of its
+path until they separate: `a/index.html` and `b/index.html` become
+`a_index.html` and `b_index.html`. Names are planned from the config, so they do
+not depend on the order downloads finish in. A mapper can still collapse two
+names into one — `doc.html` and `doc.txt` under `html-to-text` — and that
+download fails rather than overwriting.
 
 ## Mappers
 
@@ -202,7 +203,7 @@ internal/labrador/
   fetch/        HTTP with retry; one pooled client per run
   mapper/       Kind, Chain, chain validation (mapper.go)
                   one file and one test file per mapper
-  store/        decides the output path and writes the bytes
+  store/        plans collision-free names and writes the bytes
   operation/    the per-URL Record plus the folds reducers share
   reducer/      registry, Resolve, Validate, Run (reducer.go, output.go)
                   one file and one test file per reducer

@@ -7,12 +7,11 @@ import (
 
 const nameSeparator = "_"
 
-// PlanFilenames gives every URL in a section a name unique within it, taking
-// more of the URL path until the names stop colliding. Planning up front from
-// the config keeps the result independent of the order downloads finish in.
+// PlanFilenames gives every URL in a section a unique name, taking more of the
+// URL path until they separate. Planning from the config keeps names
+// independent of the order downloads finish in.
 func PlanFilenames(urls []string) map[string]string {
-	// Only distinct URLs compete for a name; a URL repeated in a section still
-	// names one file.
+	// A URL repeated in a section still names one file.
 	segments := make(map[string][]string, len(urls))
 	contested := make([]string, 0, len(urls))
 	for _, raw := range urls {
@@ -34,8 +33,7 @@ func PlanFilenames(urls []string) map[string]string {
 
 		var stillContested []string
 		for name, group := range grouped {
-			// Once the deepest URL in a group is exhausted, a longer name
-			// cannot separate them: they name the same resource.
+			// A longer name cannot separate URLs whose segments run out.
 			if len(group) == 1 || depth >= deepest(segments, group) {
 				for _, raw := range group {
 					planned[raw] = name

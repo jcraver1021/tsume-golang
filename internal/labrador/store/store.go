@@ -21,8 +21,8 @@ var (
 	ErrPathCollision = errors.New("two downloads want the same file")
 )
 
-// A Writer holds one run's output directory and the paths it has already
-// written, so a second download can never silently replace a first.
+// A Writer holds one run's output directory and the paths written into it, so
+// no download silently replaces another.
 type Writer struct {
 	baseDir string
 	mu      sync.Mutex
@@ -60,8 +60,8 @@ func (w *Writer) Write(payload mapper.Payload) (string, error) {
 	return filePath, nil
 }
 
-// claim guards the cases PlanFilenames cannot foresee, such as a mapper
-// rewriting two different extensions into one.
+// claim covers what PlanFilenames cannot foresee: a mapper rewriting two
+// extensions into one.
 func (w *Writer) claim(path, url string) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
