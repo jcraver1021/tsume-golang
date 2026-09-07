@@ -1,12 +1,10 @@
-package labrador_test
+package store
 
 import (
 	"testing"
-
-	. "tsumegolang/internal/labrador"
 )
 
-func TestDetermineFileExtension(t *testing.T) {
+func TestExtensionFor(t *testing.T) {
 	testCases := []struct {
 		name        string
 		url         string
@@ -137,9 +135,9 @@ func TestDetermineFileExtension(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := DetermineFileExtension(tc.url, tc.contentType)
+			got := extensionFor(tc.url, tc.contentType)
 			if got != tc.want {
-				t.Errorf("DetermineFileExtension(%q, %q) = %q; want %q", tc.url, tc.contentType, got, tc.want)
+				t.Errorf("extensionFor(%q, %q) = %q; want %q", tc.url, tc.contentType, got, tc.want)
 			}
 		})
 	}

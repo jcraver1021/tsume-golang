@@ -1,4 +1,4 @@
-package labrador
+package store
 
 import (
 	"path/filepath"
@@ -29,7 +29,9 @@ var contentTypeToExtension = map[string]string{
 	"application/octet-stream": "bin",
 }
 
-func DetermineFileExtension(url string, contentType string) string {
+// extensionFor trusts the URL suffix first: a server's Content-Type is often
+// generic where the URL is specific.
+func extensionFor(url string, contentType string) string {
 	urlExt := extractExtensionFromURL(url)
 	if urlExt != "" {
 		return urlExt

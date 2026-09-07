@@ -1,8 +1,9 @@
-# Labrador - Concurrent Download Utility
+# Labrador — concurrent download utility
 
-A Go-based download utility that uses worker pools for efficient concurrent downloads with retry logic. Downloads are organized by YAML sections that map directly to directory structure, and an index markdown file is automatically generated.
-
-## Usage
+Downloads URLs concurrently with retries, organised by YAML sections that map
+directly to directory structure. Each download can pass through a chain of
+**mappers** before it is written, and the finished run is folded into report
+artifacts by **reducers** — a markdown index by default.
 
 ```bash
 ./labrador -file config.yaml -worker-count 5 -output-dir downloads
@@ -10,45 +11,33 @@ A Go-based download utility that uses worker pools for efficient concurrent down
 
 ## Flags
 
-- `-file`: Path to YAML file containing sections and URLs (required)
-- `-retry-count`: Number of retry attempts for failed downloads (default: 3)
-- `-backoff`: Backoff time in milliseconds between retries (default: 1000)
-- `-worker-count`: Number of concurrent workers (default: 1)
-- `-output-dir`: Base directory for downloaded files (default: "downloads")
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `-file` | — | YAML describing sections and URLs; required unless `-from` |
+| `-from` | — | manifest from an earlier run; re-applies reducers without downloading |
+| `-output-dir` | `downloads` | base directory for downloaded files |
+| `-worker-count` | `1` | concurrent downloads |
+| `-retry-count` | `3` | attempts per URL |
+| `-backoff` | `1000` | milliseconds between attempts |
+| `-map` | none | comma-separated mappers, applied in order |
+| `-reduce` | `markdown-index` | comma-separated reducers; `""` for none |
 
-## Input YAML Format & Directory Organization
+## Input format
 
-The input file is a YAML document where **each key becomes a directory path**. This makes organization intuitive - your YAML structure IS your directory structure.
+Each YAML key becomes a directory path — the document's shape is the output
+tree's shape. Use `/` to nest.
 
 ```yaml
-# Simple sections (single-level directories)
 "Chapter 1":
   - https://go.dev
   - https://go.dev/doc/tutorial/getting-started
 
-# Nested sections using forward slashes
 "Chapter 2/Concurrency":
-  - https://go.dev/doc/effective_go#concurrency
   - https://go.dev/blog/pipelines
 
-# Deep nesting for complex organization
 "Reference/API/v1":
   - https://pkg.go.dev/net/http
-  - https://golang.org/ref/spec
-
-# Mix of file types - automatically detected
-"Documents/PDFs":
-  - https://example.com/manual.pdf
-  
-"Documents/Images":
-  - https://example.com/logo.png
-  - https://example.com/diagram.svg
-  
-"Data/JSON":
-  - https://api.example.com/config.json
 ```
-
-### Resulting Directory Structure
 
 ```
 downloads/
@@ -57,50 +46,141 @@ downloads/
     getting-started.html
   Chapter 2/
     Concurrency/
-      concurrency.html
       pipelines.html
   Reference/
     API/
       v1/
         http.html
-        spec.html
-  Documents/
-    PDFs/
-      manual.pdf
-    Images/
-      logo.png
-      diagram.svg
-  Data/
-    JSON/
-      config.json
   index.md
 ```
 
-### File Type Detection
+Filenames come from the URL's last path segment. Extensions come from the URL
+suffix when it has a known one, otherwise the `Content-Type` header, otherwise
+`.html` — see [FILETYPE_DETECTION.md](FILETYPE_DETECTION.md).
 
-Labrador automatically determines the correct file extension:
+When two URLs in a section would land on the same name, each takes more of its
+path until they separate: `a/index.html` and `b/index.html` become
+`a_index.html` and `b_index.html`. Names are planned from the config, so they do
+not depend on the order downloads finish in. A mapper can still collapse two
+names into one — `doc.html` and `doc.txt` under `html-to-text` — and that
+download fails rather than overwriting.
 
-1. **From URL**: If the URL ends with a file extension (`.pdf`, `.png`, etc.), it's preserved
-2. **From Content-Type**: If no extension in URL, uses HTTP `Content-Type` header
-3. **Default**: Falls back to `.html` if neither method yields a known type
+## Mappers
 
-Supported types include: HTML, PDF, images (JPG, PNG, GIF, SVG, WebP), JSON, XML, text, archives (ZIP, GZ, TAR), video (MP4, WebM), audio (MP3, WAV), and common code files.
+A mapper transforms a download before it is written. `-map` runs them in order.
 
-## Output
+| Name | Accepts | Produces | Effect |
+| --- | --- | --- | --- |
+| `strip-scripts` | html | unchanged | removes `<script>` blocks |
+| `strip-styles` | html | unchanged | removes `<style>` blocks |
+| `html-to-text` | html | text | converts to plain text, writes `.txt` |
+| `normalize-newlines` | text, json, xml | unchanged | rewrites CRLF/CR to LF |
 
-Labrador generates two types of output:
+A mapper is skipped for payloads outside its `Accepts` set, so
+`-map html-to-text` leaves PDFs and images alone rather than failing on them.
+Kinds are `html`, `text`, `json`, `xml` and `binary`; an absent or unrecognised
+`Content-Type` is `binary`, which no mapper touches.
 
-1. **Downloaded files**: Organized by YAML section names (section → directory path)
-2. **index.md**: A markdown index file listing all sections, URLs, and links to downloaded files
+### Chain validation
 
-### Example index.md:
+Kinds are adjoined down the chain — the way matrix dimensions are checked —
+starting from the assumption that any kind could arrive, since nothing has been
+fetched. A mapper that could never fire is rejected before any network call:
+
+```
+$ ./labrador -file config.yaml -map html-to-text,strip-scripts
+Error resolving -map: unreachable mapper: "strip-scripts" at position 2 accepts
+html, but html is consumed by "html-to-text" at position 1; kinds reaching
+position 2: binary, json, text, xml
+```
+
+Repeating a mapper is rejected too: running one twice cannot change the result
+of running it once.
+
+## Reducers
+
+A reducer folds every record of a finished run into one artifact. Reducers are
+independent, so asking for several gets you all of them.
+
+| Name | Artifact |
+| --- | --- |
+| `markdown-index` | `index.md` — browsable index of every section and URL |
+| `manifest-json` | `manifest.json` — machine-readable record of the run |
+
+```bash
+./labrador -file config.yaml -reduce markdown-index,manifest-json
+```
+
+They run in the order listed. One failing does not stop the rest — every
+artifact that can be produced is, and the failures are reported together.
+
+A reducer may **decline** by returning an error wrapping `reducer.ErrSkipped`
+with its reason. A skip is reported separately and does not fail the run:
+
+```
+Index generated at: downloads/index.md
+manifest-json: skipped: downloads/manifest.json is the manifest this run was loaded from
+```
+
+### Incompatible reducers
+
+Two reducers writing the same file cannot coexist, and such a set is rejected
+before any download starts. Naming one twice is the case you can reproduce
+today:
+
+```
+$ ./labrador -file config.yaml -reduce markdown-index,markdown-index
+Error resolving -reduce: duplicate reducer: "markdown-index" appears at
+positions 1 and 2; it would only overwrite its own artifact
+```
+
+No two built-in reducers claim the same artifact, so a genuine collision only
+arises once you add one — a hypothetical `markdown-summary` also writing
+`index.md` would be rejected as `incompatible reducers: "markdown-index" and
+"markdown-summary" both write "index.md"; pick one`.
+
+The check reads each reducer's declared `Artifact`, and the package tests assert
+every reducer writes exactly what it declares, which is what makes the
+declaration trustworthy rather than advisory.
+
+## Re-running reducers without downloading
+
+`-from` re-applies reducers to a `manifest.json` from an earlier run, fetching
+nothing:
+
+```bash
+./labrador -from downloads/manifest.json -reduce markdown-index
+```
+
+This works because `manifest-json` round-trips a run's records field for field,
+making it the serialised form of an operation rather than just a report. Use it
+to regenerate an index after changing how one renders, to add an artifact a run
+did not originally produce, or to re-report when the source server is gone.
+
+Artifacts land beside the manifest unless `-output-dir` says otherwise, and the
+download-only flags are rejected rather than ignored:
+
+```
+$ ./labrador -from downloads/manifest.json -map html-to-text
+Error: -map has no meaning with -from, which downloads nothing
+```
+
+`manifest-json` declines when its artifact is the manifest the records came
+from: that would only restamp the file, and a failed write would take the source
+with it. Point `-output-dir` elsewhere for a fresh copy.
+
+Two things do not survive the round trip: an error's identity (the manifest
+keeps its text, so `errors.Is` no longer matches a sentinel) and any `FilePath`
+recorded relative to a different working directory.
+
+## Example index.md
 
 ```markdown
 # Download Index
 
 Generated: Tue, 17 Jun 2026 10:30:45 PDT
 
-**Total Downloads**: 6 | **Successful**: 5 | **Failed**: 1
+**Total Downloads**: 3 | **Successful**: 2 | **Failed**: 1
 
 ---
 
@@ -111,71 +191,49 @@ Generated: Tue, 17 Jun 2026 10:30:45 PDT
 
 ## Chapter 2/Concurrency
 
-- [https://go.dev/doc/effective_go#concurrency](Chapter 2/Concurrency/concurrency.html)
-- ❌ https://go.dev/blog/pipelines (Error: timeout)
+- ❌ https://go.dev/blog/pipelines (Error: download failed: retryable error: 503)
 ```
 
-## Examples
+## Package layout
 
-### Basic usage
-```bash
-./labrador -file example.yaml -output-dir downloads
-# Section names become directory paths automatically
+```
+internal/labrador/
+  pool.go       orchestration: fans URLs across workers, gathers records
+  config/       reads the YAML into sections
+  fetch/        HTTP with retry; one pooled client per run
+  mapper/       Kind, Chain, chain validation (mapper.go)
+                  one file and one test file per mapper
+  store/        plans collision-free names and writes the bytes
+  operation/    the per-URL Record plus the folds reducers share
+  reducer/      registry, Resolve, Validate, Run (reducer.go, output.go)
+                  one file and one test file per reducer
 ```
 
-### High concurrency
-```bash
-./labrador -file example.yaml -worker-count 10
-# Downloads 10 URLs concurrently
+Every sub-package is a leaf except `store` (needs `mapper.Payload`) and
+`reducer` (needs `operation.Record`). Nothing imports the root, so the
+orchestrator can grow without creating cycles.
+
+## Adding a mapper or reducer
+
+Define it in its own file under the relevant package and add it to that
+package's `registry`; the map key is the name the flag accepts.
+
+```go
+type Mapper struct {
+	Name      string
+	Accepts   []Kind // kinds this mapper transforms; others skip it untouched
+	Produces  Kind   // kind emitted for an accepted payload, or KindSame
+	Transform func(Payload) (Payload, error)
+}
+
+type Reducer struct {
+	Name     string
+	Artifact string // file written, relative to the output directory; must be unique across a run
+	Reduce   func(records []operation.Record, out *Output) (string, error)
+}
 ```
 
-### Custom retry settings
-```bash
-./labrador -file example.yaml -retry-count 5 -backoff 2000
-# Retry up to 5 times with 2-second backoff between attempts
-```
-
-### Organizing a course or book
-```yaml
-"Course Name/Module 1/Videos":
-  - https://example.com/video1.mp4
-  - https://example.com/video2.mp4
-
-"Course Name/Module 1/PDFs":
-  - https://example.com/slides1.pdf
-  
-"Course Name/Module 2/Videos":
-  - https://example.com/video3.mp4
-```
-
-Results in:
-```
-downloads/
-  Course Name/
-    Module 1/
-      Videos/
-        video1.mp4
-        video2.mp4
-      PDFs/
-        slides1.pdf
-    Module 2/
-      Videos/
-        video3.mp4
-```
-
-## Features
-
-- **Section-based directory organization**: YAML sections map directly to directory paths
-  - Use `/` in section names to create nested directories
-  - Intuitive: what you write in YAML is what you get on disk
-- **Automatic markdown index**: Generated index with links to all downloads
-- **Smart file type detection**: Automatically detects file extensions from URLs and Content-Type headers
-  - Supports HTML, PDF, images (JPG, PNG, GIF, SVG), JSON, XML, text files, and more
-  - Preserves original file extensions when present in URL
-  - Falls back to Content-Type header mapping when URL has no extension
-- **Worker pool concurrency**: Efficiently download multiple URLs in parallel
-- **Retry logic**: Automatic retries with configurable backoff for transient failures
-- **Smart error handling**: 4XX errors (client) are non-retryable, 5XX errors (server) are retried
-- **HTTP timeout**: 30-second timeout prevents hanging on slow servers
-- **Automatic directory creation**: Creates nested directories as needed
-- **Comment support**: YAML format allows inline comments for documentation
+Declaring `Accepts` accurately is what makes chain validation work, and it
+removes the need for a content-type guard inside `Transform`. A mapper that
+reshapes content should also set `Payload.Extension`, since naming otherwise
+trusts the URL suffix.

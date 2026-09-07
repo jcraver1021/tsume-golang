@@ -1,7 +1,9 @@
-package labrador
+// Package config reads the YAML describing an operation. Section names double
+// as directory paths, so the document's shape is the output tree's shape.
+package config
 
 import (
-	"bufio"
+	"errors"
 	"fmt"
 	"os"
 
@@ -9,13 +11,12 @@ import (
 )
 
 var (
-	ErrCantOpenFile = fmt.Errorf("failed to open file")
-	ErrParseFile    = fmt.Errorf("failed to parse file")
-	ErrParseYAML    = fmt.Errorf("failed to parse YAML")
+	ErrCantOpenFile = errors.New("failed to open file")
+	ErrParseYAML    = errors.New("failed to parse YAML")
 )
 
 type Section struct {
-	Name string
+	Name string // may contain "/" to nest directories
 	URLs []string
 }
 
@@ -32,30 +33,8 @@ func isValidURL(url string) bool {
 	return false
 }
 
-func ParseURLsFromTextFile(filename string) ([]string, error) {
-	urls := []string{}
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrCantOpenFile, err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if isValidURL(line) {
-			urls = append(urls, line)
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrParseFile, err)
-	}
-
-	return urls, nil
-}
-
-func ParseSectionsFromYAML(filename string) ([]Section, error) {
+// Load reads a YAML document, dropping non-HTTP(S) URLs and empty sections.
+func Load(filename string) ([]Section, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCantOpenFile, err)
