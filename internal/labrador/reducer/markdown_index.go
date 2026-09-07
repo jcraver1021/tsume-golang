@@ -25,8 +25,7 @@ var markdownIndex = Reducer{
 	},
 }
 
-// RenderMarkdownIndex needs outputPath to make each link relative to where the
-// index itself will sit.
+// RenderMarkdownIndex takes outputPath to make each link relative to it.
 func RenderMarkdownIndex(records []operation.Record, outputPath string) []byte {
 	var sb strings.Builder
 

@@ -1,7 +1,6 @@
-// Package mapper defines the per-download transformations labrador applies
-// between fetching bytes and writing them to disk. Every mapper declares the
-// payload kinds it consumes and produces, so a chain can be checked for
-// coherence before a single network call is made.
+// Package mapper transforms downloaded bytes before they are written. Mappers
+// declare the payload kinds they consume and produce, so a chain can be checked
+// for coherence before any network call.
 package mapper
 
 import (
@@ -19,9 +18,8 @@ var (
 	ErrTransformFailed   = errors.New("mapper failed")
 )
 
-// Kind is the coarse shape of a payload's content. It is deliberately coarser
-// than a MIME type: it exists to make chains statically checkable, not to
-// describe a file precisely.
+// Kind is the coarse shape of a payload, deliberately coarser than a MIME type:
+// it exists to make chains statically checkable.
 type Kind string
 
 const (
@@ -31,20 +29,17 @@ const (
 	KindXML    Kind = "xml"
 	KindBinary Kind = "binary"
 
-	// KindSame is only valid as a Produces value; it declares that a mapper
-	// hands back whatever kind it was given.
-	KindSame Kind = "same"
+	KindSame Kind = "same" // Produces only: the mapper leaves the kind alone
 )
 
-// ConcreteKinds is the universe a chain starts from. Validation runs before any
-// URL is fetched, so every kind must be assumed possible at position 1.
+// ConcreteKinds is the universe a chain starts from: nothing has been fetched,
+// so every kind is possible at position 1.
 func ConcreteKinds() []Kind {
 	return []Kind{KindBinary, KindHTML, KindJSON, KindText, KindXML}
 }
 
-// KindOf classifies a Content-Type header. An absent or unrecognised header is
-// binary, which means no mapper touches it — the conservative choice, since
-// guessing wrong would corrupt the download.
+// KindOf classifies a Content-Type header. An absent or unrecognised one is
+// binary, so no mapper touches it; guessing wrong would corrupt the download.
 func KindOf(contentType string) Kind {
 	lower := strings.ToLower(contentType)
 	switch {
@@ -61,26 +56,19 @@ func KindOf(contentType string) Kind {
 	}
 }
 
-// Payload is the unit a Mapper transforms: the downloaded bytes plus the
-// metadata that decides where they land. A mapper that changes the shape of the
-// content must set Extension, because file naming otherwise trusts the URL
-// suffix over ContentType.
+// Payload is the downloaded bytes plus the metadata deciding where they land.
 type Payload struct {
 	URL         string
 	Section     string
 	Content     []byte
 	ContentType string
-	Extension   string
+	Extension   string // set by a mapper that reshapes content; naming trusts the URL suffix otherwise
 }
 
 type Mapper struct {
-	Name string
-	// Accepts is the set of kinds this mapper transforms. Payloads of any other
-	// kind skip it untouched.
-	Accepts []Kind
-	// Produces is the kind emitted for an accepted payload, or KindSame when the
-	// mapper leaves the kind alone.
-	Produces  Kind
+	Name      string
+	Accepts   []Kind // kinds this mapper transforms; others skip it untouched
+	Produces  Kind   // kind emitted for an accepted payload, or KindSame
 	Transform func(Payload) (Payload, error)
 }
 
@@ -112,11 +100,10 @@ func Lookup(name string) (Mapper, error) {
 	return mapper, nil
 }
 
-// Chain is an ordered mapper pipeline applied to every download.
+// Chain is an ordered pipeline applied to every download.
 type Chain []Mapper
 
-// Resolve turns flag names into a validated chain. Blank entries are dropped so
-// an empty -map flag yields an empty chain rather than an error.
+// Resolve turns flag names into a validated chain, dropping blank entries.
 func Resolve(names []string) (Chain, error) {
 	chain := make(Chain, 0, len(names))
 	for _, name := range names {
@@ -145,9 +132,9 @@ func (c Chain) Names() []string {
 	return names
 }
 
-// Validate propagates the set of kinds that can reach each position, the way
-// matrix dimensions are checked by adjoining them, and rejects a chain in which
-// some mapper could never fire.
+// Validate propagates the kinds reaching each position, the way matrix
+// dimensions are checked by adjoining them, and rejects any mapper that could
+// never fire.
 func (c Chain) Validate() error {
 	reaching := make(map[Kind]bool, len(ConcreteKinds()))
 	for _, kind := range ConcreteKinds() {
@@ -231,8 +218,8 @@ func joinKinds(kinds []Kind) string {
 	return strings.Join(parts, ", ")
 }
 
-// Apply runs the chain in order, skipping any mapper whose Accepts set does not
-// cover the payload's current kind.
+// Apply runs the chain in order, skipping mappers that do not accept the
+// payload's current kind.
 func (c Chain) Apply(payload Payload) (Payload, error) {
 	for i, mapper := range c {
 		if !mapper.accepts(KindOf(payload.ContentType)) {

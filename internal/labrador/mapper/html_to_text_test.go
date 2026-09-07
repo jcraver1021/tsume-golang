@@ -60,24 +60,50 @@ func TestHTMLToText(t *testing.T) {
 }
 
 func TestHTMLToTextRetypesPayload(t *testing.T) {
-	got := applyOne(t, "html-to-text", Payload{ContentType: "text/html", Content: []byte(`<p>hi</p>`)})
-
-	if got.ContentType != "text/plain; charset=utf-8" {
-		t.Errorf("ContentType = %q, want text/plain; charset=utf-8", got.ContentType)
+	testCases := []struct {
+		name          string
+		payload       Payload
+		wantContent   string
+		wantType      string
+		wantExtension string
+	}{
+		{
+			name:          "HTML becomes plain text on disk",
+			payload:       Payload{ContentType: "text/html", Content: []byte(`<p>hi</p>`)},
+			wantContent:   "hi\n",
+			wantType:      "text/plain; charset=utf-8",
+			wantExtension: "txt",
+		},
+		{
+			name:        "a PDF is left untouched",
+			payload:     Payload{ContentType: "application/pdf", Content: []byte("%PDF-1.4")},
+			wantContent: "%PDF-1.4",
+			wantType:    "application/pdf",
+		},
+		{
+			name:        "JSON is left untouched",
+			payload:     Payload{ContentType: "application/json", Content: []byte(`{"a":1}`)},
+			wantContent: `{"a":1}`,
+			wantType:    "application/json",
+		},
 	}
-	if got.Extension != "txt" {
-		t.Errorf("Extension = %q, want txt", got.Extension)
-	}
-	if KindOf(got.ContentType) != KindText {
-		t.Errorf("KindOf(%q) = %q, want %q", got.ContentType, KindOf(got.ContentType), KindText)
-	}
-}
 
-func TestHTMLToTextSkipsNonHTML(t *testing.T) {
-	payload := Payload{ContentType: "application/pdf", Content: []byte("%PDF-1.4")}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := applyChain(t, []string{"html-to-text"}, tc.payload)
 
-	got := applyChain(t, []string{"html-to-text"}, payload)
-	if string(got.Content) != "%PDF-1.4" || got.Extension != "" {
-		t.Errorf("payload = %q/%q, want it untouched", got.Content, got.Extension)
+			if string(got.Content) != tc.wantContent {
+				t.Errorf("Content = %q, want %q", got.Content, tc.wantContent)
+			}
+			if got.ContentType != tc.wantType {
+				t.Errorf("ContentType = %q, want %q", got.ContentType, tc.wantType)
+			}
+			if got.Extension != tc.wantExtension {
+				t.Errorf("Extension = %q, want %q", got.Extension, tc.wantExtension)
+			}
+			if tc.wantExtension == "txt" && KindOf(got.ContentType) != KindText {
+				t.Errorf("KindOf(%q) = %q, want %q", got.ContentType, KindOf(got.ContentType), KindText)
+			}
+		})
 	}
 }

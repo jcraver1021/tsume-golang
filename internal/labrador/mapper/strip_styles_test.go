@@ -1,6 +1,7 @@
 package mapper_test
 
 import (
+	"cmp"
 	"testing"
 
 	. "tsumegolang/internal/labrador/mapper"
@@ -8,9 +9,10 @@ import (
 
 func TestStripStyles(t *testing.T) {
 	testCases := []struct {
-		name    string
-		content string
-		want    string
+		name        string
+		contentType string
+		content     string
+		want        string
 	}{
 		{
 			name:    "removes a style block",
@@ -27,11 +29,17 @@ func TestStripStyles(t *testing.T) {
 			content: `<style>a{}</style><script>b</script>`,
 			want:    `<script>b</script>`,
 		},
+		{
+			name:        "skips a payload that is not HTML",
+			contentType: "text/plain",
+			content:     `<style>p{}</style>`,
+			want:        `<style>p{}</style>`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := applyOne(t, "strip-styles", Payload{ContentType: "text/html", Content: []byte(tc.content)})
+			got := applyChain(t, []string{"strip-styles"}, Payload{ContentType: cmp.Or(tc.contentType, "text/html"), Content: []byte(tc.content)})
 			if string(got.Content) != tc.want {
 				t.Errorf("Content = %q, want %q", got.Content, tc.want)
 			}

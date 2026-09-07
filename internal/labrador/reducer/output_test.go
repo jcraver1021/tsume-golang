@@ -26,72 +26,98 @@ func writer(name, filename, content string) Reducer {
 	}
 }
 
-func TestOutputWritesUnderTheOutputDir(t *testing.T) {
-	outputDir := t.TempDir()
-
-	if _, err := Run([]Reducer{writer("probe", "artifact.txt", "content")}, nil, Options{OutputDir: outputDir}); err != nil {
-		t.Fatalf("Run() = %v", err)
-	}
-
-	content, err := os.ReadFile(filepath.Join(outputDir, "artifact.txt"))
-	if err != nil {
-		t.Fatalf("artifact.txt missing: %v", err)
-	}
-	if string(content) != "content" {
-		t.Errorf("content = %q, want %q", content, "content")
-	}
-}
-
-func TestOutputPathIsRelativeToTheOutputDir(t *testing.T) {
-	outputDir := t.TempDir()
-	var got string
-
-	probe := Reducer{
-		Name: "probe", Artifact: "probe.txt",
-		Reduce: func(_ []operation.Record, out *Output) (string, error) {
-			got = out.Path("probe.txt")
-			return "", nil
+func TestOutputWrite(t *testing.T) {
+	testCases := []struct {
+		name        string
+		runs        []string // content written by one reducer per run
+		blockedDir  bool
+		wantContent string
+		wantErr     error
+	}{
+		{
+			name:        "writes under the output directory",
+			runs:        []string{"content"},
+			wantContent: "content",
+		},
+		{
+			name:        "a later run refreshes the artifact",
+			runs:        []string{"first run", "second run"},
+			wantContent: "second run",
+		},
+		{
+			name:       "an uncreatable directory is reported",
+			runs:       []string{"content"},
+			blockedDir: true,
+			wantErr:    ErrCreateDir,
 		},
 	}
 
-	if _, err := Run([]Reducer{probe}, nil, Options{OutputDir: outputDir}); err != nil {
-		t.Fatalf("Run() = %v", err)
-	}
-	if want := filepath.Join(outputDir, "probe.txt"); got != want {
-		t.Errorf("Path() = %q, want %q", got, want)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			outputDir := t.TempDir()
+			if tc.blockedDir {
+				// A path whose parent is a regular file cannot be created.
+				blocked := filepath.Join(outputDir, "notadir")
+				if err := os.WriteFile(blocked, []byte("x"), 0644); err != nil {
+					t.Fatalf("setting up: %v", err)
+				}
+				outputDir = filepath.Join(blocked, "sub")
+			}
+
+			var err error
+			for _, content := range tc.runs {
+				_, err = Run([]Reducer{writer("only", "artifact.txt", content)}, nil, Options{OutputDir: outputDir})
+			}
+
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("err = %v, want %v", err, tc.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Run() = %v", err)
+			}
+
+			got, readErr := os.ReadFile(filepath.Join(outputDir, "artifact.txt"))
+			if readErr != nil {
+				t.Fatalf("artifact.txt missing: %v", readErr)
+			}
+			if string(got) != tc.wantContent {
+				t.Errorf("content = %q, want %q", got, tc.wantContent)
+			}
+		})
 	}
 }
 
-// Re-running labrador over the same directory refreshes its artifacts, as it
-// always has.
-func TestOutputOverwritesAcrossRuns(t *testing.T) {
-	outputDir := t.TempDir()
-
-	if _, err := Run([]Reducer{writer("only", "artifact.txt", "first run")}, nil, Options{OutputDir: outputDir}); err != nil {
-		t.Fatalf("first Run() = %v", err)
-	}
-	if _, err := Run([]Reducer{writer("only", "artifact.txt", "second run")}, nil, Options{OutputDir: outputDir}); err != nil {
-		t.Fatalf("second Run() = %v", err)
+func TestOutputPath(t *testing.T) {
+	testCases := []struct {
+		name     string
+		filename string
+	}{
+		{name: "a plain filename", filename: "probe.txt"},
+		{name: "a nested filename", filename: filepath.Join("reports", "probe.txt")},
 	}
 
-	content, err := os.ReadFile(filepath.Join(outputDir, "artifact.txt"))
-	if err != nil {
-		t.Fatalf("artifact.txt missing: %v", err)
-	}
-	if string(content) != "second run" {
-		t.Errorf("content = %q, want %q", content, "second run")
-	}
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			outputDir := t.TempDir()
+			var got string
 
-func TestOutputReportsWriteFailure(t *testing.T) {
-	// A path whose parent is a regular file cannot be created.
-	blocked := filepath.Join(t.TempDir(), "notadir")
-	if err := os.WriteFile(blocked, []byte("x"), 0644); err != nil {
-		t.Fatalf("setting up: %v", err)
-	}
+			probe := Reducer{
+				Name: "probe", Artifact: tc.filename,
+				Reduce: func(_ []operation.Record, out *Output) (string, error) {
+					got = out.Path(tc.filename)
+					return "", nil
+				},
+			}
 
-	_, err := Run([]Reducer{writer("probe", "artifact.txt", "content")}, nil, Options{OutputDir: filepath.Join(blocked, "sub")})
-	if !errors.Is(err, ErrCreateDir) {
-		t.Fatalf("err = %v, want %v", err, ErrCreateDir)
+			if _, err := Run([]Reducer{probe}, nil, Options{OutputDir: outputDir}); err != nil {
+				t.Fatalf("Run() = %v", err)
+			}
+			if want := filepath.Join(outputDir, tc.filename); got != want {
+				t.Errorf("Path() = %q, want %q", got, want)
+			}
+		})
 	}
 }

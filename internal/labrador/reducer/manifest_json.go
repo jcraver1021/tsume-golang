@@ -42,8 +42,8 @@ var manifestJSON = Reducer{
 	Name:     "manifest-json",
 	Artifact: artifactManifest,
 	Reduce: func(records []operation.Record, out *Output) (string, error) {
-		// Rewriting the manifest a run was loaded from would only restamp it,
-		// and a failed write would take the source with it.
+		// Rewriting the source would only restamp it, and a failed write
+		// would take it with it.
 		if path := out.Path(artifactManifest); out.Source() == path {
 			return "", fmt.Errorf("%w: %s is the manifest this run was loaded from", ErrSkipped, path)
 		}
@@ -95,9 +95,8 @@ func RenderJSONManifest(records []operation.Record) ([]byte, error) {
 	return append(encoded, '\n'), nil
 }
 
-// LoadJSONManifest reads back the records an earlier run wrote, so reducers can
-// be re-applied without downloading anything again. Errors come back as plain
-// values: the manifest keeps their text, not their identity.
+// LoadJSONManifest reads back an earlier run's records. Errors come back as
+// plain values: the manifest keeps their text, not their identity.
 func LoadJSONManifest(path string) ([]operation.Record, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {

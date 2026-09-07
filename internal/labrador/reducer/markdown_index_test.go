@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	errDownloadFailed = errors.New("record failed")
+	errDownloadFailed = errors.New("download failed")
 	errTimeout        = errors.New("timeout waiting for result")
 )
 
@@ -28,6 +28,8 @@ func TestRenderMarkdownIndex(t *testing.T) {
 		wantSections   []string
 		wantSuccessful int
 		wantFailed     int
+		indexPath      string // where the index will sit, for relative links
+		wantContains   []string
 	}{
 		{
 			name: "all successful downloads",
@@ -65,6 +67,27 @@ func TestRenderMarkdownIndex(t *testing.T) {
 			wantSections: []string{},
 		},
 		{
+			name: "failures explain themselves",
+			records: []operation.Record{
+				{Section: "Chapter 1", URL: "https://example.com/timeout", Error: errTimeout},
+				{Section: "Chapter 1", URL: "https://example.com/silent"},
+			},
+			wantSections: []string{"Chapter 1"},
+			wantFailed:   2,
+			wantContains: []string{"Error: timeout waiting for result", "Error: unknown error"},
+		},
+		{
+			name: "a section is headed once however many URLs it holds",
+			records: []operation.Record{
+				{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
+				{Section: "Chapter 1", URL: "https://example.com/page2", FilePath: "page2.html", Success: true},
+				{Section: "Chapter 1", URL: "https://example.com/page3", FilePath: "page3.html", Success: true},
+			},
+			wantSections:   []string{"Chapter 1"},
+			wantSuccessful: 3,
+			wantContains:   []string{"## Chapter 1"},
+		},
+		{
 			name: "different file types",
 			records: []operation.Record{
 				{Section: "Documents", URL: "https://example.com/doc.pdf", FilePath: "doc.pdf", Success: true},
@@ -79,6 +102,15 @@ func TestRenderMarkdownIndex(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			content := generateIndex(t, tc.records)
+
+			for _, want := range tc.wantContains {
+				if !strings.Contains(content, want) {
+					t.Errorf("index should contain %q, got:\n%s", want, content)
+				}
+			}
+			if strings.Count(content, "## Chapter 1") > 1 {
+				t.Error("a section should be headed exactly once")
+			}
 
 			if !strings.Contains(content, "# Download Index") {
 				t.Error("index should contain the '# Download Index' header")
@@ -111,69 +143,46 @@ func TestRenderMarkdownIndex(t *testing.T) {
 	}
 }
 
+// Links are relative to where the index itself sits.
 func TestRenderMarkdownIndexUsesRelativePaths(t *testing.T) {
 	tmpDir := t.TempDir()
-	indexPath := filepath.Join(tmpDir, "index.md")
 
-	records := []operation.Record{
+	testCases := []struct {
+		name     string
+		filePath string
+		want     string
+	}{
 		{
-			Section:  "Chapter 1",
-			URL:      "https://example.com/page1",
-			FilePath: filepath.Join(tmpDir, "Chapter 1", "page1.html"),
-			Success:  true,
+			name:     "a file beside the index",
+			filePath: filepath.Join(tmpDir, "page1.html"),
+			want:     "page1.html",
+		},
+		{
+			name:     "a file in a section directory",
+			filePath: filepath.Join(tmpDir, "Chapter 1", "page1.html"),
+			want:     filepath.Join("Chapter 1", "page1.html"),
+		},
+		{
+			name:     "a file outside the output tree",
+			filePath: filepath.Join(tmpDir, "..", "elsewhere.html"),
+			want:     filepath.Join("..", "elsewhere.html"),
 		},
 	}
 
-	raw := RenderMarkdownIndex(records, indexPath)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			records := []operation.Record{{
+				Section:  "Chapter 1",
+				URL:      "https://example.com/page1",
+				FilePath: tc.filePath,
+				Success:  true,
+			}}
 
-	want := fmt.Sprintf("- [https://example.com/page1](%s)", filepath.Join("Chapter 1", "page1.html"))
-	if !strings.Contains(string(raw), want) {
-		t.Errorf("index should contain %q, got:\n%s", want, raw)
-	}
-}
-
-func TestRenderMarkdownIndexGroupsSectionsOnce(t *testing.T) {
-	records := []operation.Record{
-		{Section: "Chapter 1", URL: "https://example.com/page1", FilePath: "page1.html", Success: true},
-		{Section: "Chapter 1", URL: "https://example.com/page2", FilePath: "page2.html", Success: true},
-		{Section: "Chapter 1", URL: "https://example.com/page3", FilePath: "page3.html", Success: true},
-	}
-
-	content := generateIndex(t, records)
-
-	if got := strings.Count(content, "## Chapter 1"); got != 1 {
-		t.Errorf("'## Chapter 1' appears %d times, want 1", got)
-	}
-	for _, record := range records {
-		if !strings.Contains(content, record.URL) {
-			t.Errorf("index should contain URL %q", record.URL)
-		}
-	}
-}
-
-func TestRenderMarkdownIndexReportsErrorMessages(t *testing.T) {
-	records := []operation.Record{
-		{Section: "Chapter 1", URL: "https://example.com/timeout", Error: errTimeout},
-	}
-
-	content := generateIndex(t, records)
-
-	if !strings.Contains(content, "Error:") {
-		t.Error("index should label failures with 'Error:'")
-	}
-	if !strings.Contains(content, "timeout") {
-		t.Error("index should include the error message")
-	}
-}
-
-func TestRenderMarkdownIndexHandlesMissingError(t *testing.T) {
-	records := []operation.Record{
-		{Section: "Chapter 1", URL: "https://example.com/x", Success: false},
-	}
-
-	content := generateIndex(t, records)
-
-	if !strings.Contains(content, "unknown error") {
-		t.Error("a failure with no error should still be explained")
+			got := string(RenderMarkdownIndex(records, filepath.Join(tmpDir, "index.md")))
+			want := fmt.Sprintf("- [https://example.com/page1](%s)", tc.want)
+			if !strings.Contains(got, want) {
+				t.Errorf("index should contain %q, got:\n%s", want, got)
+			}
+		})
 	}
 }

@@ -1,6 +1,5 @@
 // Package fetch retrieves URLs over HTTP with a retry policy. A Client owns one
-// http.Client for its whole lifetime, so connections are pooled across every
-// URL a run downloads rather than redialled per request.
+// http.Client, so connections are pooled across a whole run.
 package fetch
 
 import (
@@ -35,8 +34,7 @@ type Client struct {
 
 type Option func(*Client)
 
-// New builds a client that is safe for concurrent use, so a worker pool should
-// share one rather than construct a client per job.
+// New builds a client safe for concurrent use; a worker pool should share one.
 func New(options ...Option) *Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 
@@ -72,9 +70,8 @@ func WithBackoff(backoffMs int) Option {
 	}
 }
 
-// WithIdleConnsPerHost should match the number of concurrent callers. The
-// net/http default of 2 would leave most workers redialling on every request,
-// since a run typically pulls many URLs from the same host.
+// WithIdleConnsPerHost should match the number of concurrent callers; the
+// net/http default of 2 leaves most workers redialling.
 func WithIdleConnsPerHost(count int) Option {
 	return func(client *Client) {
 		if count < 1 {

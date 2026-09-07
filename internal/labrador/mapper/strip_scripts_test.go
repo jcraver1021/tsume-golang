@@ -1,6 +1,7 @@
 package mapper_test
 
 import (
+	"cmp"
 	"testing"
 
 	. "tsumegolang/internal/labrador/mapper"
@@ -8,9 +9,10 @@ import (
 
 func TestStripScripts(t *testing.T) {
 	testCases := []struct {
-		name    string
-		content string
-		want    string
+		name        string
+		contentType string
+		content     string
+		want        string
 	}{
 		{
 			name:    "removes a script with attributes",
@@ -37,29 +39,28 @@ func TestStripScripts(t *testing.T) {
 			content: `<p>plain</p>`,
 			want:    `<p>plain</p>`,
 		},
+		{
+			name:        "skips a payload that is not HTML",
+			contentType: "application/json",
+			content:     `{"a":"<script>x</script>"}`,
+			want:        `{"a":"<script>x</script>"}`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := applyOne(t, "strip-scripts", Payload{ContentType: "text/html", Content: []byte(tc.content)})
+			contentType := cmp.Or(tc.contentType, "text/html")
+
+			got := applyChain(t, []string{"strip-scripts"}, Payload{ContentType: contentType, Content: []byte(tc.content)})
 			if string(got.Content) != tc.want {
 				t.Errorf("Content = %q, want %q", got.Content, tc.want)
 			}
-			if got.ContentType != "text/html" {
+			if got.ContentType != contentType {
 				t.Errorf("ContentType = %q, want it unchanged", got.ContentType)
 			}
 			if got.Extension != "" {
 				t.Errorf("Extension = %q, want it unset", got.Extension)
 			}
 		})
-	}
-}
-
-func TestStripScriptsSkipsNonHTML(t *testing.T) {
-	payload := Payload{ContentType: "application/json", Content: []byte(`{"a":"<script>x</script>"}`)}
-
-	got := applyChain(t, []string{"strip-scripts"}, payload)
-	if string(got.Content) != string(payload.Content) {
-		t.Errorf("Content = %q, want it untouched", got.Content)
 	}
 }

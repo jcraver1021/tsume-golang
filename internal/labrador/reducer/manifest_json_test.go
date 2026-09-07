@@ -28,9 +28,69 @@ type decodedManifest struct {
 	} `json:"sections"`
 }
 
-func generateManifest(t *testing.T) decodedManifest {
-	t.Helper()
+func TestRenderJSONManifest(t *testing.T) {
+	testCases := []struct {
+		name          string
+		records       []operation.Record
+		wantTotal     int
+		wantSucceeded int
+		wantFailed    int
+		wantSections  []string
+	}{
+		{
+			name:          "counts and sorted sections",
+			records:       testRecords(),
+			wantTotal:     3,
+			wantSucceeded: 2,
+			wantFailed:    1,
+			wantSections:  []string{"Alpha", "Beta"},
+		},
+		{
+			name:         "no records is still valid JSON",
+			records:      nil,
+			wantSections: []string{},
+		},
+		{
+			name:          "one successful record",
+			records:       []operation.Record{{Section: "Only", URL: "u", FilePath: "f", Success: true}},
+			wantTotal:     1,
+			wantSucceeded: 1,
+			wantSections:  []string{"Only"},
+		},
+	}
 
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := RenderJSONManifest(tc.records)
+			if err != nil {
+				t.Fatalf("RenderJSONManifest() = %v", err)
+			}
+
+			var got decodedManifest
+			if err := json.Unmarshal(raw, &got); err != nil {
+				t.Fatalf("manifest is not valid JSON: %v", err)
+			}
+
+			if got.Total != tc.wantTotal || got.Succeeded != tc.wantSucceeded || got.Failed != tc.wantFailed {
+				t.Errorf("total/succeeded/failed = %d/%d/%d, want %d/%d/%d",
+					got.Total, got.Succeeded, got.Failed, tc.wantTotal, tc.wantSucceeded, tc.wantFailed)
+			}
+			if got.Generated == "" {
+				t.Error("generated timestamp is empty")
+			}
+
+			sections := make([]string, len(got.Sections))
+			for i, section := range got.Sections {
+				sections[i] = section.Name
+			}
+			if strings.Join(sections, ",") != strings.Join(tc.wantSections, ",") {
+				t.Errorf("sections = %v, want %v", sections, tc.wantSections)
+			}
+		})
+	}
+}
+
+func TestRenderJSONManifestRecordsFailures(t *testing.T) {
 	raw, err := RenderJSONManifest(testRecords())
 	if err != nil {
 		t.Fatalf("RenderJSONManifest() = %v", err)
@@ -40,33 +100,6 @@ func generateManifest(t *testing.T) decodedManifest {
 	if err := json.Unmarshal(raw, &got); err != nil {
 		t.Fatalf("manifest is not valid JSON: %v", err)
 	}
-	return got
-}
-
-func TestRenderJSONManifestCounts(t *testing.T) {
-	got := generateManifest(t)
-
-	if got.Total != 3 || got.Succeeded != 2 || got.Failed != 1 {
-		t.Errorf("total/succeeded/failed = %d/%d/%d, want 3/2/1", got.Total, got.Succeeded, got.Failed)
-	}
-	if got.Generated == "" {
-		t.Error("generated timestamp is empty")
-	}
-}
-
-func TestRenderJSONManifestSortsSections(t *testing.T) {
-	got := generateManifest(t)
-
-	if len(got.Sections) != 2 {
-		t.Fatalf("sections = %d, want 2", len(got.Sections))
-	}
-	if got.Sections[0].Name != "Alpha" || got.Sections[1].Name != "Beta" {
-		t.Errorf("sections = %q, %q, want Alpha, Beta", got.Sections[0].Name, got.Sections[1].Name)
-	}
-}
-
-func TestRenderJSONManifestRecordsFailures(t *testing.T) {
-	got := generateManifest(t)
 
 	failed := got.Sections[0].Entries[1]
 	if failed.Success {
@@ -76,113 +109,110 @@ func TestRenderJSONManifestRecordsFailures(t *testing.T) {
 		t.Errorf("error = %q, want %q", failed.Error, "404")
 	}
 	if failed.FilePath != "" {
-		t.Errorf("file_path = %q, want it omitted for a failed record", failed.FilePath)
-	}
-}
-
-func TestRenderJSONManifestEmptyRecordsIsValidJSON(t *testing.T) {
-	raw, err := RenderJSONManifest(nil)
-	if err != nil {
-		t.Fatalf("RenderJSONManifest(nil) = %v", err)
-	}
-
-	var got decodedManifest
-	if err := json.Unmarshal(raw, &got); err != nil {
-		t.Fatalf("manifest is not valid JSON: %v", err)
-	}
-	if got.Total != 0 || len(got.Sections) != 0 {
-		t.Errorf("total/sections = %d/%d, want 0/0", got.Total, len(got.Sections))
+		t.Errorf("file_path = %q, want it omitted for a failed download", failed.FilePath)
 	}
 }
 
 func TestManifestRoundTrip(t *testing.T) {
-	original := testRecords()
-
-	raw, err := RenderJSONManifest(original)
-	if err != nil {
-		t.Fatalf("RenderJSONManifest() = %v", err)
+	testCases := []struct {
+		name    string
+		records []operation.Record
+	}{
+		{name: "no records", records: nil},
+		{name: "successes and a failure", records: testRecords()},
+		{
+			name: "a record with every field set",
+			records: []operation.Record{
+				{Section: "S/Nested", URL: "https://x/y", FilePath: "/abs/y.html", Success: true},
+			},
+		},
 	}
 
-	got, err := ParseJSONManifest(raw)
-	if err != nil {
-		t.Fatalf("ParseJSONManifest() = %v", err)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := RenderJSONManifest(tc.records)
+			if err != nil {
+				t.Fatalf("RenderJSONManifest() = %v", err)
+			}
 
-	if len(got) != len(original) {
-		t.Fatalf("got %d records, want %d", len(got), len(original))
-	}
+			got, err := ParseJSONManifest(raw)
+			if err != nil {
+				t.Fatalf("ParseJSONManifest() = %v", err)
+			}
+			if len(got) != len(tc.records) {
+				t.Fatalf("got %d records, want %d", len(got), len(tc.records))
+			}
 
-	// Rendering groups by section, so compare as a set keyed by URL.
-	byURL := map[string]operation.Record{}
-	for _, record := range got {
-		byURL[record.URL] = record
-	}
+			// Rendering groups by section, so compare as a set keyed by URL.
+			byURL := map[string]operation.Record{}
+			for _, record := range got {
+				byURL[record.URL] = record
+			}
 
-	for _, want := range original {
-		record, ok := byURL[want.URL]
-		if !ok {
-			t.Errorf("URL %q missing after the round trip", want.URL)
-			continue
-		}
-		if record.Section != want.Section || record.FilePath != want.FilePath || record.Success != want.Success {
-			t.Errorf("record for %q = %+v, want %+v", want.URL, record, want)
-		}
-
-		switch {
-		case want.Error == nil && record.Error != nil:
-			t.Errorf("record for %q gained error %v", want.URL, record.Error)
-		case want.Error != nil && record.Error == nil:
-			t.Errorf("record for %q lost its error", want.URL)
-		case want.Error != nil && record.Error.Error() != want.Error.Error():
-			t.Errorf("error for %q = %q, want %q", want.URL, record.Error, want.Error)
-		}
-	}
-}
-
-func TestParseJSONManifestEmptyManifest(t *testing.T) {
-	raw, err := RenderJSONManifest(nil)
-	if err != nil {
-		t.Fatalf("RenderJSONManifest(nil) = %v", err)
-	}
-
-	got, err := ParseJSONManifest(raw)
-	if err != nil {
-		t.Fatalf("ParseJSONManifest() = %v", err)
-	}
-	if len(got) != 0 {
-		t.Errorf("got %d records, want none", len(got))
+			for _, want := range tc.records {
+				record, ok := byURL[want.URL]
+				if !ok {
+					t.Errorf("URL %q missing after the round trip", want.URL)
+					continue
+				}
+				if record.Section != want.Section || record.FilePath != want.FilePath || record.Success != want.Success {
+					t.Errorf("record for %q = %+v, want %+v", want.URL, record, want)
+				}
+				if errText(record.Error) != errText(want.Error) {
+					t.Errorf("error for %q = %q, want %q", want.URL, errText(record.Error), errText(want.Error))
+				}
+			}
+		})
 	}
 }
 
-func TestLoadJSONManifestErrors(t *testing.T) {
-	t.Run("missing file", func(t *testing.T) {
-		_, err := LoadJSONManifest(filepath.Join(t.TempDir(), "absent.json"))
-		if !errors.Is(err, ErrReadManifest) {
-			t.Fatalf("err = %v, want %v", err, ErrReadManifest)
-		}
-	})
+func errText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
 
-	t.Run("malformed JSON", func(t *testing.T) {
-		path := filepath.Join(t.TempDir(), "manifest.json")
-		if err := os.WriteFile(path, []byte("{not json"), 0644); err != nil {
-			t.Fatalf("setting up: %v", err)
-		}
+func TestLoadJSONManifest(t *testing.T) {
+	testCases := []struct {
+		name    string
+		write   string
+		absent  bool
+		wantErr error
+	}{
+		{name: "missing file", absent: true, wantErr: ErrReadManifest},
+		{name: "malformed JSON", write: "{not json", wantErr: ErrParseManifest},
+		{name: "empty file", write: "", wantErr: ErrParseManifest},
+		{name: "valid manifest", write: `{"sections":[{"name":"S","entries":[{"url":"u","success":true}]}]}`},
+	}
 
-		_, err := LoadJSONManifest(path)
-		if !errors.Is(err, ErrParseManifest) {
-			t.Fatalf("err = %v, want %v", err, ErrParseManifest)
-		}
-	})
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "manifest.json")
+			if !tc.absent {
+				if err := os.WriteFile(path, []byte(tc.write), 0644); err != nil {
+					t.Fatalf("setting up: %v", err)
+				}
+			}
+
+			_, err := LoadJSONManifest(path)
+			if tc.wantErr == nil {
+				if err != nil {
+					t.Fatalf("LoadJSONManifest() = %v", err)
+				}
+				return
+			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("err = %v, want %v", err, tc.wantErr)
+			}
+		})
+	}
 }
 
 func TestLoadJSONManifestReadsWhatTheReducerWrote(t *testing.T) {
 	outputDir := t.TempDir()
 
-	reducers, err := Resolve([]string{"manifest-json"})
-	if err != nil {
-		t.Fatalf("Resolve() = %v", err)
-	}
-	if _, err := Run(reducers, testRecords(), Options{OutputDir: outputDir}); err != nil {
+	if _, err := Run(mustResolve(t, "manifest-json"), testRecords(), Options{OutputDir: outputDir}); err != nil {
 		t.Fatalf("Run() = %v", err)
 	}
 
@@ -195,51 +225,49 @@ func TestLoadJSONManifestReadsWhatTheReducerWrote(t *testing.T) {
 	}
 }
 
-// Re-applying manifest-json to the manifest it was loaded from would only
-// restamp the file, and a failed write would take the source with it.
-func TestManifestJSONDeclinesToRewriteItsOwnSource(t *testing.T) {
-	outputDir := t.TempDir()
-	source := filepath.Join(outputDir, "manifest.json")
-
-	reducers, err := Resolve([]string{"manifest-json"})
-	if err != nil {
-		t.Fatalf("Resolve() = %v", err)
+func TestManifestJSONSourceHandling(t *testing.T) {
+	testCases := []struct {
+		name        string
+		sourceIsOwn bool
+		wantSkip    bool
+	}{
+		// Rewriting the source would only restamp it, and a failed write would
+		// take it with it.
+		{name: "declines to rewrite the manifest it was loaded from", sourceIsOwn: true, wantSkip: true},
+		{name: "writes when the source is elsewhere"},
 	}
 
-	report, err := Run(reducers, testRecords(), Options{OutputDir: outputDir, Source: source})
-	if err != nil {
-		t.Fatalf("Run() = %v, want a skip rather than a failure", err)
-	}
-	if len(report.Summaries) != 0 {
-		t.Errorf("summaries = %v, want none", report.Summaries)
-	}
-	if len(report.Skips) != 1 || !strings.Contains(report.Skips[0], "loaded from") {
-		t.Fatalf("skips = %v, want one explaining the source", report.Skips)
-	}
-	if _, err := os.Stat(source); !os.IsNotExist(err) {
-		t.Error("the source manifest should not have been written")
-	}
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			outputDir := t.TempDir()
+			artifact := filepath.Join(outputDir, "manifest.json")
 
-func TestManifestJSONWritesWhenTheSourceIsElsewhere(t *testing.T) {
-	outputDir := t.TempDir()
+			source := filepath.Join(t.TempDir(), "manifest.json")
+			if tc.sourceIsOwn {
+				source = artifact
+			}
 
-	reducers, err := Resolve([]string{"manifest-json"})
-	if err != nil {
-		t.Fatalf("Resolve() = %v", err)
-	}
+			report, err := Run(mustResolve(t, "manifest-json"), testRecords(), Options{OutputDir: outputDir, Source: source})
+			if err != nil {
+				t.Fatalf("Run() = %v", err)
+			}
 
-	report, err := Run(reducers, testRecords(), Options{
-		OutputDir: outputDir,
-		Source:    filepath.Join(t.TempDir(), "manifest.json"),
-	})
-	if err != nil {
-		t.Fatalf("Run() = %v", err)
-	}
-	if len(report.Summaries) != 1 || len(report.Skips) != 0 {
-		t.Errorf("report = %+v, want one summary and no skips", report)
-	}
-	if _, err := os.Stat(filepath.Join(outputDir, "manifest.json")); err != nil {
-		t.Errorf("manifest not written: %v", err)
+			if tc.wantSkip {
+				if len(report.Skips) != 1 || !strings.Contains(report.Skips[0], "loaded from") {
+					t.Fatalf("skips = %v, want one explaining the source", report.Skips)
+				}
+				if _, err := os.Stat(artifact); !os.IsNotExist(err) {
+					t.Error("the source manifest should not have been written")
+				}
+				return
+			}
+
+			if len(report.Summaries) != 1 || len(report.Skips) != 0 {
+				t.Errorf("report = %+v, want one summary and no skips", report)
+			}
+			if _, err := os.Stat(artifact); err != nil {
+				t.Errorf("manifest not written: %v", err)
+			}
+		})
 	}
 }

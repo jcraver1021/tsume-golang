@@ -50,124 +50,151 @@ func (cs *countingServer) connectionCount() int {
 	return len(cs.remotes)
 }
 
-func TestGetRetriesRetryableStatus(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
-	_, err := New(WithRetryCount(3), WithBackoff(0)).Get(server.URL)
-	if !errors.Is(err, ErrRetryable) {
-		t.Fatalf("err = %v, want %v", err, ErrRetryable)
+func TestGetRetryPolicy(t *testing.T) {
+	testCases := []struct {
+		name        string
+		failUntil   int // fail every call before this one; 0 fails them all
+		status      int
+		retryCount  int
+		backoffMs   int
+		wantCalls   int
+		wantErr     error
+		wantContent string
+	}{
+		{
+			name:       "a retryable status is retried up to the limit",
+			status:     http.StatusInternalServerError,
+			retryCount: 3,
+			wantCalls:  3,
+			wantErr:    ErrRetryable,
+		},
+		{
+			name:       "a non-retryable status stops immediately",
+			status:     http.StatusNotFound,
+			retryCount: 5,
+			wantCalls:  1,
+			wantErr:    ErrNonRetryable,
+		},
+		{
+			name:        "a transient failure recovers",
+			failUntil:   3,
+			status:      http.StatusServiceUnavailable,
+			retryCount:  3,
+			wantCalls:   3,
+			wantContent: "recovered",
+		},
+		{
+			name:        "the first attempt can simply succeed",
+			failUntil:   1,
+			retryCount:  3,
+			wantCalls:   1,
+			wantContent: "recovered",
+		},
+		{
+			name:       "a retry count below one still attempts once",
+			status:     http.StatusInternalServerError,
+			retryCount: 0,
+			backoffMs:  -5,
+			wantCalls:  1,
+			wantErr:    ErrRetryable,
+		},
 	}
-	if got := server.callCount(); got != 3 {
-		t.Errorf("requests = %d, want 3", got)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
+				if tc.failUntil > 0 && call >= tc.failUntil {
+					w.Write([]byte("recovered"))
+					return
+				}
+				w.WriteHeader(tc.status)
+			})
+
+			result, err := New(WithRetryCount(tc.retryCount), WithBackoff(tc.backoffMs)).Get(server.URL)
+
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("err = %v, want %v", err, tc.wantErr)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("Get() = %v", err)
+				}
+				if string(result.Content) != tc.wantContent {
+					t.Errorf("Content = %q, want %q", result.Content, tc.wantContent)
+				}
+			}
+
+			if got := server.callCount(); got != tc.wantCalls {
+				t.Errorf("requests = %d, want %d", got, tc.wantCalls)
+			}
+		})
 	}
 }
 
-func TestGetStopsOnNonRetryableStatus(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		w.WriteHeader(http.StatusNotFound)
-	})
+func TestClientPoolsConnections(t *testing.T) {
+	testCases := []struct {
+		name       string
+		status     int
+		retryCount int
+		requests   int
+	}{
+		{name: "across successful requests", status: http.StatusOK, retryCount: 1, requests: 5},
+		// Only holds if a failed response body is drained before being closed.
+		{name: "across retried failures", status: http.StatusInternalServerError, retryCount: 4, requests: 1},
+	}
 
-	_, err := New(WithRetryCount(5), WithBackoff(0)).Get(server.URL)
-	if !errors.Is(err, ErrNonRetryable) {
-		t.Fatalf("err = %v, want %v", err, ErrNonRetryable)
-	}
-	if got := server.callCount(); got != 1 {
-		t.Errorf("requests = %d, want 1 — a 4xx must not be retried", got)
-	}
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
+				http.Error(w, "body", tc.status)
+			})
 
-func TestGetSucceedsAfterTransientFailure(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		if call < 3 {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-		w.Write([]byte("recovered"))
-	})
+			client := New(WithRetryCount(tc.retryCount), WithBackoff(0))
+			for range tc.requests {
+				client.Get(server.URL)
+			}
 
-	result, err := New(WithRetryCount(3), WithBackoff(0)).Get(server.URL)
-	if err != nil {
-		t.Fatalf("Get() = %v", err)
-	}
-	if string(result.Content) != "recovered" {
-		t.Errorf("Content = %q, want %q", result.Content, "recovered")
-	}
-	if got := server.callCount(); got != 3 {
-		t.Errorf("requests = %d, want 3", got)
+			if got := server.connectionCount(); got != 1 {
+				t.Errorf("connections = %d, want 1", got)
+			}
+		})
 	}
 }
 
-// The backoff belongs between attempts, so N attempts sleep N-1 times. Sleeping
-// after the final attempt would only delay reporting a failure that has already
-// been decided.
-func TestGetDoesNotBackOffAfterTheFinalAttempt(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
+// The backoff belongs between attempts, so N attempts sleep N-1 times.
+func TestGetBacksOffBetweenAttemptsOnly(t *testing.T) {
 	const backoffMs = 60
-	start := time.Now()
-	if _, err := New(WithRetryCount(3), WithBackoff(backoffMs)).Get(server.URL); err == nil {
-		t.Fatal("Get() = nil, want an error")
-	}
-	elapsed := time.Since(start)
 
-	minimum := 2 * backoffMs * time.Millisecond
-	maximum := 3 * backoffMs * time.Millisecond
-	if elapsed < minimum {
-		t.Errorf("elapsed = %v, want at least %v for two gaps between three attempts", elapsed, minimum)
-	}
-	if elapsed >= maximum {
-		t.Errorf("elapsed = %v, want under %v — it should not sleep after the last attempt", elapsed, maximum)
-	}
-}
-
-func TestGetHonoursOptionFloors(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		w.WriteHeader(http.StatusInternalServerError)
-	})
-
-	// A retry count below one would otherwise mean never attempting at all.
-	if _, err := New(WithRetryCount(0), WithBackoff(-5)).Get(server.URL); err == nil {
-		t.Fatal("Get() = nil, want an error")
-	}
-	if got := server.callCount(); got != 1 {
-		t.Errorf("requests = %d, want 1", got)
-	}
-}
-
-func TestClientReusesConnections(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		w.Write([]byte("ok"))
-	})
-
-	client := New(WithRetryCount(1))
-	for range 5 {
-		if _, err := client.Get(server.URL); err != nil {
-			t.Fatalf("Get() = %v", err)
-		}
+	testCases := []struct {
+		name       string
+		retryCount int
+		wantGaps   int
+	}{
+		{name: "a single attempt never sleeps", retryCount: 1, wantGaps: 0},
+		{name: "two attempts sleep once", retryCount: 2, wantGaps: 1},
+		{name: "three attempts sleep twice", retryCount: 3, wantGaps: 2},
 	}
 
-	if got := server.connectionCount(); got != 1 {
-		t.Errorf("connections = %d, want 1 — a shared client should pool its connections", got)
-	}
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
+				w.WriteHeader(http.StatusInternalServerError)
+			})
 
-// A failed status still has to leave the connection reusable, which only holds
-// if the body is drained before it is closed.
-func TestClientReusesConnectionsAcrossFailedStatuses(t *testing.T) {
-	server := newCountingServer(t, func(w http.ResponseWriter, r *http.Request, call int) {
-		http.Error(w, "boom", http.StatusInternalServerError)
-	})
+			start := time.Now()
+			if _, err := New(WithRetryCount(tc.retryCount), WithBackoff(backoffMs)).Get(server.URL); err == nil {
+				t.Fatal("Get() = nil, want an error")
+			}
+			elapsed := time.Since(start)
 
-	if _, err := New(WithRetryCount(4), WithBackoff(0)).Get(server.URL); err == nil {
-		t.Fatal("Get() = nil, want an error")
-	}
-
-	if got := server.connectionCount(); got != 1 {
-		t.Errorf("connections = %d, want 1 across 4 attempts", got)
+			if minimum := time.Duration(tc.wantGaps) * backoffMs * time.Millisecond; elapsed < minimum {
+				t.Errorf("elapsed = %v, want at least %v for %d gaps", elapsed, minimum, tc.wantGaps)
+			}
+			if maximum := time.Duration(tc.wantGaps+1) * backoffMs * time.Millisecond; elapsed >= maximum {
+				t.Errorf("elapsed = %v, want under %v — it should not sleep after the last attempt", elapsed, maximum)
+			}
+		})
 	}
 }
 

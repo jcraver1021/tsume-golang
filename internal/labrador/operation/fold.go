@@ -2,7 +2,7 @@ package operation
 
 import "sort"
 
-// Group is the records of one section, as laid out by GroupBySection.
+// Group is the records of one section.
 type Group struct {
 	Section string
 	Records []Record
@@ -19,8 +19,7 @@ func CountOutcomes(records []Record) (succeeded, failed int) {
 	return succeeded, failed
 }
 
-// GroupBySection returns sections in sorted order so that every artifact a run
-// produces lays them out identically.
+// GroupBySection sorts sections so every artifact lays them out identically.
 func GroupBySection(records []Record) []Group {
 	grouped := make(map[string][]Record)
 	for _, record := range records {

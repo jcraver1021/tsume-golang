@@ -1,6 +1,5 @@
-// Package reducer defines the aggregate artifacts labrador can produce from a
-// completed run. Any number of reducers may run; each folds the same records
-// into its own artifact, independently of the others.
+// Package reducer folds a completed run into report artifacts. Any number of
+// reducers may run; each writes its own artifact, independently of the others.
 package reducer
 
 import (
@@ -17,24 +16,16 @@ var (
 	ErrDuplicateReducer    = errors.New("duplicate reducer")
 	ErrIncompatibleReducer = errors.New("incompatible reducers")
 
-	// ErrSkipped lets a reducer decline the run rather than fail it. Wrap it
-	// with the reason: fmt.Errorf("%w: index.md is newer than this run",
-	// ErrSkipped).
+	// ErrSkipped declines a run without failing it. Wrap it with the reason.
 	ErrSkipped = errors.New("skipped")
 )
 
+// A Reducer writes one artifact. Reduce returns a one-line summary, or an error
+// wrapping ErrSkipped to decline.
 type Reducer struct {
-	Name string
-	// Artifact is the file this reducer writes, relative to the output
-	// directory. Two reducers claiming the same artifact are incompatible, and
-	// Validate rejects the pair. The package tests assert that each reducer
-	// writes exactly what it declares here, which is what makes that check
-	// sound rather than advisory.
-	Artifact string
-	// Reduce folds every record of the run into its artifact and returns a
-	// one-line summary for the operator. Returning an error wrapping ErrSkipped
-	// declines the run without failing it.
-	Reduce func(records []operation.Record, out *Output) (string, error)
+	Name     string
+	Artifact string // file written, relative to the output directory; must be unique across a run
+	Reduce   func(records []operation.Record, out *Output) (string, error)
 }
 
 var registry = map[string]Reducer{
@@ -59,9 +50,7 @@ func Lookup(name string) (Reducer, error) {
 	return reducer, nil
 }
 
-// Resolve turns flag names into the set of reducers a run will apply, rejecting
-// a set that cannot coexist. Blank entries are dropped, so an empty -reduce flag
-// means no aggregate artifact.
+// Resolve turns flag names into a validated set, dropping blank entries.
 func Resolve(names []string) ([]Reducer, error) {
 	reducers := make([]Reducer, 0, len(names))
 
@@ -84,9 +73,8 @@ func Resolve(names []string) ([]Reducer, error) {
 	return reducers, nil
 }
 
-// Validate reports whether a set of reducers can run together. It is called
-// before any download starts, so an unrunnable set costs nothing but the
-// milliseconds spent finding out.
+// Validate reports whether a set of reducers can coexist. Callers run it before
+// downloading, so an unrunnable set costs milliseconds rather than an operation.
 func Validate(reducers []Reducer) error {
 	names := make(map[string]int, len(reducers))
 	artifacts := make(map[string]string, len(reducers))
@@ -110,25 +98,18 @@ func Validate(reducers []Reducer) error {
 	return nil
 }
 
-// Options is the environment a reduce phase runs in.
 type Options struct {
 	OutputDir string
-	// Source is the file the records were loaded from, empty for a fresh
-	// download run.
-	Source string
+	Source    string // file the records were loaded from; empty for a fresh download
 }
 
-// Report is what one reduce phase produced: a line for each reducer that wrote
-// its artifact, and a line for each that declined.
 type Report struct {
-	Summaries []string
-	Skips     []string
+	Summaries []string // one line per reducer that wrote its artifact
+	Skips     []string // one line per reducer that declined
 }
 
-// Run applies every reducer to the same records, in order. A failing reducer
-// does not stop the rest: Run returns what the others produced alongside every
-// failure joined into one error. A reducer that declines via ErrSkipped is
-// recorded as a skip, not a failure.
+// Run applies every reducer in order. A failure does not stop the rest; they
+// are joined into one error. An ErrSkipped is recorded as a skip, not a failure.
 func Run(reducers []Reducer, records []operation.Record, options Options) (Report, error) {
 	out := &Output{dir: options.OutputDir, source: options.Source}
 

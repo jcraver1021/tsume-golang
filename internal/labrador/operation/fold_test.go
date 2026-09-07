@@ -53,6 +53,7 @@ func TestGroupBySection(t *testing.T) {
 		records      []Record
 		wantSections []string
 		wantCounts   []int
+		wantOrder    map[string][]string // URLs a section must list, in order
 	}{
 		{name: "nil records", records: nil, wantSections: []string{}, wantCounts: []int{}},
 		{
@@ -60,6 +61,18 @@ func TestGroupBySection(t *testing.T) {
 			records:      []Record{{Section: "Alpha", URL: "a"}, {Section: "Alpha", URL: "b"}},
 			wantSections: []string{"Alpha"},
 			wantCounts:   []int{2},
+		},
+		{
+			name: "records keep their arrival order within a section",
+			records: []Record{
+				{Section: "Alpha", URL: "first"},
+				{Section: "Beta", URL: "other"},
+				{Section: "Alpha", URL: "second"},
+				{Section: "Alpha", URL: "third"},
+			},
+			wantSections: []string{"Alpha", "Beta"},
+			wantCounts:   []int{3, 1},
+			wantOrder:    map[string][]string{"Alpha": {"first", "second", "third"}},
 		},
 		{
 			name: "sections are sorted regardless of arrival order",
@@ -99,56 +112,26 @@ func TestGroupBySection(t *testing.T) {
 			if len(groups) != len(tc.wantSections) {
 				t.Fatalf("groups = %d, want %d", len(groups), len(tc.wantSections))
 			}
+
+			grouped := 0
 			for i, group := range groups {
+				grouped += len(group.Records)
+
 				if group.Section != tc.wantSections[i] {
 					t.Errorf("groups[%d].Section = %q, want %q", i, group.Section, tc.wantSections[i])
 				}
 				if len(group.Records) != tc.wantCounts[i] {
 					t.Errorf("groups[%d] holds %d records, want %d", i, len(group.Records), tc.wantCounts[i])
 				}
+				for j, record := range group.Records {
+					if want := tc.wantOrder[group.Section]; want != nil && record.URL != want[j] {
+						t.Errorf("%s[%d].URL = %q, want %q", group.Section, j, record.URL, want[j])
+					}
+				}
+			}
+			if grouped != len(tc.records) {
+				t.Errorf("grouped %d records, want all %d", grouped, len(tc.records))
 			}
 		})
-	}
-}
-
-// Grouping must not drop or duplicate records, since reducers report counts
-// from the flat slice but list entries from the groups.
-func TestGroupBySectionPreservesEveryRecord(t *testing.T) {
-	records := []Record{
-		{Section: "Beta", URL: "b1"},
-		{Section: "Alpha", URL: "a1"},
-		{Section: "Beta", URL: "b2"},
-		{Section: "Alpha", URL: "a2"},
-	}
-
-	seen := 0
-	for _, group := range GroupBySection(records) {
-		seen += len(group.Records)
-	}
-	if seen != len(records) {
-		t.Errorf("grouped records = %d, want %d", seen, len(records))
-	}
-}
-
-// Within a section, records keep the order they arrived in, so an artifact
-// lists a section's URLs in the order the config declared them.
-func TestGroupBySectionPreservesOrderWithinASection(t *testing.T) {
-	records := []Record{
-		{Section: "Alpha", URL: "first"},
-		{Section: "Beta", URL: "other"},
-		{Section: "Alpha", URL: "second"},
-		{Section: "Alpha", URL: "third"},
-	}
-
-	groups := GroupBySection(records)
-	if groups[0].Section != "Alpha" {
-		t.Fatalf("groups[0].Section = %q, want Alpha", groups[0].Section)
-	}
-
-	want := []string{"first", "second", "third"}
-	for i, record := range groups[0].Records {
-		if record.URL != want[i] {
-			t.Errorf("Alpha[%d].URL = %q, want %q", i, record.URL, want[i])
-		}
 	}
 }

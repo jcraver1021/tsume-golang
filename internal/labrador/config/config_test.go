@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	. "tsumegolang/internal/labrador/config"
@@ -10,6 +11,7 @@ import (
 func TestLoad(t *testing.T) {
 	testCases := []struct {
 		name        string
+		missingFile bool
 		yamlContent string
 		want        []Section
 		wantErr     bool
@@ -96,22 +98,23 @@ func TestLoad(t *testing.T) {
 			want:        nil,
 			wantErr:     true,
 		},
+		{
+			name:        "missing file",
+			missingFile: true,
+			wantErr:     true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpFile, err := os.CreateTemp("", "test-sections-*.yaml")
-			if err != nil {
-				t.Fatalf("Failed to create temp file: %v", err)
+			path := filepath.Join(t.TempDir(), "sections.yaml")
+			if !tc.missingFile {
+				if err := os.WriteFile(path, []byte(tc.yamlContent), 0644); err != nil {
+					t.Fatalf("writing test config: %v", err)
+				}
 			}
-			defer os.Remove(tmpFile.Name())
 
-			if _, err := tmpFile.WriteString(tc.yamlContent); err != nil {
-				t.Fatalf("Failed to write to temp file: %v", err)
-			}
-			tmpFile.Close()
-
-			got, err := Load(tmpFile.Name())
+			got, err := Load(path)
 			if (err != nil) != tc.wantErr {
 				t.Errorf("Load() error = %v, wantErr %v", err, tc.wantErr)
 				return
@@ -152,12 +155,5 @@ func TestLoad(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestLoadFileNotFound(t *testing.T) {
-	_, err := Load("/nonexistent/file.yaml")
-	if err == nil {
-		t.Error("Load() expected error for nonexistent file, got nil")
 	}
 }

@@ -53,6 +53,17 @@ func TestWriteSectionBased(t *testing.T) {
 			wantDir:      "Config Files",
 			wantFilename: "config.json",
 		},
+		{
+			name: "binary content survives byte for byte",
+			payload: mapper.Payload{
+				URL:         "https://example.com/image.png",
+				Section:     "Binary Files",
+				Content:     []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D},
+				ContentType: "image/png",
+			},
+			wantDir:      "Binary Files",
+			wantFilename: "image.png",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -73,37 +84,14 @@ func TestWriteSectionBased(t *testing.T) {
 			if err != nil {
 				t.Fatalf("reading written file: %v", err)
 			}
-			if string(gotContent) != string(tc.payload.Content) {
-				t.Errorf("content = %q, want %q", gotContent, tc.payload.Content)
+			if !bytes.Equal(gotContent, tc.payload.Content) {
+				t.Errorf("content = % X, want % X", gotContent, tc.payload.Content)
 			}
 
 			if _, err := os.Stat(filepath.Join(baseDir, tc.wantDir)); err != nil {
 				t.Errorf("directory %q not created: %v", tc.wantDir, err)
 			}
 		})
-	}
-}
-
-func TestWriteBinaryContent(t *testing.T) {
-	binaryContent := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D}
-	payload := mapper.Payload{
-		URL:         "https://example.com/image.png",
-		Section:     "Binary Files",
-		Content:     binaryContent,
-		ContentType: "image/png",
-	}
-
-	gotPath, err := Write(payload, t.TempDir())
-	if err != nil {
-		t.Fatalf("Write() = %v", err)
-	}
-
-	gotContent, err := os.ReadFile(gotPath)
-	if err != nil {
-		t.Fatalf("reading written file: %v", err)
-	}
-	if !bytes.Equal(gotContent, binaryContent) {
-		t.Errorf("content = % X, want % X", gotContent, binaryContent)
 	}
 }
 

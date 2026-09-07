@@ -25,8 +25,7 @@ var (
 	flagReduce      = flag.String("reduce", "markdown-index", "comma-separated reducers, each folding every record into its own artifact")
 )
 
-// downloadOnlyFlags have no meaning when -from re-applies reducers to a
-// finished operation.
+// downloadOnlyFlags have no meaning when -from skips downloading.
 var downloadOnlyFlags = []string{"file", "retry-count", "backoff", "worker-count", "map"}
 
 func main() {
@@ -37,8 +36,7 @@ func main() {
 		log.Fatalf("Error: %v", err)
 	}
 
-	// Reducers resolve before anything is read or fetched, so an unrunnable set
-	// costs milliseconds rather than a whole operation.
+	// Resolving first means an unrunnable set costs milliseconds, not a run.
 	reducers, err := reducer.Resolve(strings.Split(*flagReduce, ","))
 	if err != nil {
 		log.Fatalf("Error resolving -reduce: %v", err)
@@ -48,8 +46,7 @@ func main() {
 	options := reducer.Options{OutputDir: *flagOutputDir}
 
 	if *flagFrom != "" {
-		// Artifacts belong beside the manifest they were derived from unless
-		// the caller says otherwise.
+		// Artifacts belong beside the manifest they came from.
 		if !provided["output-dir"] {
 			options.OutputDir = filepath.Dir(*flagFrom)
 		}

@@ -43,6 +43,12 @@ func TestNormalizeNewlines(t *testing.T) {
 			content:     "a\nb",
 			want:        "a\nb",
 		},
+		{
+			name:        "skips binary content",
+			contentType: "image/png",
+			content:     "a\r\nb",
+			want:        "a\r\nb",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -52,14 +58,5 @@ func TestNormalizeNewlines(t *testing.T) {
 				t.Errorf("Content = %q, want %q", got.Content, tc.want)
 			}
 		})
-	}
-}
-
-func TestNormalizeNewlinesSkipsBinary(t *testing.T) {
-	payload := Payload{ContentType: "image/png", Content: []byte("a\r\nb")}
-
-	got := applyChain(t, []string{"normalize-newlines"}, payload)
-	if string(got.Content) != "a\r\nb" {
-		t.Errorf("Content = %q, want it untouched", got.Content)
 	}
 }

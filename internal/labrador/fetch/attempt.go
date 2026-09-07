@@ -5,8 +5,7 @@ import (
 	"io"
 )
 
-// attempt performs one round trip, classifying the status so Get knows whether
-// retrying could help.
+// attempt performs one round trip, classifying the status for Get.
 func (c *Client) attempt(url string) (*Result, error) {
 	resp, err := c.http.Get(url)
 	if err != nil {
@@ -33,8 +32,8 @@ func (c *Client) attempt(url string) (*Result, error) {
 	}, nil
 }
 
-// drain lets the transport put the connection back in the idle pool; a body
-// closed with bytes still unread forces the connection shut instead.
+// drain returns the connection to the idle pool; closing a body with bytes
+// still unread forces it shut instead.
 func drain(body io.ReadCloser) {
 	_, _ = io.Copy(io.Discard, body)
 }

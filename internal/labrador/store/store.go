@@ -1,6 +1,5 @@
-// Package store decides where a downloaded payload lands and writes it there.
-// Naming is the interesting part: the URL's own suffix wins over the
-// Content-Type header, and a mapper that reshaped the content overrides both.
+// Package store names a downloaded payload and writes it. The URL's suffix wins
+// over Content-Type, and a mapper's forced extension overrides both.
 package store
 
 import (
@@ -51,8 +50,7 @@ func pathFor(urlStr string, baseDir string, section string, ext string) (string,
 	return filepath.Join(dirPath, filename), nil
 }
 
-// Write puts a mapped payload on disk, honouring an extension a mapper forced
-// in place of the one extensionFor would infer from the URL.
+// Write puts a mapped payload on disk.
 func Write(payload mapper.Payload, baseDir string) (string, error) {
 	ext := payload.Extension
 	if ext == "" {
@@ -64,8 +62,7 @@ func Write(payload mapper.Payload, baseDir string) (string, error) {
 		return "", err
 	}
 
-	// pathFor keeps an extension already present in the URL's last segment, so
-	// a forced extension has to be swapped in afterwards.
+	// pathFor keeps any extension already in the URL, so swap it afterwards.
 	if payload.Extension != "" {
 		filePath = strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "." + payload.Extension
 	}

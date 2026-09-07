@@ -105,10 +105,11 @@ func TestKindOf(t *testing.T) {
 
 func TestResolve(t *testing.T) {
 	testCases := []struct {
-		name    string
-		names   []string
-		want    []string
-		wantErr error
+		name            string
+		names           []string
+		want            []string
+		wantErr         error
+		wantErrContains []string
 	}{
 		{
 			name:  "empty flag yields an empty chain",
@@ -131,19 +132,27 @@ func TestResolve(t *testing.T) {
 			want:  []string{"html-to-text", "normalize-newlines"},
 		},
 		{
-			name:    "unknown name is rejected",
-			names:   []string{"strip-scripts", "transmogrify"},
-			wantErr: ErrUnknownMapper,
+			name:            "unknown name is rejected",
+			names:           []string{"strip-scripts", "transmogrify"},
+			wantErr:         ErrUnknownMapper,
+			wantErrContains: append([]string{`"transmogrify"`}, Names()...),
 		},
 		{
-			name:    "repeating a mapper is rejected",
-			names:   []string{"strip-scripts", "strip-styles", "strip-scripts"},
-			wantErr: ErrDuplicateMapper,
+			name:            "repeating a mapper is rejected",
+			names:           []string{"strip-scripts", "strip-styles", "strip-scripts"},
+			wantErr:         ErrDuplicateMapper,
+			wantErrContains: []string{`"strip-scripts"`, "positions 1 and 3"},
 		},
 		{
 			name:    "html mapper after html is consumed is rejected",
 			names:   []string{"html-to-text", "strip-scripts"},
 			wantErr: ErrUnreachableMapper,
+			wantErrContains: []string{
+				`"strip-scripts" at position 2`,
+				"accepts html",
+				`html is consumed by "html-to-text" at position 1`,
+				"kinds reaching position 2: binary, json, text, xml",
+			},
 		},
 	}
 
@@ -156,6 +165,11 @@ func TestResolve(t *testing.T) {
 				}
 				if got != nil {
 					t.Error("chain should be nil when resolution fails")
+				}
+				for _, want := range tc.wantErrContains {
+					if !strings.Contains(err.Error(), want) {
+						t.Errorf("error %q does not contain %q", err, want)
+					}
 				}
 				return
 			}
@@ -176,97 +190,69 @@ func TestResolve(t *testing.T) {
 	}
 }
 
-func TestUnreachableErrorExplainsWhy(t *testing.T) {
-	_, err := Resolve([]string{"html-to-text", "strip-scripts"})
-	if !errors.Is(err, ErrUnreachableMapper) {
-		t.Fatalf("err = %v, want %v", err, ErrUnreachableMapper)
+func TestValidateAcceptsCoherentChains(t *testing.T) {
+	testCases := []struct {
+		name  string
+		names []string
+	}{
+		{name: "kind-preserving mapper before a conversion", names: []string{"normalize-newlines", "html-to-text"}},
+		{name: "kind-preserving mapper after a conversion", names: []string{"html-to-text", "normalize-newlines"}},
+		{name: "two html mappers then the conversion", names: []string{"strip-scripts", "strip-styles", "html-to-text"}},
+		{
+			name:  "every mapper, ordered so each can still fire",
+			names: []string{"strip-scripts", "strip-styles", "html-to-text", "normalize-newlines"},
+		},
 	}
 
-	for _, want := range []string{
-		`"strip-scripts" at position 2`,
-		"accepts html",
-		`html is consumed by "html-to-text" at position 1`,
-		"kinds reaching position 2: binary, json, text, xml",
-	} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q does not contain %q", err, want)
-		}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := Resolve(tc.names); err != nil {
+				t.Errorf("Resolve(%v) = %v, want it to validate", tc.names, err)
+			}
+		})
 	}
 }
 
-func TestDuplicateErrorNamesBothPositions(t *testing.T) {
-	_, err := Resolve([]string{"strip-scripts", "strip-styles", "strip-scripts"})
-	if !errors.Is(err, ErrDuplicateMapper) {
-		t.Fatalf("err = %v, want %v", err, ErrDuplicateMapper)
+func TestApply(t *testing.T) {
+	testCases := []struct {
+		name          string
+		chain         []string
+		payload       Payload
+		wantContent   string
+		wantExtension string
+	}{
+		{
+			name:          "the chain runs in order",
+			chain:         []string{"strip-scripts", "html-to-text"},
+			payload:       Payload{ContentType: "text/html", Content: []byte(`<style>p{}</style><script>secret</script><p>a &lt; b</p>`)},
+			wantContent:   "a < b\n",
+			wantExtension: "txt",
+		},
+		{
+			name:        "a mapper that does not accept the kind is skipped",
+			chain:       []string{"strip-scripts", "normalize-newlines"},
+			payload:     Payload{ContentType: "text/html", Content: []byte("<p>a</p>\r\n")},
+			wantContent: "<p>a</p>\r\n",
+		},
+		{
+			name:        "an empty chain leaves the payload alone",
+			chain:       nil,
+			payload:     Payload{ContentType: "text/html", Content: []byte("<p>a</p>")},
+			wantContent: "<p>a</p>",
+		},
 	}
 
-	for _, want := range []string{`"strip-scripts"`, "positions 1 and 3"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("error %q does not contain %q", err, want)
-		}
-	}
-}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := applyChain(t, tc.chain, tc.payload)
 
-func TestUnknownErrorListsAvailable(t *testing.T) {
-	_, err := Lookup("nope")
-	if !errors.Is(err, ErrUnknownMapper) {
-		t.Fatalf("err = %v, want %v", err, ErrUnknownMapper)
-	}
-	for _, name := range Names() {
-		if !strings.Contains(err.Error(), name) {
-			t.Errorf("error %q does not mention %q", err, name)
-		}
-	}
-}
-
-func TestValidateIsIndependentOfArrivalOrder(t *testing.T) {
-	// Both orders are coherent: normalize-newlines leaves the kind alone, so it
-	// neither consumes html nor depends on the conversion having happened.
-	for _, names := range [][]string{
-		{"normalize-newlines", "html-to-text"},
-		{"html-to-text", "normalize-newlines"},
-	} {
-		if _, err := Resolve(names); err != nil {
-			t.Errorf("Resolve(%v) = %v, want it to validate", names, err)
-		}
-	}
-}
-
-func TestApplyRunsChainInOrder(t *testing.T) {
-	chain, err := Resolve([]string{"strip-scripts", "html-to-text"})
-	if err != nil {
-		t.Fatalf("Resolve() = %v", err)
-	}
-
-	got, err := chain.Apply(Payload{
-		ContentType: "text/html",
-		Content:     []byte(`<style>p{}</style><script>secret</script><p>a &lt; b</p>`),
-	})
-	if err != nil {
-		t.Fatalf("Apply() = %v", err)
-	}
-
-	if string(got.Content) != "a < b\n" {
-		t.Errorf("Content = %q, want %q", got.Content, "a < b\n")
-	}
-	if got.Extension != "txt" {
-		t.Errorf("Extension = %q, want txt", got.Extension)
-	}
-}
-
-func TestApplySkipsMappersThatDoNotAcceptTheKind(t *testing.T) {
-	chain, err := Resolve([]string{"strip-scripts", "normalize-newlines"})
-	if err != nil {
-		t.Fatalf("Resolve() = %v", err)
-	}
-
-	// A payload that stays HTML never reaches normalize-newlines.
-	got, err := chain.Apply(Payload{ContentType: "text/html", Content: []byte("<p>a</p>\r\n")})
-	if err != nil {
-		t.Fatalf("Apply() = %v", err)
-	}
-	if string(got.Content) != "<p>a</p>\r\n" {
-		t.Errorf("Content = %q, want the CRLF left alone", got.Content)
+			if string(got.Content) != tc.wantContent {
+				t.Errorf("Content = %q, want %q", got.Content, tc.wantContent)
+			}
+			if got.Extension != tc.wantExtension {
+				t.Errorf("Extension = %q, want %q", got.Extension, tc.wantExtension)
+			}
+		})
 	}
 }
 
