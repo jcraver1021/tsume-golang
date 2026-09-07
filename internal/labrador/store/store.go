@@ -9,55 +9,38 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"tsumegolang/internal/labrador/mapper"
 )
 
 var (
-	ErrWriteFile  = errors.New("failed to write to file")
-	ErrInvalidURL = errors.New("invalid URL")
-	ErrCreateDir  = errors.New("failed to create directory")
+	ErrWriteFile     = errors.New("failed to write to file")
+	ErrInvalidURL    = errors.New("invalid URL")
+	ErrCreateDir     = errors.New("failed to create directory")
+	ErrPathCollision = errors.New("two downloads want the same file")
 )
 
-func pathFor(urlStr string, baseDir string, section string, ext string) (string, error) {
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrInvalidURL, err)
-	}
+// A Writer holds one run's output directory and the paths it has already
+// written, so a second download can never silently replace a first.
+type Writer struct {
+	baseDir string
+	mu      sync.Mutex
+	written map[string]string
+}
 
-	dirPath := filepath.Join(baseDir, section)
-
-	pathPart := strings.Trim(parsedURL.Path, "/")
-	var filename string
-
-	if pathPart == "" {
-		filename = parsedURL.Host + "." + ext
-	} else {
-		pathSegments := strings.Split(pathPart, "/")
-		lastSegment := pathSegments[len(pathSegments)-1]
-
-		if filepath.Ext(lastSegment) != "" {
-			filename = lastSegment
-		} else {
-			filename = lastSegment + "." + ext
-		}
-	}
-
-	if err := os.MkdirAll(dirPath, 0755); err != nil {
-		return "", fmt.Errorf("%w: %w", ErrCreateDir, err)
-	}
-
-	return filepath.Join(dirPath, filename), nil
+func NewWriter(baseDir string) *Writer {
+	return &Writer{baseDir: baseDir, written: map[string]string{}}
 }
 
 // Write puts a mapped payload on disk.
-func Write(payload mapper.Payload, baseDir string) (string, error) {
+func (w *Writer) Write(payload mapper.Payload) (string, error) {
 	ext := payload.Extension
 	if ext == "" {
 		ext = extensionFor(payload.URL, payload.ContentType)
 	}
 
-	filePath, err := pathFor(payload.URL, baseDir, payload.Section, ext)
+	filePath, err := w.pathFor(payload, ext)
 	if err != nil {
 		return "", err
 	}
@@ -67,9 +50,65 @@ func Write(payload mapper.Payload, baseDir string) (string, error) {
 		filePath = strings.TrimSuffix(filePath, filepath.Ext(filePath)) + "." + payload.Extension
 	}
 
+	if err := w.claim(filePath, payload.URL); err != nil {
+		return "", err
+	}
 	if err := os.WriteFile(filePath, payload.Content, 0644); err != nil {
 		return "", fmt.Errorf("%w: %w", ErrWriteFile, err)
 	}
 
 	return filePath, nil
+}
+
+// claim guards the cases PlanFilenames cannot foresee, such as a mapper
+// rewriting two different extensions into one.
+func (w *Writer) claim(path, url string) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if owner, taken := w.written[path]; taken {
+		return fmt.Errorf("%w: %s was already written for %s", ErrPathCollision, path, owner)
+	}
+	w.written[path] = url
+	return nil
+}
+
+func (w *Writer) pathFor(payload mapper.Payload, ext string) (string, error) {
+	parsed, err := url.Parse(payload.URL)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", ErrInvalidURL, err)
+	}
+
+	dirPath := filepath.Join(w.baseDir, payload.Section)
+	pathPart := strings.Trim(parsed.Path, "/")
+
+	segment := payload.Filename
+	if segment == "" {
+		segment = defaultSegment(parsed, pathPart)
+	}
+
+	var filename string
+	switch {
+	case pathPart == "":
+		// A host is not a filename, so it always takes an extension.
+		filename = segment + "." + ext
+	case filepath.Ext(segment) != "":
+		filename = segment
+	default:
+		filename = segment + "." + ext
+	}
+
+	if err := os.MkdirAll(dirPath, 0755); err != nil {
+		return "", fmt.Errorf("%w: %w", ErrCreateDir, err)
+	}
+
+	return filepath.Join(dirPath, filename), nil
+}
+
+func defaultSegment(parsed *url.URL, pathPart string) string {
+	if pathPart == "" {
+		return parsed.Host
+	}
+	segments := strings.Split(pathPart, "/")
+	return segments[len(segments)-1]
 }

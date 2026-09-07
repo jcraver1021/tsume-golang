@@ -62,6 +62,7 @@ type Payload struct {
 	Section     string
 	Content     []byte
 	ContentType string
+	Filename    string // planned name in place of the URL's last segment; empty derives it
 	Extension   string // set by a mapper that reshapes content; naming trusts the URL suffix otherwise
 }
 

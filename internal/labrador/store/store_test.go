@@ -2,8 +2,12 @@ package store_test
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 
 	"tsumegolang/internal/labrador/mapper"
@@ -70,7 +74,7 @@ func TestWriteSectionBased(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			baseDir := t.TempDir()
 
-			gotPath, err := Write(tc.payload, baseDir)
+			gotPath, err := NewWriter(baseDir).Write(tc.payload)
 			if err != nil {
 				t.Fatalf("Write() = %v", err)
 			}
@@ -122,7 +126,7 @@ func TestWriteForcedExtensionReplacesURLSuffix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			baseDir := t.TempDir()
 
-			got, err := Write(tc.payload, baseDir)
+			got, err := NewWriter(baseDir).Write(tc.payload)
 			if err != nil {
 				t.Fatalf("Write() = %v", err)
 			}
@@ -140,5 +144,102 @@ func TestWriteForcedExtensionReplacesURLSuffix(t *testing.T) {
 				t.Errorf("content = %q, want %q", content, tc.payload.Content)
 			}
 		})
+	}
+}
+
+// PlanFilenames works from URLs, so it cannot foresee a mapper collapsing two
+// different extensions onto one name. The writer refuses rather than overwrite.
+func TestWriterRefusesToOverwriteWithinARun(t *testing.T) {
+	testCases := []struct {
+		name     string
+		payloads []mapper.Payload
+		wantErr  error
+		wantKept string
+	}{
+		{
+			name: "two payloads mapped onto the same name",
+			payloads: []mapper.Payload{
+				{URL: "https://x.com/a/doc.html", Section: "S", Content: []byte("first"), Extension: "txt"},
+				{URL: "https://x.com/b/doc.txt", Section: "S", Content: []byte("second"), Filename: "doc.txt"},
+			},
+			wantErr:  ErrPathCollision,
+			wantKept: "first",
+		},
+		{
+			name: "distinct names are both written",
+			payloads: []mapper.Payload{
+				{URL: "https://x.com/a", Section: "S", Content: []byte("first"), Filename: "a", ContentType: "text/html"},
+				{URL: "https://x.com/b", Section: "S", Content: []byte("second"), Filename: "b", ContentType: "text/html"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			baseDir := t.TempDir()
+			writer := NewWriter(baseDir)
+
+			var firstPath string
+			var lastErr error
+			for i, payload := range tc.payloads {
+				path, err := writer.Write(payload)
+				if i == 0 {
+					firstPath = path
+				}
+				lastErr = err
+			}
+
+			if tc.wantErr == nil {
+				if lastErr != nil {
+					t.Fatalf("Write() = %v", lastErr)
+				}
+				return
+			}
+
+			if !errors.Is(lastErr, tc.wantErr) {
+				t.Fatalf("err = %v, want %v", lastErr, tc.wantErr)
+			}
+			if !strings.Contains(lastErr.Error(), tc.payloads[0].URL) {
+				t.Errorf("error %q does not name the URL that claimed the path", lastErr)
+			}
+
+			got, err := os.ReadFile(firstPath)
+			if err != nil {
+				t.Fatalf("reading %s: %v", firstPath, err)
+			}
+			if string(got) != tc.wantKept {
+				t.Errorf("content = %q, want %q — the first write must survive", got, tc.wantKept)
+			}
+		})
+	}
+}
+
+// Workers share one Writer, so its bookkeeping has to be safe under -race.
+func TestWriterIsSafeForConcurrentUse(t *testing.T) {
+	writer := NewWriter(t.TempDir())
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 32)
+	for i := range 32 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			payload := mapper.Payload{
+				URL:         fmt.Sprintf("https://x.com/doc%d", i),
+				Section:     "S",
+				Filename:    fmt.Sprintf("doc%d", i),
+				Content:     []byte("body"),
+				ContentType: "text/html",
+			}
+			if _, err := writer.Write(payload); err != nil {
+				errs <- err
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		t.Errorf("concurrent Write() = %v", err)
 	}
 }

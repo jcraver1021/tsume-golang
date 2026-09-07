@@ -58,6 +58,12 @@ Filenames come from the URL's last path segment. Extensions come from the URL
 suffix when it has a known one, otherwise the `Content-Type` header, otherwise
 `.html` — see [FILETYPE_DETECTION.md](FILETYPE_DETECTION.md).
 
+When two URLs in a section would land on the same name, both take more of their
+path until they separate, so `a/index.html` and `b/index.html` become
+`a_index.html` and `b_index.html`. Names are planned from the config before
+downloading, so they do not depend on the order downloads finish in. Sections
+are separate directories and never contend with each other.
+
 ## Mappers
 
 A mapper transforms a download before it is written. `-map` runs them in order.

@@ -24,8 +24,9 @@ var (
 )
 
 type downloadJob struct {
-	URL     string
-	Section string
+	URL      string
+	Section  string
+	Filename string
 }
 
 type MultiDownloader struct {
@@ -60,6 +61,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		fetchOpts = append(fetchOpts, fetch.WithBackoff(settings.BackoffMs))
 	}
 	fetcher := fetch.New(fetchOpts...)
+	writer := store.NewWriter(outputDir)
 
 	job := func(dj downloadJob) concurrency.JobResult[downloadJob, operation.Record] {
 		result, err := fetcher.Get(dj.URL)
@@ -83,6 +85,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 		payload, err := settings.Mappers.Apply(mapper.Payload{
 			URL:         dj.URL,
 			Section:     dj.Section,
+			Filename:    dj.Filename,
 			Content:     result.Content,
 			ContentType: result.ContentType,
 		})
@@ -96,7 +99,7 @@ func NewMultiDownloader(settings MultiDownloaderSettings) *MultiDownloader {
 			}
 		}
 
-		filePath, err := store.Write(payload, outputDir)
+		filePath, err := writer.Write(payload)
 		if err != nil {
 			record.Error = err
 			return concurrency.JobResult[downloadJob, operation.Record]{
@@ -130,10 +133,12 @@ func (md *MultiDownloader) Start() {
 func (md *MultiDownloader) DownloadSections(sections []config.Section) []operation.Record {
 	var allJobs []downloadJob
 	for _, section := range sections {
+		names := store.PlanFilenames(section.URLs)
 		for _, url := range section.URLs {
 			allJobs = append(allJobs, downloadJob{
-				URL:     url,
-				Section: section.Name,
+				URL:      url,
+				Section:  section.Name,
+				Filename: names[url],
 			})
 		}
 	}
